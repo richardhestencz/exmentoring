@@ -32,7 +32,7 @@ ul{list-style:none;margin:0;padding:0}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
 .studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
 .studio svg{width:26px;height:23px}
-.top nav{display:flex}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
 .top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
 .top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
 .conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
@@ -217,7 +217,7 @@ footer strong{color:#fff}
 <header class="top">
   <div class="wrap">
     <a class="studio" href="#jatek"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Mentoring szoba</a>
-    <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a></nav>
+    <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
 </header>
@@ -283,7 +283,7 @@ footer strong{color:#fff}
     <h2 class="sec">Hogyan működik</h2>
     <p class="lead">Virtuális játék, nem valódi pénz. Mosómedvékben játszunk, és a pot csak a szobáé.</p>
     <ol class="steps">
-      <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először beér az irodába, +10 000 mosómedvét hoz a közösnek.</div></li>
+      <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először beér az irodába, +10 000 mosómedvét hoz a közösnek (ez a <a href="/bent.html">Ki van bent?</a> funkcióval indul, hamarosan).</div></li>
       <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Valódi fizika</h3>A golyó fizikai szimulációval forog, pattog és áll meg. A nyerő szám abból jön, hol marad a golyó.</div></li>
       <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Ajtó és Pörgetés</h3>A kerék akkor indul, ha nyílik az ajtó, vagy valaki a tétei után megnyomja a Pörgetés gombot. Az ajtó is tesz fel 1000 mosómedvét. Az ajtót az irodai MacBook figyeli: <a href="/ajto.html">így kell beállítani</a>.</div></li>
     </ol>
@@ -291,7 +291,7 @@ footer strong{color:#fff}
 </section>
 </main>
 <footer><div class="wrap">
-  <p><strong>Exmentoring</strong><br>A Mentoring szoba közös rulettje. Virtuális játék, valódi pénz nincs benne.</p>
+  <p><strong>Exmentoring</strong><br>A Mentoring szoba közös rulettje. Virtuális játék, valódi pénz nincs benne.<br>A kód: <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">github.com/richardhestencz/exmentoring</a></p>
   <p style="margin-top:14px"><button class="upd" id="upd" type="button">Frissítés a GitHubról</button> <span id="updmsg" role="status"></span></p>
 </div></footer>
 

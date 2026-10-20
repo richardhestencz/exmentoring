@@ -25,7 +25,7 @@ BTHOME_UUID = "0000fcd2-0000-1000-8000-00805f9b34fb"
 ap = argparse.ArgumentParser()
 ap.add_argument("--nev", default=os.environ.get("AJTO_NEV", ""), help="eszköznév részlet szűrő")
 ap.add_argument("--uzenet", default=os.environ.get("UZENET", ""), help="telefonszám vagy Apple ID e-mail az iMessage-hez")
-ap.add_argument("--szerver", default=os.environ.get("SZERVER", ""), help="Exmentoring szerver URL-je, pl. https://mac-mini.tailXXXX.ts.net")
+ap.add_argument("--szerver", default=os.environ.get("SZERVER", ""), help="Exmentoring szerver URL-je, pl. https://hestencz-mac-mini.tail018e03.ts.net")
 ap.add_argument("--token", default=os.environ.get("INGEST_TOKEN", ""), help="az Exmentoring INGEST_TOKEN értéke")
 ap.add_argument("--debug", action="store_true", help="minden érkező csomag kiírása")
 ARGS = ap.parse_args()

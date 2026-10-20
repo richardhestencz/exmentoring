@@ -27,7 +27,7 @@ a{color:#b4471a}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
 .studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
 .studio svg{width:26px;height:23px}
-.top nav{display:flex}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
 .top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
 .top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
 .top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
@@ -44,6 +44,9 @@ p{margin:0 0 12px}
 ul.list{margin:0 0 12px;padding-left:20px}
 ul.list li{margin:4px 0}
 .card{background:var(--peach);border-radius:18px;padding:18px 20px;margin:0 0 14px}
+.card.dl{background:var(--sand);border:1px solid var(--line);margin-bottom:28px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;text-decoration:none}
+.btn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
 .card.note{background:#fff7d6;border:1px solid #efd98a}
 .card.bad{background:#ffe5e2;border:1px solid #f3b1aa}
 .card h3{margin:0 0 6px;font-size:1rem;color:var(--ink)}
@@ -92,7 +95,7 @@ footer strong{color:#fff}
 <header class="top">
   <div class="wrap">
     <a class="studio" href="/"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Mentoring szoba</a>
-    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html" aria-current="page">Ajtó beállítása</a></nav>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html" aria-current="page">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
 </header>
 
@@ -112,7 +115,7 @@ footer strong{color:#fff}
   <h2><span class="n">1</span>Ami kell hozzá</h2>
   <ul class="list">
     <li><strong>Egy MacBook az irodában</strong>, az ajtótól legfeljebb kb. 10 méterre, lehetőleg fal nélkül. Ennek a gépnek bekapcsolva és bejelentkezve kell maradnia.</li>
-    <li><strong>Az oldal nyilvános címe</strong>, amit az irodából is el lehet érni (a Mac mini Tailscale Funnel címe, valami ilyesmi: <code>https://mac-mini.tailXXXX.ts.net</code>).</li>
+    <li><strong>Az oldal nyilvános címe</strong>, amit az irodából is el lehet érni (a Mac mini Tailscale Funnel címe, vagyis: <a href="https://hestencz-mac-mini.tail018e03.ts.net">https://hestencz-mac-mini.tail018e03.ts.net</a>).</li>
     <li><strong>A titkos token.</strong> Ezt az oldal gazdájától kapod meg. Nem szerepel ezen az oldalon, mert bárki láthatja. A gazda így nézi meg a Mac minin: <code>grep INGEST_TOKEN ~/Exmentoring/.env</code></li>
   </ul>
   <div class="card bad" id="localwarn" hidden>
@@ -122,10 +125,15 @@ footer strong{color:#fff}
 </div></section>
 
 <section><div class="wrap">
+  <div class="card dl">
+    <h3>Gyorsabb út: add oda Claude-nak</h3>
+    <p>Ha az irodai MacBookon van Claude (Claude Code vagy a Claude asztali app), töltsd le ezt a fájlt, és add oda neki azzal, hogy „állítsd be ezt”. Pontosan leírja, mit kell futtatnia és ellenőriznie. A tokent tőled fogja elkérni, a jelszavas és engedélyes lépéseket pedig neked mondja meg.</p>
+    <p><a class="btn" href="/exmentoring-ajto-claude.md" download="exmentoring-ajto-claude.md">Útmutató letöltése Claude-nak (.md)</a></p>
+  </div>
   <h2><span class="n">2</span>A telepítő parancs</h2>
   <p>A MacBookon nyisd meg a <strong>Terminált</strong> (Spotlight: <kbd>Cmd</kbd>+<kbd>Szóköz</kbd>, írd be: Terminál), másold be az alábbi parancsot, és nyomj Entert.</p>
   <label for="srv">Az oldal nyilvános címe</label>
-  <div class="field"><input id="srv" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://mac-mini.tailXXXX.ts.net"></div>
+  <div class="field"><input id="srv" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://hestencz-mac-mini.tail018e03.ts.net"></div>
   <div class="code">
     <pre id="cmd"></pre>
     <button class="copy" type="button" data-copy="cmd">Másolás</button>
@@ -137,8 +145,6 @@ footer strong{color:#fff}
       <tr><td>A játék oldalának címe</td><td>Már ki van töltve a fenti címmel, csak nyomj Entert.</td></tr>
       <tr><td>Titkos token</td><td>A gazdától kapott token. Gépelés közben nem látszik, ez így van rendjén. Beillesztés: <kbd>Cmd</kbd>+<kbd>V</kbd>, majd Enter.</td></tr>
       <tr><td>Az ajtószenzor nevének részlete</td><td>Enter (alapból <code>SBDW</code>, a Shelly ajtószenzorok neve így kezdődik).</td></tr>
-      <tr><td>iMessage minden nyitásról</td><td>Ha kérsz üzenetet minden nyitásról, egy telefonszám vagy Apple ID. Különben Enter.</td></tr>
-      <tr><td>Nevek az ebédidős tipphez</td><td>Vesszővel elválasztott nevek, ha kéred a 11 és 13 óra közötti tréfás tippet. Különben Enter.</td></tr>
     </tbody>
   </table>
   <p>Ha a telepítő azt írja, hogy <span class="ok">„A szerver elérhető, a token jó.”</span>, akkor a MacBook már beszél az oldallal.</p>
@@ -154,7 +160,6 @@ footer strong{color:#fff}
   <ul class="list">
     <li><strong>Bluetooth a Terminálnak.</strong> Ha nem kérdezi meg, kapcsold be kézzel: Rendszerbeállítások › Adatvédelem és biztonság › Bluetooth › Terminál. Utána zárd be az ajtófigyelő ablakát, és indítsd újra (lásd lent).</li>
     <li><strong>A „System Events” vezérlése</strong>, hogy bejelentkezéskor magától induljon.</li>
-    <li><strong>A Messages vezérlése</strong>, ha iMessage-et is kértél.</li>
   </ul>
   <p>Ha az ablakban ezt látod: <code>Bluetooth device is turned off</code>, akkor a Terminálnak még nincs Bluetooth-engedélye.</p>
 </div></section>
@@ -194,7 +199,7 @@ footer strong{color:#fff}
 
 <section><div class="wrap">
   <h2><span class="n">7</span>Mit csinál a telepítő</h2>
-  <p>Ha előbb belenéznél, a szkript itt olvasható: <a href="https://github.com/richardhestencz/exmentoring/blob/main/iroda-macbook/install.sh" rel="noopener">iroda-macbook/install.sh</a>. Lépésről lépésre:</p>
+  <p>A teljes kód a GitHubon van: <a href="https://github.com/richardhestencz/exmentoring" rel="noopener">github.com/richardhestencz/exmentoring</a>. A telepítő szkript itt olvasható: <a href="https://github.com/richardhestencz/exmentoring/blob/main/iroda-macbook/install.sh" rel="noopener">iroda-macbook/install.sh</a>. Lépésről lépésre:</p>
   <ol class="list">
     <li>Ellenőrzi, hogy megvannak-e az Apple fejlesztői eszközök, és ha nincsenek, elindítja a telepítésüket.</li>
     <li>Letölti a kódot a GitHubról a <code>~/exmentoring-ajto</code> mappába (vagy frissíti, ha már ott van).</li>
@@ -213,16 +218,17 @@ footer strong{color:#fff}
 </main>
 
 <footer><div class="wrap">
-  <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a></p>
+  <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a> · <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">GitHub</a></p>
 </div></footer>
 
 <script>
+const PUBLIC='https://hestencz-mac-mini.tail018e03.ts.net';
 const RAW='https://raw.githubusercontent.com/richardhestencz/exmentoring/main/iroda-macbook/install.sh';
 const $=(id)=>document.getElementById(id);
 const local=/^(localhost|127\.|\[::1\]|0\.0\.0\.0)/.test(location.hostname)||location.protocol==='file:';
 const srv=$('srv');
 let saved='';try{saved=localStorage.getItem('exm-srv')||''}catch{}
-srv.value=local?saved:location.origin;
+srv.value=local?(saved||PUBLIC):location.origin;
 if(local){$('localwarn').hidden=false;$('curorigin').textContent=location.origin||'helyi fájl';}
 const q=(s)=>/^[\w:\/.\-]+$/.test(s)?s:"'"+s.replace(/'/g,"'\\''")+"'";
 function render(){

@@ -20,8 +20,8 @@ Ha nincs `INGEST_TOKEN`, a szerver kiír egy ideiglenes tokent.
 curl -X POST $URL/api/door     -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"state":"open"}'
 curl -X POST $URL/api/presence -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"present":["Matyi","Ricsi"]}'
 ```
-A Shelly szenzorhoz: `shelly-ajto/ajto.py --szerver $URL --token $TOKEN`.
+A Shelly ajtószenzor az irodai MacBookon fut, beállítása: https://hestencz-mac-mini.tail018e03.ts.net/ajto.html
 
 ## Üzemeltetés
-- Állapot: `data/state.json` (pot, ranglista). Ingyenes tárhelyen újraindításkor elveszhet.
+- Állapot: `data/state.json` (pot, ranglista), a Mac minin `~/Exmentoring/data/state.json`.
 - Env: `PORT`, `INGEST_TOKEN`, `DATA_DIR`.

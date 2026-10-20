@@ -1,7 +1,7 @@
 #!/bin/bash
 # Az Exmentoring ajtófigyelőjének telepítése az irodai MacBookra (az ajtó közelébe, ahol a Shelly szenzor van).
 # Futtatás a Terminálban:
-#   bash <(curl -fsSL https://raw.githubusercontent.com/richardhestencz/exmentoring/main/iroda-macbook/install.sh) <a játék oldalának címe>
+#   bash <(curl -fsSL https://raw.githubusercontent.com/richardhestencz/exmentoring/main/iroda-macbook/install.sh) https://hestencz-mac-mini.tail018e03.ts.net
 # Többször is futtatható: frissít, a meglévő beállításokat Enterrel meg lehet tartani.
 set -euo pipefail
 REPO="https://github.com/richardhestencz/exmentoring.git"
@@ -24,19 +24,24 @@ fi
 cd "$DIR"
 
 # 3. Beállítások (ajto.env, csak ezen a gépen, a GitHubra nem kerül fel)
+# Kérdés nélkül is fut, ha a token az INGEST_TOKEN környezeti változóban van (pl. Claude futtatja).
 CONF="$DIR/ajto.env"
-SZERVER="" INGEST_TOKEN="" AJTO_NEV="" UZENET="" EBED_NEVEK=""
+ENV_TOKEN="${INGEST_TOKEN:-}"
+SZERVER="" INGEST_TOKEN="" AJTO_NEV=""
 [ -f "$CONF" ] && . "$CONF"
-ask() { local v; read -r -p "$1${2:+ [$2]}: " v </dev/tty; printf '%s' "${v:-$2}"; }
+TTY=0; { : </dev/tty; } 2>/dev/null && TTY=1
+ask() { local v=""; [ $TTY = 1 ] && read -r -p "$1${2:+ [$2]}: " v </dev/tty; printf '%s' "${v:-$2}"; }
 
-SZERVER=$(ask "A játék oldalának címe" "${1:-$SZERVER}"); SZERVER="${SZERVER%/}"
-[ -n "$SZERVER" ] || { echo "A cím kötelező (pl. https://mac-mini.tailXXXX.ts.net)."; exit 1; }
-if [ -n "$INGEST_TOKEN" ]; then
-  read -r -s -p "Titkos token (Enter: a meglévő marad): " t </dev/tty; echo
-else
-  read -r -s -p "Titkos token (az oldal gazdájától kapod): " t </dev/tty; echo
+if [ -n "${1:-}" ]; then SZERVER="$1"; else SZERVER=$(ask "A játék oldalának címe" "$SZERVER"); fi
+SZERVER="${SZERVER%/}"
+[ -n "$SZERVER" ] || { echo "A cím kötelező (https://hestencz-mac-mini.tail018e03.ts.net)."; exit 1; }
+if [ -n "$ENV_TOKEN" ]; then
+  INGEST_TOKEN="$ENV_TOKEN"
+elif [ $TTY = 1 ]; then
+  if [ -n "$INGEST_TOKEN" ]; then read -r -s -p "Titkos token (Enter: a meglévő marad): " t </dev/tty
+  else read -r -s -p "Titkos token (az oldal gazdájától kapod): " t </dev/tty; fi
+  echo; INGEST_TOKEN="${t:-$INGEST_TOKEN}"
 fi
-INGEST_TOKEN="${t:-$INGEST_TOKEN}"
 [ -n "$INGEST_TOKEN" ] || { echo "A token kötelező."; exit 1; }
 
 code=$(curl -s -o /dev/null -w '%{http_code}' -m 15 -H "Authorization: Bearer $INGEST_TOKEN" "$SZERVER/api/ping" || true)
@@ -47,15 +52,11 @@ case "$code" in
 esac
 
 AJTO_NEV=$(ask "Az ajtószenzor nevének részlete" "${AJTO_NEV:-SBDW}")
-UZENET=$(ask "iMessage minden nyitásról erre a számra vagy Apple ID-ra (Enter: nincs)" "$UZENET")
-EBED_NEVEK=$(ask "Nevek az ebédidős tipphez, vesszővel (Enter: nincs)" "$EBED_NEVEK")
 umask 077
 {
   printf 'SZERVER=%q\n' "$SZERVER"
   printf 'INGEST_TOKEN=%q\n' "$INGEST_TOKEN"
   printf 'AJTO_NEV=%q\n' "$AJTO_NEV"
-  printf 'UZENET=%q\n' "$UZENET"
-  printf 'EBED_NEVEK=%q\n' "$EBED_NEVEK"
 } > "$CONF"
 umask 022
 echo "Beállítások elmentve: $CONF"
