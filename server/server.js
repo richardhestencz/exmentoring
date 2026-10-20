@@ -16,8 +16,8 @@ if (!process.env.INGEST_TOKEN) console.log(`INGEST_TOKEN nincs megadva, ideiglen
 const BOOT_ID = crypto.randomBytes(4).toString('hex'); // új indulásnál a kliensek újratöltenek
 const START_POT = 100000;
 const DAILY_CREDIT = 10000;
-const T_RESULT = 3500, T_DOOR_DELAY = 3000;
-const MAX_NUMBERS = 10;
+const T_RESULT = 5000, T_DOOR_DELAY = 3000;
+const MAX_PER_ROUND = 20000, MAX_BETS = 80;  // játékosonként egy körben
 const DOOR = 'ajtó';
 
 // ---- állapot (a perzisztens rész a data/state.json-ban) ----
@@ -35,47 +35,79 @@ function save() {
   }, 1500);
 }
 
-const R = { id: 0, phase: 'betting', endAt: 0, spinStart: 0, result: null, bets: S.roundBets, doorQueue: 0, sim: null, spinMs: 0 };
+S.roundBets = S.roundBets.filter((b) => game.info(b.kind)).map((b) => ({ ...b, kind: game.norm(b.kind) }));
+const R = { id: 0, phase: 'betting', endAt: 0, spinStart: 0, result: null, bets: S.roundBets, doorQueue: 0, sim: null, spinMs: 0, spinner: '', net: null };
 let feed = [];
 const say = (text) => { feed.unshift({ ts: Date.now(), text }); feed = feed.slice(0, 40); };
 const fmt = (n) => n.toLocaleString('hu-HU') + ' 🦝';
 const stat = (nick) => (S.stats[nick] ||= { net: 0, rounds: 0 });
 
-// ---- tétek ----
-function addBet(nick, kind, { stack = false } = {}) {
-  const i = game.info(kind);
-  if (!i) return 'Ismeretlen tét.';
+// ---- tétek: zsetonokkal, ugyanarra a mezőre többször is ----
+function addBet(nick, kind, amount) {
+  kind = game.norm(kind);
+  if (!game.info(kind)) return 'Ismeretlen tét.';
+  if (!game.CHIPS.includes(amount)) return 'Ismeretlen zseton.';
   if (R.phase !== 'betting') return 'A tétek lezárultak, várj a következő körre.';
-  if (!stack && R.bets.some((b) => b.nick === nick && b.kind === kind)) return 'Erre már tettél.';
-  if (kind.startsWith('n:') && !stack && R.bets.filter((b) => b.nick === nick && b.kind.startsWith('n:')).length >= MAX_NUMBERS)
-    return `Legfeljebb ${MAX_NUMBERS} számra tehetsz körönként.`;
-  if (S.pot < i.stake) return 'Nincs elég mosómedve a közös potban.';
-  S.pot -= i.stake;
-  R.bets.push({ nick, kind, stake: i.stake });
+  const mine = R.bets.filter((b) => b.nick === nick);
+  if (nick !== DOOR && mine.length >= MAX_BETS) return 'Ennyi zseton elég lesz ebben a körben.';
+  if (nick !== DOOR && mine.reduce((s, b) => s + b.stake, 0) + amount > MAX_PER_ROUND) return `Egy körben legfeljebb ${fmt(MAX_PER_ROUND)} lehet a tétjeid összege.`;
+  if (S.pot < amount) return 'Nincs elég mosómedve a közös potban.';
+  S.pot -= amount;
+  R.bets.push({ nick, kind, stake: amount });
   save();
   return null;
 }
-function removeBet(nick, kind) {
+function undoBet(nick, all) {
   if (R.phase !== 'betting') return 'A tétek lezárultak.';
-  const idx = R.bets.findIndex((b) => b.nick === nick && b.kind === kind);
-  if (idx < 0) return 'Nincs ilyen tétod.';
-  S.pot += R.bets[idx].stake;
-  R.bets.splice(idx, 1);
+  let n = 0;
+  for (let i = R.bets.length - 1; i >= 0; i--) {
+    if (R.bets[i].nick !== nick) continue;
+    S.pot += R.bets[i].stake; R.bets.splice(i, 1); n++;
+    if (!all) break;
+  }
+  if (!n) return 'Nincs visszavonható tétod.';
   save();
   return null;
 }
 function placeDoorBet() {
-  const kinds = game.doorBet();
-  for (const k of kinds) if (addBet(DOOR, k, { stack: true })) { say('Az ajtó tétje elmaradt: nincs elég mosómedve a potban.'); return; }
-  say(`Az ajtó 1000 🦝-t tett fel (${kinds.length === 1 ? kinds[0] : kinds.length + ' mezőre'}).`);
+  const bets = game.doorBet();
+  for (const b of bets) if (addBet(DOOR, b.kind, b.stake)) { say('Az ajtó tétje elmaradt: nincs elég mosómedve a potban.'); return; }
+  say(`Az ajtó 1000 🦝-t tett fel (${bets.length === 1 ? kindName(bets[0].kind) : bets.length + ' mezőre'}).`);
+}
+const KIND_NAMES = { red: 'pirosra', black: 'feketére', even: 'párosra', odd: 'páratlanra', low: '1–18-ra', high: '19–36-ra' };
+const kindName = (k) => KIND_NAMES[k] || k;
+
+// ---- szurkálás az eredménynél ----
+const pickOne = (a) => a[Math.floor(Math.random() * a.length)];
+const FRONT = /[eéiíöőüű]/;
+const nekNak = (n) => { const v = n.toLowerCase().match(/[aáeéiíoóöőuúüű]/g); return n + (v && FRONT.test(v[v.length - 1]) ? 'nek' : 'nak'); };
+const list = (a) => (a.length < 2 ? a.join('') : a.slice(0, -1).join(', ') + ' és ' + a[a.length - 1]);
+function tease(spinner, net) {
+  const parts = [];
+  const sNet = net[spinner];
+  if (spinner === DOOR) {
+    if (sNet > 0) parts.push(pickOne([`Az ajtó nyert: +${fmt(sNet)}. Ki tanította meg rulettezni?`, `Az ajtó: +${fmt(sNet)}. Lassan többet keres, mint mi.`]));
+    else if (sNet < 0) parts.push(pickOne(['Az ajtó elbukta a tétjét. Legalább nyikorogni tud.', 'Az ajtónak ez most nem jött össze.']));
+  } else if (sNet !== undefined) {
+    const X = fmt(Math.abs(sNet));
+    if (sNet > 0) parts.push(pickOne([`${spinner} bezsebelt: +${X}. Ma ő hozza a pogácsát.`, `${spinner} keze aranyat ér: +${X}.`, `${spinner} kifosztotta a potot: +${X}. Gyanús.`, `${spinner} nyert (+${X}), és most nagyon elégedett magával.`]));
+    else if (sNet < 0) parts.push(pickOne([`${nekNak(spinner)} ez most nem jött össze.`, `${spinner} pörgetett, a pot köszöni az adományt (−${X}).`, `${spinner}, legközelebb próbáld bal kézzel.`, `${spinner} keze ma nem aranyat ér: −${X}.`, `${spinner} szponzorálta a kört: −${X}.`]));
+    else parts.push(`${spinner} nullára hozta ki. Bátor, de óvatos.`);
+  }
+  const others = Object.entries(net).filter(([k]) => k !== spinner && k !== DOOR);
+  const losers = others.filter(([, v]) => v < 0).map(([k]) => k), winners = others.filter(([, v]) => v > 0);
+  if (losers.length) parts.push(pickOne([`${list(losers)} is a potba fizetett.`, `${list(losers)} sem járt jobban.`, `Részvétünk: ${list(losers)}.`]));
+  if (winners.length) parts.push(winners.length === 1 ? `${winners[0][0]} viszont nyert: +${fmt(winners[0][1])}.` : `Nyertek: ${winners.map(([k, v]) => `${k} +${fmt(v)}`).join(', ')}.`);
+  if (!parts.length) parts.push('Senki sem nyert.');
+  return parts.join(' ');
 }
 
 // ---- körök: a kerék csak ajtónyitásra vagy „Pörgetés” gombra indul ----
 function startBetting() {
-  R.id++; R.phase = 'betting'; R.result = null; R.endAt = 0;
+  R.id++; R.phase = 'betting'; R.result = null; R.endAt = 0; R.spinner = ''; R.net = null;
   S.roundBets = []; R.bets = S.roundBets;
   if (R.doorQueue > 0) { // közben nyílt ajtó: tegyen tétet és pörgessen
-    R.doorQueue--; placeDoorBet();
+    R.doorQueue--; placeDoorBet(); R.spinner = DOOR;
     setTimeout(startSpin, T_DOOR_DELAY);
   }
   save(); broadcast();
@@ -92,14 +124,14 @@ function startResult() {
   const n = R.result;
   const net = {};
   for (const b of R.bets) {
-    const back = game.payout(b.kind, n);
+    const back = game.payout(b.kind, n, b.stake);
     S.pot += back;
     net[b.nick] = (net[b.nick] || 0) + back - b.stake;
   }
   for (const [nick, v] of Object.entries(net)) { const s = stat(nick); s.net += v; s.rounds++; }
   const color = n === 0 ? 'zöld' : game.RED.has(n) ? 'piros' : 'fekete';
-  const winners = Object.entries(net).filter(([, v]) => v > 0).map(([k, v]) => `${k} +${fmt(v)}`);
-  say(`${n} (${color}) jött. ${winners.length ? 'Nyertek: ' + winners.join(', ') : 'Senki sem nyert.'}`);
+  say(`${n} (${color}). ${tease(R.spinner, net)}`);
+  R.net = net;
   S.history.unshift(n); S.history = S.history.slice(0, 20);
   S.rest = R.sim.rest; R.sim = null;
   R.phase = 'result'; R.endAt = Date.now() + T_RESULT;
@@ -119,6 +151,7 @@ function snapshot(withTrack) {
   const snap = {
     t: 'state', boot: BOOT_ID, now: Date.now(), pot: S.pot, round: R.id, phase: R.phase, endAt: R.endAt,
     spinStart: R.spinStart, spinMs: R.spinMs, result: R.phase === 'result' ? R.result : null,
+    net: R.phase === 'result' ? R.net : null, chips: game.CHIPS,
     rest: S.rest || physics.DEFAULT_REST,
     bets: R.bets, history: S.history, board, feed: feed.slice(0, 15),
     door: { opens: S.doorOpens, net: S.stats[DOOR]?.net || 0 },
@@ -156,9 +189,10 @@ wss.on('connection', (ws) => {
       if (R.phase !== 'betting') return err('A kerék éppen forog.');
       if (!R.bets.some((b) => b.nick === ws.nick)) return err('Pörgetés előtt tegyél legalább egy tétet.');
       say(`${ws.nick} megpörgette a kereket.`);
+      R.spinner = ws.nick;
       return startSpin();
     }
-    const e = m.t === 'bet' ? addBet(ws.nick, m.kind) : m.t === 'unbet' ? removeBet(ws.nick, m.kind) : null;
+    const e = m.t === 'bet' ? addBet(ws.nick, m.kind, m.amount) : m.t === 'undo' ? undoBet(ws.nick, false) : m.t === 'clear' ? undoBet(ws.nick, true) : null;
     if (e) err(e); else broadcast();
   });
 });
@@ -179,7 +213,7 @@ app.post('/api/door', ingest, (req, res) => {
   if (st === 'open') {
     S.doorOpens++;
     say('🚪 Az ajtó kinyílt.');
-    if (R.phase === 'betting') { placeDoorBet(); startSpin(); } else R.doorQueue++;
+    if (R.phase === 'betting') { placeDoorBet(); R.spinner = DOOR; startSpin(); } else R.doorQueue++;
   } else if (st === 'closed') say('🚪 Az ajtó becsukódott.');
   else return res.status(400).json({ error: 'state: open|closed' });
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });

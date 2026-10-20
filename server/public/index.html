@@ -79,9 +79,13 @@ ul{list-style:none;margin:0;padding:0}
 .door b{font-size:1.15rem}
 
 /* eredmény-szalag (mint az élő kaszinóban: szomszédok + nyerő szám) */
-.banner{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);display:flex;align-items:center;gap:18px;
+.banner{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);display:flex;flex-direction:column;align-items:center;gap:12px;
   pointer-events:none;opacity:0;transition:opacity .4s,transform .4s}
 .banner.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+.brow{display:flex;align-items:center;gap:18px}
+.gain{font-size:clamp(1.6rem,3.6vw,2.6rem);font-weight:800;padding:4px 18px;border-radius:999px;background:rgba(10,15,22,.55);text-shadow:0 2px 10px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
+.gain:empty{display:none}
+.gain.pos{color:var(--ok)}.gain.neg{color:var(--bad)}
 .banner span{font-size:clamp(1.8rem,4vw,3.2rem);font-weight:500;color:rgba(255,255,255,.85);text-shadow:0 2px 12px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
 .banner b{display:grid;place-items:center;min-width:clamp(84px,9vw,128px);height:clamp(84px,9vw,128px);border-radius:14px;
   font-size:clamp(2.8rem,6vw,4.6rem);font-weight:800;color:#fff;border:3px solid transparent;
@@ -109,9 +113,26 @@ ul{list-style:none;margin:0;padding:0}
 .cell.black{background:rgba(10,15,22,.75)}
 .cell.zero{background:rgba(17,132,91,.82)}
 .cell.red:hover:not(:disabled){background:rgba(240,70,60,.9)}.cell.black:hover:not(:disabled){background:rgba(40,46,56,.85)}
-.cell em{position:absolute;left:3px;bottom:1px;font-style:normal;font-size:.58rem;font-weight:600;opacity:.8}
-.cell .chip{position:absolute;z-index:2;right:-6px;top:-8px;width:24px;height:24px;border-radius:50%;display:grid;place-items:center;
-  font-size:.58rem;font-weight:800;color:#fff;background:var(--grad);border:2px dashed rgba(255,255,255,.85);box-shadow:0 2px 6px rgba(0,0,0,.4)}
+/* zsetonok: választó + a mezőkre letett zsetonok (a kattintás helyén: szám, határ, sarok, alsó szél) */
+.felt{position:relative}
+.chipbar{display:flex;align-items:center;gap:6px;margin:0 0 7px;flex-wrap:wrap}
+.chipbar small{font-size:.74rem;color:var(--apricot);margin-right:2px}
+.pick{width:38px;height:38px;border-radius:50%;border:0;padding:0;cursor:pointer;display:grid;place-items:center;color:#fff;font-weight:800;font-size:.7rem;
+  background:radial-gradient(circle,var(--cc) 52%,transparent 53%),repeating-conic-gradient(var(--cc) 0 30deg,#fff 30deg 45deg);
+  box-shadow:0 2px 6px rgba(0,0,0,.45);transition:transform .12s;opacity:.75}
+.pick[aria-pressed="true"]{transform:translateY(-3px) scale(1.08);opacity:1;outline:2px solid #fff;outline-offset:2px}
+.pick:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.tool{margin-left:auto;padding:6px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:.78rem;cursor:pointer}
+.tool+.tool{margin-left:0}
+.tool:disabled{opacity:.45;cursor:not-allowed}
+.tool:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.chips{position:absolute;inset:0;pointer-events:none;z-index:3}
+.ch{position:absolute;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;display:grid;place-items:center;color:#fff;font-weight:800;font-size:.56rem;
+  background:radial-gradient(circle,var(--cc) 50%,transparent 51%),repeating-conic-gradient(var(--cc) 0 30deg,#fff 30deg 45deg);
+  box-shadow:0 2px 5px rgba(0,0,0,.55);text-shadow:0 1px 1px rgba(0,0,0,.6);transition:left .12s,top .12s}
+.ch.oth{width:18px;height:18px;margin:-4px 0 0 -2px;font-size:.45rem;opacity:.85;filter:saturate(.35) brightness(.9)}
+.ch.ghost{opacity:.5;box-shadow:none}
+.ch.won{animation:pulse 1s ease-in-out 3}
 .cell.win{animation:pulse 1s ease-in-out 3;box-shadow:0 0 0 2px #fff inset}
 @keyframes pulse{50%{filter:brightness(1.8)}}
 @media (prefers-reduced-motion:reduce){.cell.win{animation:none}}
@@ -165,7 +186,8 @@ ul{list-style:none;margin:0;padding:0}
   .felt{padding:5px}
   .tbl{grid-auto-rows:30px;gap:2px}
   .cell{font-size:.7rem;border-radius:5px}.cell em{display:none}
-  .cell .chip{width:16px;height:16px;right:-4px;top:-6px;font-size:.42rem;border-width:1px}
+  .ch{width:18px;height:18px;margin:-9px 0 0 -9px;font-size:.42rem}.ch.oth{width:13px;height:13px;font-size:0}
+  .pick{width:30px;height:30px;font-size:.58rem}.chipbar small{display:none}.chipbar{margin-bottom:5px;gap:5px}.tool{padding:4px 8px;font-size:.7rem}
   .dia{width:18px;height:10px}
   .hint{display:none}
   .stage.overhead .boardwrap{transform:scale(.6)}
@@ -245,7 +267,7 @@ footer strong{color:#fff}
     <div class="door"><svg viewBox="0 0 44 56" aria-hidden="true"><use href="#door"/></svg><span><b id="dopens">0</b> ajtónyitás</span><span>nettó: <span id="dnet">0</span></span></div>
   </aside>
 
-  <div class="banner" id="banner" aria-live="polite"><span id="bL"></span><b id="bW"></b><span id="bR"></span></div>
+  <div class="banner" id="banner" aria-live="polite"><div class="brow"><span id="bL"></span><b id="bW"></b><span id="bR"></span></div><div class="gain" id="bGain"></div></div>
 
   <div class="dock" id="dock">
     <div class="pills">
@@ -254,8 +276,13 @@ footer strong{color:#fff}
     </div>
     <div class="boardwrap">
       <div class="glass toast" id="toast" role="status"></div>
-      <div class="glass felt"><div class="tbl" id="tbl"></div></div>
-      <p class="hint">Szám 100, sor és oszlop 500, szín, páros/páratlan és alacsony/magas 1000 mosómedve. Újra kattintva visszavonod.</p>
+      <div class="glass felt">
+        <div class="chipbar" role="group" aria-label="Zseton"><small>Zseton:</small><span id="picks" style="display:contents"></span>
+          <button class="tool" id="undo" type="button">Visszavonás</button><button class="tool" id="clear" type="button">Mind le</button></div>
+        <div class="tbl" id="tbl"></div>
+        <div class="chips" id="chips" aria-hidden="true"></div>
+      </div>
+      <p class="hint">Válassz zsetont, és tedd le: szám közepére, két szám határára (2 szám), sarokra (4 szám), az alsó szélre (3 szám) vagy az alsó sarokra (6 szám). Többször is rakhatsz ugyanoda.</p>
     </div>
     <div class="side">
       <div class="glass status"><b id="phase">Csatlakozás…</b><div class="bar"><i id="barfill"></i></div></div>
@@ -337,37 +364,107 @@ $('spinbtn').onclick=()=>send({t:'spin'});
 showNick();
 
 /* ---------- tétasztal (vízszintes, mint az élő kaszinóban) ---------- */
-const kinds={};
+const kinds={},numCell={};
+const CHIP_COLORS={100:'#2f6fd6',500:'#7b3fe4',1000:'#eb772e',5000:'#0a0f16'};
+const chipColor=v=>v>=5000?CHIP_COLORS[5000]:v>=1000?CHIP_COLORS[1000]:v>=500?CHIP_COLORS[500]:CHIP_COLORS[100];
+let chip=+safeGet('chip')||100;
+const sendBet=kind=>{if(!nick){showNick();return}send({t:'bet',kind,amount:chip})};
 function mk(parent,kind,label,cls,row,col,aria){
   const b=document.createElement('button');
-  b.type='button';b.className='cell '+(cls||'');b.dataset.kind=kind;b.innerHTML=label+'<em></em>';
+  b.type='button';b.className='cell '+(cls||'');b.dataset.kind=kind;b.innerHTML=label;
   if(aria)b.setAttribute('aria-label',aria);
   b.style.gridRow=row;b.style.gridColumn=col;
-  b.onclick=()=>{
-    if(!nick){showNick();return}
-    const mine=S&&S.bets.some(x=>x.nick===nick&&x.kind===kind);
-    send({t:mine?'unbet':'bet',kind});
-  };
+  b.onclick=()=>sendBet(kind);
   parent.appendChild(b);kinds[kind]=b;return b;
+}
+// szám-mezők: a kattintás helye dönti el a tétet (közép = szám, határ = 2 szám, sarok = 4, alsó szél = sor, alsó sarok = hatos sor)
+const inKind=a=>'in:'+a.slice().sort((x,y)=>x-y).join('-');
+function kindAt(n,fx,fy){
+  if(n===0)return 'in:0';
+  const c=(n-1)/3|0,r=2-(n-1)%3,E=.28;
+  const h=fx<E?'L':fx>1-E?'R':null;let v=fy<E?'T':fy>1-E?'B':null;
+  if(v==='B'&&r===2){
+    const st=k=>[3*k+1,3*k+2,3*k+3];
+    if(h==='L')return c===0?inKind([0,1,2,3]):inKind([...st(c-1),...st(c)]);
+    if(h==='R')return c<11?inKind([...st(c),...st(c+1)]):inKind(st(c));
+    return inKind(st(c));
+  }
+  if(v==='T'&&r===0)v=null;
+  const nv=v==='T'?n+1:v==='B'?n-1:null;
+  const nh=h==='L'?(c>0?n-3:0):h==='R'?(c<11?n+3:null):null;
+  if(nv!==null&&nh!==null)return nh===0?inKind([0,n,nv]):inKind([n,nv,nh,nh+(nv-n)]);
+  if(nh!==null)return inKind([n,nh]);
+  if(nv!==null)return inKind([n,nv]);
+  return inKind([n]);
+}
+function numPick(e,n){
+  if(e.detail===0)return 'in:'+n;                      // billentyűzetről: a szám maga
+  const r=e.currentTarget.getBoundingClientRect();
+  return kindAt(n,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+}
+function mkNum(t,n,cls,row,col){
+  const b=mk(t,'in:'+n,String(n),cls,row,col);
+  b.onclick=e=>sendBet(numPick(e,n));
+  b.onpointermove=e=>{if(e.pointerType==='mouse')ghost(numPick(e,n))};
+  b.onpointerleave=()=>ghost(null);
+  numCell[n]=b;return b;
 }
 (function build(){
   const t=$('tbl');
-  mk(t,'n:0','0','zero','1 / span 3','1');
+  mkNum(t,0,'zero','1 / span 3','1');
   for(let row=0;row<3;row++){
-    for(let c=0;c<12;c++){const n=c*3+(3-row);mk(t,'n:'+n,n,colorOf(n),row+1,c+2)}
+    for(let c=0;c<12;c++){const n=c*3+(3-row);mkNum(t,n,colorOf(n),row+1,c+2)}
     mk(t,'col:'+(3-row),'2:1','',row+1,14,`${3-row}. oszlop`);
   }
   ['1–12','13–24','25–36'].forEach((l,i)=>mk(t,'dozen:'+(i+1),l,'',4,`${2+i*4} / span 4`));
   [['low','1–18'],['even','Páros'],['red','<i class="dia r"></i>','Piros'],['black','<i class="dia b"></i>','Fekete'],['odd','Páratlan'],['high','19–36']]
     .forEach(([k,l,a],i)=>mk(t,k,l,'',5,`${2+i*2} / span 2`,a));
+  $('picks').innerHTML=[100,500,1000,5000].map(v=>`<button type="button" class="pick" data-v="${v}" style="--cc:${CHIP_COLORS[v]}" aria-label="${fmt(v)} mosómedve zseton">${chipLabel(v)}</button>`).join('');
+  document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{chip=+b.dataset.v;safeSet('chip',chip);markChip()});
+  markChip();
+  $('undo').onclick=()=>send({t:'undo'});
+  $('clear').onclick=()=>send({t:'clear'});
+  new ResizeObserver(()=>{if(S)drawChips()}).observe($('tbl'));
 })();
+function markChip(){document.querySelectorAll('.pick').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===chip))}
+const nums=k=>k.slice(3).split('-').map(Number);
 function wins(kind,n){
-  if(kind.startsWith('n:'))return n===+kind.slice(2);
+  if(kind.startsWith('in:'))return nums(kind).includes(n);
   if(n===0)return false;
   const [k,v]=kind.split(':');
   return k==='dozen'?Math.ceil(n/12)===+v:k==='col'?((n-1)%3)+1===+v:k==='red'?RED.has(n):k==='black'?!RED.has(n):k==='even'?n%2===0:k==='odd'?n%2===1:k==='low'?n<=18:n>=19;
 }
-const chipLabel=v=>v>=1000?(v/1000)+'k':String(v);
+function chipLabel(v){return v>=1000?(Math.round(v/100)/10+'k').replace('.',','):String(v)}
+
+// hová kerül a zseton a tétasztalon (a .felt-hez képest, a nagyítástól függetlenül)
+function box(el){return{l:el.offsetLeft,t:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight}}
+const ctr=b=>({x:b.l+b.w/2,y:b.t+b.h/2});
+function spot(kind){
+  if(!kind.startsWith('in:')){const el=kinds[kind];return el?ctr(box(el)):null}
+  const ns=nums(kind),bs=ns.filter(n=>n>0).map(n=>box(numCell[n]));
+  if(ns.length===1)return ctr(box(numCell[ns[0]]));
+  const cx=bs.reduce((s,b)=>s+b.l+b.w/2,0)/bs.length, cy=bs.reduce((s,b)=>s+b.t+b.h/2,0)/bs.length;
+  const left=Math.min(...bs.map(b=>b.l)), bottom=Math.max(...bs.map(b=>b.t+b.h));
+  if(ns[0]===0)return ns.length===4?{x:left-1.5,y:bottom}:{x:left-1.5,y:cy};
+  if(ns.length===3||ns.length===6)return{x:cx,y:bottom};      // sor és hatos sor: az alsó szélen
+  return{x:cx,y:cy};                                           // 2 szám: a határon, 4 szám: a sarkon
+}
+function chipEl(x,y,v,cls){return `<span class="ch ${cls||''}" style="left:${x.toFixed(1)}px;top:${y.toFixed(1)}px;--cc:${chipColor(v)}">${cls&&cls.includes('oth')?'':chipLabel(v)}</span>`}
+let ghostKind=null;
+function ghost(k){if(k===ghostKind)return;ghostKind=k;drawChips()}
+function drawChips(){
+  const mine={},oth={};
+  S.bets.forEach(b=>{const o=b.nick===nick?mine:oth;o[b.kind]=(o[b.kind]||0)+b.stake});
+  const done=S.phase==='result'&&S.result!=null;
+  let h='';
+  for(const k of new Set([...Object.keys(oth),...Object.keys(mine)])){
+    const p=spot(k);if(!p)continue;
+    if(oth[k])h+=chipEl(p.x,p.y,oth[k],'oth');
+    if(mine[k])h+=chipEl(p.x,p.y,mine[k],done&&wins(k,S.result)?'won':'');
+  }
+  if(ghostKind&&S.phase==='betting'&&nick){const p=spot(ghostKind);if(p)h+=chipEl(p.x,p.y,chip,'ghost')}
+  $('chips').innerHTML=h;
+}
 
 /* ---------- kijelzők ---------- */
 const PHASE={betting:'Tegyétek meg a téteket',spin:'Pörög a kerék…',result:'Eredmény'};
@@ -375,18 +472,14 @@ function render(){
   $('pot').textContent=fmt(S.pot);
   $('phase').textContent=PHASE[S.phase];
   const open=S.phase==='betting';
-  const tot={},my={};
-  S.bets.forEach(b=>{tot[b.kind]=(tot[b.kind]||0)+b.stake;if(b.nick===nick)my[b.kind]=(my[b.kind]||0)+b.stake});
   let myTotal=0;
+  S.bets.forEach(b=>{if(b.nick===nick)myTotal+=b.stake});
   for(const [k,el] of Object.entries(kinds)){
     el.disabled=!open||!nick;
-    let chip=el.querySelector('.chip');
-    if(my[k]){myTotal+=my[k];if(!chip){chip=document.createElement('span');chip.className='chip';el.appendChild(chip)}chip.textContent=chipLabel(my[k])}
-    else if(chip)chip.remove();
-    const others=(tot[k]||0)-(my[k]||0);
-    el.querySelector('em').textContent=others?chipLabel(others):'';
     el.classList.toggle('win',S.phase==='result'&&S.result!=null&&wins(k,S.result));
   }
+  $('undo').disabled=$('clear').disabled=!open||!myTotal;
+  drawChips();
   $('mybet').textContent=fmt(myTotal);
   canSpin=open&&!!nick&&myTotal>0;
   const sb=$('spinbtn');sb.disabled=!canSpin;
@@ -397,6 +490,9 @@ function render(){
     const i=ORDER.indexOf(S.result);
     $('bL').textContent=ORDER[(i+36)%37];$('bR').textContent=ORDER[(i+1)%37];$('bW').textContent=S.result;
     $('bW').style.setProperty('--bc',{red:'#df312d',black:'#0a0f16',green:'#11845b'}[colorOf(S.result)]);
+    const g=S.net&&nick&&S.net[nick]!==undefined?S.net[nick]:null,ge=$('bGain');
+    ge.textContent=g===null?'':g>0?`+${fmt(g)} 🦝`:g<0?`−${fmt(-g)} 🦝`:'±0';
+    ge.className='gain '+(g>0?'pos':g<0?'neg':'');
     bn.classList.add('show');
   }else bn.classList.remove('show');
   $('hist').innerHTML=S.history.slice(0,6).map(n=>`<span class="num c-${colorOf(n)}">${n}</span>`).join('')||'<span style="font-size:.8rem;opacity:.8">Még nincs szám</span>';
@@ -407,7 +503,7 @@ function render(){
 }
 setInterval(()=>{
   if(!S)return;
-  const total=S.phase==='spin'?S.spinMs:3500;
+  const total=S.phase==='spin'?S.spinMs:5000;
   const left=S.phase==='betting'?0:Math.max(0,S.endAt-serverNow());
   $('barfill').style.width=(left/total*100)+'%';
 },100);
@@ -431,7 +527,7 @@ dl.shadow.mapSize.set(1024,1024);Object.assign(dl.shadow.camera,{left:-1.8,right
 
 // ugyanazok a méretek, mint a szerveroldali fizikában (physics.js)
 const STEP=TAU/37, R_IN=.58, R_OUT=.95, BALL_R=.048;
-const FRET={L:R_OUT-R_IN-.005,R:.022,Y:.035,RC:(R_IN+R_OUT)/2};
+const FRET={L:R_OUT-R_IN-.005,R:.015,Y:.018,RC:(R_IN+R_OUT)/2};
 const pocketH=r=>.03*((r-.76)/.19)**2;
 const Hs=r=>r<=R_OUT?pocketH(r):r<=1?.03+(r-R_OUT)/(1-R_OUT)*.04:r<=1.2?.07+(r-1)*.475:.165+(r-1.2)*.2;
 
@@ -527,15 +623,21 @@ function fit(){
   renderer.setSize(SW,SH,false);camera.aspect=SW/SH;layoutBg();
 }
 new ResizeObserver(fit).observe(stage);fit();
+const WHEEL_IDLE=.8;                                  // várakozáskor a kerék a kőkör 80%-a
+let zoomK=0;
 function updateCamera(T,dt){
   const target=S&&S.phase!=='betting'?1:0;
   camT+=(target-camT)*(1-Math.exp(-dt*1.3));
   const k=smooth(clamp(camT,0,1)),a=camera.aspect;
   const kTilt=k*k;                                     // előbb közelebb lépünk, a lenézés csak utána jön
-  // tétnél: a kép perspektívája (~23°), a tál (Ø 2,72) pont a kőkör szélességén
-  const idleH=2.72*SH/ring.w, idleFrac=ring.y/SH, idleX=ring.x-SW/2;
-  // pörgetéskor: felülnézet, a kerék kitölti a képet
-  const topH=Math.max(3.1,2.86/a), topFrac=mobile?.41:.47;
+  // tétnél: a kép perspektívája (~23°), a tál (Ø 2,72) kicsit kisebb, mint a kőkör
+  const idleH=2.72*SH/(ring.w*WHEEL_IDLE), idleFrac=ring.y/SH, idleX=ring.x-SW/2;
+  // pörgetéskor: felülnézet, és ahogy a golyó lassul, ránagyít a rekeszekre
+  let zin=0;
+  if(S&&S.phase==='spin'&&S.spinMs)zin=smooth(clamp(((T-S.spinStart)/S.spinMs-.35)/.5,0,1));
+  else if(S&&S.phase==='result')zin=1;
+  zoomK+=(zin-zoomK)*(1-Math.exp(-dt*2.2));
+  const topH=Math.max(3.1,2.86/a)*(1-.36*zoomK), topFrac=mobile?.41:.47;
   const viewH=idleH+(topH-idleH)*k, el=.41+(1.46-.41)*kTilt, frac=idleFrac+(topFrac-idleFrac)*k, xo=idleX*(1-k);
   const d=viewH/(2*Math.tan(camera.fov*Math.PI/360));
   camera.position.set(0,d*Math.sin(el),d*Math.cos(el));
@@ -543,7 +645,7 @@ function updateCamera(T,dt){
   camera.setViewOffset(SW,SH,-xo,(.5-frac)*SH,SW,SH);
   camera.updateProjectionMatrix();
   // a háttérkép a kerékkel együtt nagyít a kőkör pontja körül (a távolabbi táj picit lassabban: parallaxis)
-  const zWheel=(2.72*SH/viewH)/ring.w, z=Math.pow(zWheel,.85);
+  const zWheel=(2.72*SH/viewH)/(ring.w*WHEEL_IDLE), z=Math.pow(zWheel,.85);
   const tx=(SW/2+xo)-ring.x, ty=frac*SH-ring.y;
   const ox=ring.x-bgBox.left, oy=ring.y-bgBox.top;
   bg.style.transform=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;

@@ -6,8 +6,8 @@ const { ORDER } = require('./game');
 const TAU = Math.PI * 2, STEP = TAU / 37;
 const R_IN = 0.58, R_OUT = 0.95, BALL_R = 0.048;
 const G = 31.6;                                   // gravitáció a jelenet egységeiben (1 egység ≈ 0,31 m)
-// A rekeszfal lekerekített gerinc (kapszula): a golyót inkább felfelé tereli, így jobban pattog
-const FRET = { L: R_OUT - R_IN - 0.005, R: 0.022, Y: 0.035, RC: (R_IN + R_OUT) / 2 };
+// A rekeszfal alacsony, lekerekített gerinc (kapszula): épp csak benntartja a golyót, közben sokat pattog
+const FRET = { L: R_OUT - R_IN - 0.005, R: 0.015, Y: 0.018, RC: (R_IN + R_OUT) / 2 };
 const WALL_R = 1.17, INNER_R = R_IN + 0.07;
 const DT = 1 / 1200, HZ = 60, TW = 13, T_MAX = 30, LAUNCH = 0.4;
 const DEFLECTORS = Array.from({ length: 8 }, (_, k) => k * TAU / 8 + 0.2);
@@ -110,7 +110,7 @@ function simulate(rest, rng = rnd) {
         x += nx * pen; y += ny * pen; z += nz * pen;
         const vfx = -W * qz, vfz = W * qx;
         const vn = (vx - vfx) * nx + vy * ny + (vz - vfz) * nz;
-        if (vn < 0) { const k2 = 1.75 * vn; vx -= k2 * nx; vy -= k2 * ny; vz -= k2 * nz; if (-vn > 0.5) hit(t, -vn); }
+        if (vn < 0) { const k2 = 1.92 * vn; vx -= k2 * nx; vy -= k2 * ny; vz -= k2 * nz; if (-vn > 0.5) hit(t, -vn); }
       }
     }
 
