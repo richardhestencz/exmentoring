@@ -99,6 +99,9 @@ ul{list-style:none;margin:0;padding:0}
 .pill small{display:block;font-size:.74rem;color:var(--apricot)}
 .pill b{display:flex;align-items:center;gap:6px;font-size:1.3rem;font-weight:800;font-variant-numeric:tabular-nums;line-height:1.2}
 .pill svg{width:20px;height:18px}
+.tok{width:30px;height:30px;flex:none;filter:drop-shadow(0 1px 3px rgba(0,0,0,.45))}
+.gain{display:flex;align-items:center;gap:.3em}
+.gain .tok{width:1.25em;height:1.25em}
 .boardwrap{position:relative;transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .9s;transform-origin:50% 100%}
 .stage.overhead .boardwrap{transform:scale(.42);opacity:.85}
 .felt{padding:8px}
@@ -191,7 +194,7 @@ ul{list-style:none;margin:0;padding:0}
   .dia{width:18px;height:10px}
   .hint{display:none}
   .stage.overhead .boardwrap{transform:scale(.6)}
-  .pill{padding:6px 10px}.pill b{font-size:1.05rem}
+  .pill{padding:6px 10px}.pill b{font-size:1.05rem}.pill .tok{width:22px;height:22px}
   .go{padding:12px;font-size:1rem}
   .status{padding:7px 10px}.status b{font-size:.85rem}
   .hist .num:nth-child(n+5){display:none}
@@ -271,7 +274,7 @@ footer strong{color:#fff}
 
   <div class="dock" id="dock">
     <div class="pills">
-      <div class="glass pill"><small>Közös pot</small><b><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg><span id="pot">0</span></b></div>
+      <div class="glass pill"><small>Közös pot</small><b><img class="tok" src="img/token-96.png" alt="" width="30" height="30"><span id="pot">0</span></b></div>
       <div class="glass pill"><small>Tétjeid ebben a körben</small><b id="mybet">0</b></div>
     </div>
     <div class="boardwrap">
@@ -491,7 +494,8 @@ function render(){
     $('bL').textContent=ORDER[(i+36)%37];$('bR').textContent=ORDER[(i+1)%37];$('bW').textContent=S.result;
     $('bW').style.setProperty('--bc',{red:'#df312d',black:'#0a0f16',green:'#11845b'}[colorOf(S.result)]);
     const g=S.net&&nick&&S.net[nick]!==undefined?S.net[nick]:null,ge=$('bGain');
-    ge.textContent=g===null?'':g>0?`+${fmt(g)} 🦝`:g<0?`−${fmt(-g)} 🦝`:'±0';
+    const tok='<img class="tok" src="img/token-256.png" alt="mosómedve">';
+    ge.innerHTML=g===null?'':g>0?`+${fmt(g)} ${tok}`:g<0?`−${fmt(-g)} ${tok}`:`±0 ${tok}`;
     ge.className='gain '+(g>0?'pos':g<0?'neg':'');
     bn.classList.add('show');
   }else bn.classList.remove('show');
