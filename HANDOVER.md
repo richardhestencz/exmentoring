@@ -23,7 +23,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 A mappa már git-repó egy kész committal, csak fel kell tölteni. A `gh` be van jelentkezve a `richardhestencz` fiókkal.
 
 ```bash
-cd ~/Downloads/exmentoring-handover
+cd ~/Exmentoring
 gh repo create exmentoring --public --source . --push
 ```
 
