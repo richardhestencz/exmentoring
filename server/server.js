@@ -173,6 +173,7 @@ function ingest(req, res, next) {
   if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(401).json({ error: 'hibás token' });
   next();
 }
+app.get('/api/ping', ingest, (req, res) => res.json({ ok: true })); // az irodai telepítő ezzel ellenőrzi a címet és a tokent
 app.post('/api/door', ingest, (req, res) => {
   const st = req.body?.state;
   if (st === 'open') {

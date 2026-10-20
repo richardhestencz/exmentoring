@@ -1,0 +1,244 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Ajtófigyelő beállítása</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M10 38 8 6l28 12z' fill='%238b9096'/%3E%3Cpath d='M90 38 92 6 64 18z' fill='%238b9096'/%3E%3Cpath d='M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z' fill='%23aeb3b8'/%3E%3C/svg%3E">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324; --ink-2:#45494b; --muted:#696e72; --line:#d5dadd;
+  --peach:#fbe4d7; --sand:#f4f0ed; --apricot:#f8c7a3;
+  --orange:#eb772e; --red:#df312d; --dark:#0a0f16; --green:#11845b;
+  --grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+a{color:#b4471a}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
+.studio svg{width:26px;height:23px}
+.top nav{display:flex}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.hero{background:var(--sand);padding:44px 0 36px}
+h1{margin:0 0 10px;font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.12}
+.lead{margin:0;max-width:62ch;font-size:1.06rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 0;padding:0;list-style:none;font-weight:600;font-size:.92rem;color:var(--ink)}
+.flow li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.flow .arr{background:none;border:0;padding:0;color:var(--muted)}
+section{padding:36px 0 8px}
+h2{margin:0 0 12px;font-size:1.35rem;font-weight:800;color:var(--ink);letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+h2 .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;font-size:.95rem;display:grid;place-items:center}
+p{margin:0 0 12px}
+ul.list{margin:0 0 12px;padding-left:20px}
+ul.list li{margin:4px 0}
+.card{background:var(--peach);border-radius:18px;padding:18px 20px;margin:0 0 14px}
+.card.note{background:#fff7d6;border:1px solid #efd98a}
+.card.bad{background:#ffe5e2;border:1px solid #f3b1aa}
+.card h3{margin:0 0 6px;font-size:1rem;color:var(--ink)}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0 6px}
+.field{display:flex;gap:8px;flex-wrap:wrap}
+.field input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.field input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.code{position:relative;margin:10px 0 14px}
+pre{margin:0;background:var(--dark);color:#f3ece7;border-radius:14px;padding:16px 16px 16px 16px;font:500 .86rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-all}
+.copy{position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:600;font-size:.82rem;cursor:pointer}
+.copy:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.code pre{padding-right:96px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sand);border-radius:6px;padding:1px 5px}
+table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:.94rem}
+th,td{text-align:left;vertical-align:top;padding:10px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--ink);font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+.ok{color:var(--green);font-weight:700}
+footer{background:var(--dark);color:#cfc6c2;padding:30px 0 26px;margin-top:40px}
+footer p{margin:0;font-size:.92rem}
+footer strong{color:#fff}
+@media (max-width:560px){
+  .top nav a{padding:12px 8px}
+  .code pre{padding-right:16px;padding-top:46px}
+  th:first-child,td:first-child{width:38%}
+}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="rc-face" viewBox="0 0 100 90">
+      <path d="M10 38 8 6 36 18z" fill="#8b9096"/><path d="M90 38 92 6 64 18z" fill="#8b9096"/>
+      <path d="M14 30 13 12 28 21z" fill="#2b2f33"/><path d="M86 30 87 12 72 21z" fill="#2b2f33"/>
+      <path d="M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z" fill="#aeb3b8"/>
+      <path d="M50 16c-6 12-6 24 0 36 6-12 6-24 0-36z" fill="#6f757b"/>
+      <path d="M14 44c12-8 26-4 36 4 10-8 24-12 36-4 0 16-14 20-26 14-6-2-14-2-20 0-12 6-26 2-26-14z" fill="#2b2f33"/>
+      <ellipse cx="50" cy="68" rx="20" ry="14" fill="#f1f2f3"/>
+      <circle cx="33" cy="48" r="6" fill="#fff"/><circle cx="67" cy="48" r="6" fill="#fff"/>
+      <circle cx="34" cy="49" r="3" fill="#16181a"/><circle cx="66" cy="49" r="3" fill="#16181a"/>
+      <ellipse cx="50" cy="60" rx="7" ry="5" fill="#16181a"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="studio" href="/"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Mentoring szoba</a>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html" aria-current="page">Ajtó beállítása</a></nav>
+  </div>
+</header>
+
+<main>
+<div class="hero"><div class="wrap">
+  <h1>Az ajtófigyelő beállítása az irodai MacBookon</h1>
+  <p class="lead">Az ajtón egy Shelly BLU szenzor van, ami Bluetooth-on jelez. A Bluetooth csak kb. 10 méterig ér, ezért a jelet az irodában, az ajtó közelében lévő MacBook fogja, és az interneten át küldi tovább erre az oldalra. Ehhez egyszer kell lefuttatni egy telepítő parancsot a MacBookon.</p>
+  <ul class="flow" aria-label="A jel útja">
+    <li>🚪 Shelly szenzor</li><li class="arr" aria-hidden="true">→</li>
+    <li>💻 irodai MacBook (Bluetooth)</li><li class="arr" aria-hidden="true">→</li>
+    <li>🌐 internet</li><li class="arr" aria-hidden="true">→</li>
+    <li>🦝 ez az oldal (Mac mini)</li>
+  </ul>
+</div></div>
+
+<section><div class="wrap">
+  <h2><span class="n">1</span>Ami kell hozzá</h2>
+  <ul class="list">
+    <li><strong>Egy MacBook az irodában</strong>, az ajtótól legfeljebb kb. 10 méterre, lehetőleg fal nélkül. Ennek a gépnek bekapcsolva és bejelentkezve kell maradnia.</li>
+    <li><strong>Az oldal nyilvános címe</strong>, amit az irodából is el lehet érni (a Mac mini Tailscale Funnel címe, valami ilyesmi: <code>https://mac-mini.tailXXXX.ts.net</code>).</li>
+    <li><strong>A titkos token.</strong> Ezt az oldal gazdájától kapod meg. Nem szerepel ezen az oldalon, mert bárki láthatja. A gazda így nézi meg a Mac minin: <code>grep INGEST_TOKEN ~/Exmentoring/.env</code></li>
+  </ul>
+  <div class="card bad" id="localwarn" hidden>
+    <h3>Ezt az oldalat most helyi címen nézed</h3>
+    <p>A <code id="curorigin"></code> cím az irodai MacBookról nem érhető el. Írd be lent a nyilvános (Tailscale) címet, vagy nyisd meg ezt az útmutatót azon a címen.</p>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">2</span>A telepítő parancs</h2>
+  <p>A MacBookon nyisd meg a <strong>Terminált</strong> (Spotlight: <kbd>Cmd</kbd>+<kbd>Szóköz</kbd>, írd be: Terminál), másold be az alábbi parancsot, és nyomj Entert.</p>
+  <label for="srv">Az oldal nyilvános címe</label>
+  <div class="field"><input id="srv" type="url" inputmode="url" autocomplete="off" spellcheck="false" placeholder="https://mac-mini.tailXXXX.ts.net"></div>
+  <div class="code">
+    <pre id="cmd"></pre>
+    <button class="copy" type="button" data-copy="cmd">Másolás</button>
+  </div>
+  <p>A telepítő ezután megkérdez néhány dolgot. Mindegyiknél Enterrel elfogadhatod a szögletes zárójelben lévő értéket.</p>
+  <table>
+    <thead><tr><th>Kérdés</th><th>Mit írj be</th></tr></thead>
+    <tbody>
+      <tr><td>A játék oldalának címe</td><td>Már ki van töltve a fenti címmel, csak nyomj Entert.</td></tr>
+      <tr><td>Titkos token</td><td>A gazdától kapott token. Gépelés közben nem látszik, ez így van rendjén. Beillesztés: <kbd>Cmd</kbd>+<kbd>V</kbd>, majd Enter.</td></tr>
+      <tr><td>Az ajtószenzor nevének részlete</td><td>Enter (alapból <code>SBDW</code>, a Shelly ajtószenzorok neve így kezdődik).</td></tr>
+      <tr><td>iMessage minden nyitásról</td><td>Ha kérsz üzenetet minden nyitásról, egy telefonszám vagy Apple ID. Különben Enter.</td></tr>
+      <tr><td>Nevek az ebédidős tipphez</td><td>Vesszővel elválasztott nevek, ha kéred a 11 és 13 óra közötti tréfás tippet. Különben Enter.</td></tr>
+    </tbody>
+  </table>
+  <p>Ha a telepítő azt írja, hogy <span class="ok">„A szerver elérhető, a token jó.”</span>, akkor a MacBook már beszél az oldallal.</p>
+  <div class="card note">
+    <h3>Ha az első futásnál egy Apple ablak ugrik fel</h3>
+    <p>Egy friss Macen előbb az Apple fejlesztői eszközöket kell telepíteni (ebben van a git és a Python). Kattints a <strong>Telepítés</strong> gombra, várd meg a végét (pár perc), majd futtasd újra ugyanazt a parancsot.</p>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">3</span>Engedélyek</h2>
+  <p>A telepítő végén megnyílik egy új Terminál-ablak, abban fut az ajtófigyelő. Ezt hagyd nyitva, lekicsinyítheted. A macOS ilyenkor engedélyeket kér, mindet engedélyezd:</p>
+  <ul class="list">
+    <li><strong>Bluetooth a Terminálnak.</strong> Ha nem kérdezi meg, kapcsold be kézzel: Rendszerbeállítások › Adatvédelem és biztonság › Bluetooth › Terminál. Utána zárd be az ajtófigyelő ablakát, és indítsd újra (lásd lent).</li>
+    <li><strong>A „System Events” vezérlése</strong>, hogy bejelentkezéskor magától induljon.</li>
+    <li><strong>A Messages vezérlése</strong>, ha iMessage-et is kértél.</li>
+  </ul>
+  <p>Ha az ablakban ezt látod: <code>Bluetooth device is turned off</code>, akkor a Terminálnak még nincs Bluetooth-engedélye.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">4</span>A MacBook ne aludjon el</h2>
+  <p>Ha a MacBook alszik, nem hallja az ajtót. Tartsd töltőn, és a Rendszerbeállítások › Akkumulátor › Beállítások részen kapcsold be: <strong>töltőn ne aludjon el automatikusan, ha a kijelző ki van kapcsolva</strong>. Terminálból ugyanez (jelszót kér):</p>
+  <div class="code">
+    <pre id="cmd-sleep">sudo pmset -c sleep 0 disksleep 0</pre>
+    <button class="copy" type="button" data-copy="cmd-sleep">Másolás</button>
+  </div>
+  <p>A fedelet hagyd nyitva, mert csukott fedéllel a MacBook külső kijelző nélkül elalszik.</p>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">5</span>Ellenőrzés</h2>
+  <ul class="list">
+    <li>Nyisd ki az ajtót. Az ajtófigyelő ablakában megjelenik: <code>Az ajtó ki lett nyitva</code>, alatta <code>szerver: elküldve</code>.</li>
+    <li>Ezen az oldalon nő az ajtószámláló, és elindul egy pörgetés.</li>
+    <li>Ha nem jelez: nyomd meg a szenzoron a gombot (ettől azonnal hirdet), és nézd meg, elég közel van-e a MacBook.</li>
+  </ul>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">6</span>Napi használat</h2>
+  <table>
+    <thead><tr><th>Teendő</th><th>Hogyan</th></tr></thead>
+    <tbody>
+      <tr><td>Újraindítás után</td><td>Semmi: bejelentkezéskor az ajtófigyelő magától elindul a Terminálban.</td></tr>
+      <tr><td>Frissítés</td><td>Minden indulásnál magától letölti a legújabb verziót a GitHubról.</td></tr>
+      <tr><td>Kézi újraindítás</td><td>Zárd be az ablakát, és futtasd: <code>open ~/exmentoring-ajto/iroda-macbook/start-ajto.command</code></td></tr>
+      <tr><td>Új token vagy új cím</td><td>Futtasd újra a 2. lépés parancsát. A többi beállítás Enterrel megmarad.</td></tr>
+      <tr><td>Beállítások</td><td><code>~/exmentoring-ajto/ajto.env</code> (csak ezen a gépen van, a GitHubra nem kerül fel)</td></tr>
+    </tbody>
+  </table>
+</div></section>
+
+<section><div class="wrap">
+  <h2><span class="n">7</span>Mit csinál a telepítő</h2>
+  <p>Ha előbb belenéznél, a szkript itt olvasható: <a href="https://github.com/richardhestencz/exmentoring/blob/main/iroda-macbook/install.sh" rel="noopener">iroda-macbook/install.sh</a>. Lépésről lépésre:</p>
+  <ol class="list">
+    <li>Ellenőrzi, hogy megvannak-e az Apple fejlesztői eszközök, és ha nincsenek, elindítja a telepítésüket.</li>
+    <li>Letölti a kódot a GitHubról a <code>~/exmentoring-ajto</code> mappába (vagy frissíti, ha már ott van).</li>
+    <li>Megkérdezi a címet és a tokent, és kipróbálja őket az oldal <code>/api/ping</code> végpontján.</li>
+    <li>Elmenti a beállításokat az <code>ajto.env</code> fájlba, amit csak a te felhasználód olvashat.</li>
+    <li>Létrehoz egy Python-környezetet a Bluetooth-csomaggal (bleak).</li>
+    <li>Felveszi az ajtófigyelőt a bejelentkezési elemek közé, és most el is indítja egy Terminál-ablakban.</li>
+  </ol>
+  <p>Kézzel, telepítő nélkül is kipróbálhatod, hogy a MacBook eléri-e az oldalt (a <code>TOKEN</code> helyére a sajátodat írd):</p>
+  <div class="code">
+    <pre id="cmd-ping"></pre>
+    <button class="copy" type="button" data-copy="cmd-ping">Másolás</button>
+  </div>
+  <p>Válasz <code>{"ok":true}</code>: minden jó. <code>hibás token</code>: rossz a token. Ha nincs válasz, a cím nem érhető el az irodából.</p>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a></p>
+</div></footer>
+
+<script>
+const RAW='https://raw.githubusercontent.com/richardhestencz/exmentoring/main/iroda-macbook/install.sh';
+const $=(id)=>document.getElementById(id);
+const local=/^(localhost|127\.|\[::1\]|0\.0\.0\.0)/.test(location.hostname)||location.protocol==='file:';
+const srv=$('srv');
+let saved='';try{saved=localStorage.getItem('exm-srv')||''}catch{}
+srv.value=local?saved:location.origin;
+if(local){$('localwarn').hidden=false;$('curorigin').textContent=location.origin||'helyi fájl';}
+const q=(s)=>/^[\w:\/.\-]+$/.test(s)?s:"'"+s.replace(/'/g,"'\\''")+"'";
+function render(){
+  const url=srv.value.trim().replace(/\/+$/,'')||'https://AZ-OLDAL-CIME';
+  $('cmd').textContent=`bash <(curl -fsSL ${RAW}) ${q(url)}`;
+  $('cmd-ping').textContent=`curl -H "Authorization: Bearer TOKEN" ${q(url)}/api/ping`;
+  try{if(local)localStorage.setItem('exm-srv',srv.value.trim())}catch{}
+}
+srv.addEventListener('input',render);render();
+document.querySelectorAll('.copy').forEach((b)=>b.addEventListener('click',async()=>{
+  const t=$(b.dataset.copy).textContent;
+  try{await navigator.clipboard.writeText(t);}catch{
+    const r=document.createRange();r.selectNodeContents($(b.dataset.copy));const s=getSelection();s.removeAllRanges();s.addRange(r);document.execCommand('copy');
+  }
+  b.textContent='Kimásolva';setTimeout(()=>{b.textContent='Másolás'},1600);
+}));
+</script>
+</body>
+</html>

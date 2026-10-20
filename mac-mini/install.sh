@@ -18,10 +18,7 @@ fi
 
 echo "Függőségek telepítése…"
 (cd server && npm ci --omit=dev)
-[ -d shelly-ajto/.venv ] || python3 -m venv shelly-ajto/.venv
-shelly-ajto/.venv/bin/pip install -q --upgrade pip
-shelly-ajto/.venv/bin/pip install -q -r shelly-ajto/requirements.txt
-chmod +x mac-mini/*.sh mac-mini/*.command
+chmod +x mac-mini/*.sh
 mkdir -p logs data "$HOME/Library/LaunchAgents"
 
 plist() { # név, program, extra kulcsok
@@ -44,14 +41,11 @@ plist hu.exmentoring.server "$ROOT/mac-mini/run-server.sh" server "<key>RunAtLoa
 plist hu.exmentoring.update "$ROOT/mac-mini/update.sh" update-launchd "<key>StartCalendarInterval</key><dict><key>Hour</key><integer>4</integer><key>Minute</key><integer>0</integer></dict>"
 echo "A szerver fut és bejelentkezéskor magától indul. Napi frissítés: 04:00."
 
-# Ajtófigyelő: bejelentkezési elem a Terminálban (a Bluetooth-engedély miatt nem futhat a háttérben)
-if osascript -e "tell application \"System Events\" to make login item at end with properties {path:\"$ROOT/mac-mini/start-ajto.command\", hidden:false}" >/dev/null 2>&1; then
-  echo "Az ajtófigyelő bejelentkezéskor magától elindul a Terminálban."
-else
-  echo "FIGYELEM: a bejelentkezési elemet nem tudtam hozzáadni. Add hozzá kézzel: Rendszerbeállítások > Általános > Bejelentkezési elemek > + > mac-mini/start-ajto.command"
-fi
-open "$ROOT/mac-mini/start-ajto.command"
+# Az ajtófigyelő nem itt fut, hanem az irodai MacBookon (iroda-macbook/, útmutató: /ajto.html).
+# Egy korábbi telepítés itteni ajtófigyelőjét eltávolítjuk.
+osascript -e 'tell application "System Events" to delete (every login item whose path contains "mac-mini/start-ajto.command")' >/dev/null 2>&1 || true
+pkill -f "mac-mini/start-ajto.command" 2>/dev/null || true
 
 sleep 2
 if curl -fsS "http://localhost:$(grep '^PORT=' .env | cut -d= -f2)/" >/dev/null; then echo "A szerver válaszol: http://localhost:3000"; else echo "A szerver még nem válaszol, nézd meg: logs/server.log"; fi
-echo "Következő lépés: Tailscale Funnel (HANDOVER.md 5. lépés)."
+echo "Következő lépés: Tailscale Funnel (HANDOVER.md 5. lépés), utána az ajtófigyelő az irodai MacBookon: <cím>/ajto.html"

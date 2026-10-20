@@ -11,8 +11,6 @@ mkdir -p logs
   if [ "$old" = "$new" ]; then echo "Nincs új verzió."; exit 0; fi
   echo "Új verzió: ${old:0:7} -> ${new:0:7}"
   (cd server && npm ci --omit=dev)
-  shelly-ajto/.venv/bin/pip install -q -r shelly-ajto/requirements.txt
-  pkill -f "shelly-ajto/ajto.py" || true            # a Terminálban futó ciklus 10 mp múlva az új kóddal indítja újra
   launchctl kickstart -k "gui/$(id -u)/hu.exmentoring.server"
-  echo "Kész, a szerver és az ajtófigyelő újraindult."
+  echo "Kész, a szerver újraindult."
 } >> logs/update.log 2>&1
