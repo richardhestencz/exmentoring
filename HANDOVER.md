@@ -22,6 +22,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | `server/public/ajto.html` | Útmutató az ajtófigyelő beállításához (az oldalon: Ajtó beállítása) |
 | `server/public/exmentoring-ajto-claude.md` | Ugyanez Claude-nak: ha odaadod neki az irodai MacBookon, elvégzi a beállítást |
 | `server/public/bent.html` | „Ki van bent?” oldal (hamarosan) |
+| `server/public/gyros.html`, `server/gyros.js` | Gyros Központ: a számozott gyrosnyugták gyűjtése és automatikus számolása (a Confluence-táblázat helyett) |
 | `shelly-ajto/ajto.py` | A Bluetooth-figyelő, ami nyitáskor/záráskor jelez a szervernek |
 | `iroda-macbook/install.sh` | Az ajtófigyelő telepítője az irodai MacBookra |
 | `iroda-macbook/start-ajto.command` | Az ajtófigyelőt indítja egy Terminál-ablakban (bejelentkezéskor magától) |
@@ -95,6 +96,12 @@ Claude-dal is mehet: töltsd le az oldalról az `exmentoring-ajto-claude.md` fá
   ```
 
 - **Token és cím:** `curl -H "Authorization: Bearer <INGEST_TOKEN>" https://hestencz-mac-mini.tail018e03.ts.net/api/ping` → `{"ok":true}`
+
+## Gyros Központ
+
+Az oldal: https://hestencz-mac-mini.tail018e03.ts.net/gyros.html
+
+A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a Mac minin van: `~/Exmentoring/data/gyros-seed.json` (a `data/` mappa nincs a gitben). A szerver első induláskor ebből tölti be, utána minden a `data/state.json`-ban él. Újraimportálás: állítsd le a szervert, töröld a `gyros` kulcsot a `state.json`-ból, és indítsd újra.
 
 ## Napi üzemeltetés
 

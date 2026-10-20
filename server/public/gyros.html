@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<title>Gyros Központ</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324; --ink-2:#45494b; --muted:#696e72; --line:#d5dadd;
+  --peach:#fbe4d7; --sand:#f4f0ed; --apricot:#f8c7a3;
+  --orange:#eb772e; --red:#df312d; --dark:#0a0f16; --green:#11845b;
+  --grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+a{color:#b4471a}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
+.studio svg{width:26px;height:23px}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.hero{background:var(--sand);padding:44px 0 36px}
+h1{margin:0 0 10px;font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.12}
+.lead{margin:0;max-width:62ch;font-size:1.06rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 0;padding:0;list-style:none;font-weight:600;font-size:.92rem;color:var(--ink)}
+.flow li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.flow .arr{background:none;border:0;padding:0;color:var(--muted)}
+section{padding:36px 0 8px}
+h2{margin:0 0 12px;font-size:1.35rem;font-weight:800;color:var(--ink);letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+h2 .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;font-size:.95rem;display:grid;place-items:center}
+p{margin:0 0 12px}
+ul.list{margin:0 0 12px;padding-left:20px}
+ul.list li{margin:4px 0}
+.card{background:var(--peach);border-radius:18px;padding:18px 20px;margin:0 0 14px}
+.card.dl{background:var(--sand);border:1px solid var(--line);margin-bottom:28px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;text-decoration:none}
+.btn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.card.note{background:#fff7d6;border:1px solid #efd98a}
+.card.bad{background:#ffe5e2;border:1px solid #f3b1aa}
+.card h3{margin:0 0 6px;font-size:1rem;color:var(--ink)}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0 6px}
+.field{display:flex;gap:8px;flex-wrap:wrap}
+.field input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.field input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.code{position:relative;margin:10px 0 14px}
+pre{margin:0;background:var(--dark);color:#f3ece7;border-radius:14px;padding:16px 16px 16px 16px;font:500 .86rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-all}
+.copy{position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:600;font-size:.82rem;cursor:pointer}
+.copy:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.code pre{padding-right:96px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sand);border-radius:6px;padding:1px 5px}
+table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:.94rem}
+th,td{text-align:left;vertical-align:top;padding:10px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--ink);font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+.ok{color:var(--green);font-weight:700}
+footer{background:var(--dark);color:#cfc6c2;padding:30px 0 26px;margin-top:40px}
+footer p{margin:0;font-size:.92rem}
+footer strong{color:#fff}
+@media (max-width:560px){
+  .top nav a{padding:12px 8px}
+  .code pre{padding-right:16px;padding-top:46px}
+  th:first-child,td:first-child{width:38%}
+}
+.soon{display:inline-block;margin:0 0 14px;padding:5px 12px;border-radius:999px;background:var(--grad);color:#fff;font-weight:800;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:0 0 14px;padding:0;list-style:none}
+.people li{background:var(--sand);border:1px dashed var(--line);border-radius:16px;padding:16px;text-align:center;color:var(--muted);font-weight:600}
+.people svg{width:44px;height:40px;display:block;margin:0 auto 8px;opacity:.35}
+.rc{border-radius:50%;object-fit:cover;flex:none;display:inline-block}
+.studio .rc{width:26px;height:26px}
+.me .rc{width:30px;height:30px}
+.modal .rc{width:84px;height:84px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
+.people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
+.rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
+.counter{display:flex;align-items:baseline;gap:10px;margin:18px 0 8px;color:var(--ink)}
+.counter b{font-size:clamp(2.4rem,7vw,3.4rem);font-weight:800;letter-spacing:-.03em;line-height:1}
+.counter span{font-size:1.1rem;font-weight:600;color:var(--muted)}
+.prog{height:10px;border-radius:99px;background:#fff;border:1px solid var(--line);overflow:hidden;max-width:560px}
+.prog i{display:block;height:100%;background:var(--grad);width:0;transition:width .6s}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+.who button{min-width:44px;height:44px;padding:0 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:1.35rem;cursor:pointer}
+.who button[aria-pressed="true"]{border-color:var(--orange);box-shadow:0 0 0 3px var(--apricot);background:var(--peach)}
+.who button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.me-line{font-weight:600;color:var(--ink);min-height:1.5em}
+.grid{display:grid;grid-template-columns:24px repeat(10,minmax(0,1fr));gap:3px;max-width:640px;user-select:none}
+.grid .h{display:grid;place-items:center;font:600 .72rem/1 var(--mono);color:var(--muted)}
+.c{position:relative;aspect-ratio:1/1;min-width:0;border-radius:8px;border:1px solid var(--line);background:#fff;padding:0;cursor:pointer;
+  display:grid;place-items:center;font-size:clamp(.95rem,3.6vw,1.45rem);line-height:1}
+.c small{position:absolute;left:3px;top:2px;font:600 clamp(.42rem,1.6vw,.6rem)/1 var(--mono);color:var(--muted)}
+.c:hover:not(:disabled){border-color:var(--orange);background:#fff7f1}
+.c:focus-visible{outline:3px solid var(--orange);outline-offset:1px;z-index:1}
+.c.got{background:var(--peach);border-color:var(--apricot);cursor:default}
+.c.got .ok{position:absolute;right:2px;bottom:1px;font-size:.5em}
+.c.mine{background:#ffe0cc;border-color:var(--orange);cursor:pointer;box-shadow:inset 0 0 0 1px var(--orange)}
+.c.x{background:var(--sand);cursor:not-allowed;color:var(--muted)}
+.c.x small{text-decoration:line-through}
+.c.x::after{content:"";position:absolute;inset:50% 12%;height:1px;background:var(--muted);transform:rotate(-35deg)}
+.c.flash{animation:fl 1.2s ease-out}
+@keyframes fl{0%{background:#ffd27a;transform:scale(1.12)}100%{}}
+@media (prefers-reduced-motion:reduce){.c.flash{animation:none}}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.rank .al{font-size:1.3rem;text-align:center}
+.rank .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:600}
+.rank .bar{grid-column:2/4;height:6px;border-radius:9px;background:var(--sand);overflow:hidden;margin-top:-2px}
+.rank .bar i{display:block;height:100%;background:var(--grad)}
+.rank b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.add{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.add input{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:0}
+.add input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.add #nName{flex:1 1 180px}.add #nAlias{flex:0 0 76px;text-align:center;font-size:1.2rem}
+.add button{padding:10px 16px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;cursor:pointer}
+.add button:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.toastg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toastg.show{opacity:1}
+.conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
+.muted{color:var(--muted);font-size:.9rem}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="rc-face" viewBox="0 0 100 90">
+      <path d="M10 38 8 6 36 18z" fill="#8b9096"/><path d="M90 38 92 6 64 18z" fill="#8b9096"/>
+      <path d="M14 30 13 12 28 21z" fill="#2b2f33"/><path d="M86 30 87 12 72 21z" fill="#2b2f33"/>
+      <path d="M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z" fill="#aeb3b8"/>
+      <path d="M50 16c-6 12-6 24 0 36 6-12 6-24 0-36z" fill="#6f757b"/>
+      <path d="M14 44c12-8 26-4 36 4 10-8 24-12 36-4 0 16-14 20-26 14-6-2-14-2-20 0-12 6-26 2-26-14z" fill="#2b2f33"/>
+      <ellipse cx="50" cy="68" rx="20" ry="14" fill="#f1f2f3"/>
+      <circle cx="33" cy="48" r="6" fill="#fff"/><circle cx="67" cy="48" r="6" fill="#fff"/>
+      <circle cx="34" cy="49" r="3" fill="#16181a"/><circle cx="66" cy="49" r="3" fill="#16181a"/>
+      <ellipse cx="50" cy="60" rx="7" ry="5" fill="#16181a"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="studio" href="/"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html" aria-current="page">Gyros</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
+  </div>
+  <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
+</header>
+
+<main>
+<div class="hero"><div class="wrap">
+  <h1>Gyros Központ</h1>
+  <p class="lead">Számozott gyrosnyugtákat gyűjtünk, 001-től. Aki hoz egy még hiányzó számút, rögzíti a táblázatban az aliasával. A számolás automatikus, és mindenkinél azonnal frissül.</p>
+  <div class="counter" aria-live="polite"><b id="got">0</b><span>/ <span id="of">209</span> megvan</span></div>
+  <div class="prog" aria-hidden="true"><i id="progbar"></i></div>
+</div></div>
+
+<section><div class="wrap">
+  <h2>Ki vagy?</h2>
+  <p class="muted">Válaszd ki egyszer az aliasodat (ez a böngésző megjegyzi). Utána egy üres cellára kattintva rögzíted a nyugtát, a sajátodra kattintva visszavonod.</p>
+  <div class="who" id="who" role="group" aria-label="Aliasod"></div>
+  <p class="me-line" id="meline"></p>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Nyugták</h2>
+  <p class="muted">A cella száma: sor és oszlop egymás után, például a 09. sor 1. oszlopa a 091.</p>
+  <div class="grid" id="grid" aria-label="Gyrosnyugták táblázata"></div>
+</div></section>
+
+<section><div class="wrap cols">
+  <div>
+    <h2>Ranglista</h2>
+    <ul class="rank" id="rank"></ul>
+  </div>
+  <div>
+    <h2>Hozzájárulók</h2>
+    <ul class="rank" id="people"></ul>
+    <form class="add" id="addform">
+      <input id="nName" maxlength="40" placeholder="Név" autocomplete="off" aria-label="Név">
+      <input id="nAlias" maxlength="8" placeholder="🌮" autocomplete="off" aria-label="Alias (1-2 karakter)">
+      <button type="submit">Felveszem</button>
+    </form>
+    <p class="muted">Az alias legfeljebb 2 karakter (például egy emoji), és egyedinek kell lennie.</p>
+  </div>
+</div></section>
+<div class="toastg" id="toast" role="status"></div>
+</main>
+
+<footer><div class="wrap">
+  <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a> · <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">GitHub</a></p>
+</div></footer>
+
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const key=n=>String(n).padStart(3,'0');
+const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
+const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+let G=null,me=safeGet('gyros-alias'),ws,retry=0,seenBoot=null,prev={};
+function connect(){
+  ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+  ws.onopen=()=>{retry=0;$('conn').style.display='none'};
+  ws.onclose=()=>{$('conn').style.display='block';setTimeout(connect,Math.min(8000,1000*++retry))};
+  ws.onmessage=e=>{
+    const m=JSON.parse(e.data);
+    if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;if(m.gyros){G=m.gyros;render()}}
+    else if(m.t==='err')toast(m.msg);
+  };
+}
+const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else toast('Nincs kapcsolat a szerverrel.')};
+let tt;function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2600)}
+
+function render(){
+  const R=G.receipts,rows=Math.floor(G.maxNumber/10)+1,by={};let none=0;
+  for(const r of Object.values(R)){if(r.alias)by[r.alias]=(by[r.alias]||0)+1;else none++}
+  const total=Object.keys(R).length;
+  $('got').textContent=total;$('of').textContent=G.maxNumber;$('progbar').style.width=(100*total/G.maxNumber)+'%';
+  if(me&&!G.contributors.some(c=>c.alias===me))me='';
+  $('who').innerHTML=G.contributors.map(c=>`<button type="button" data-a="${esc(c.alias)}" aria-pressed="${c.alias===me}" title="${esc(c.name)}">${esc(c.alias)}</button>`).join('');
+  $('who').querySelectorAll('button').forEach(b=>b.onclick=()=>{me=b.dataset.a;safeSet('gyros-alias',me);render()});
+  const mc=G.contributors.find(c=>c.alias===me);
+  $('meline').textContent=mc?`Te: ${mc.alias} ${mc.name} · ${by[mc.alias]||0} nyugta`:'Még nem választottál aliast.';
+  let h='<span></span>';for(let c=0;c<10;c++)h+=`<span class="h">${c}</span>`;
+  for(let r=0;r<rows;r++){
+    h+=`<span class="h">${String(r).padStart(2,'0')}</span>`;
+    for(let c=0;c<10;c++){
+      const k=key(r*10+c),x=R[k];
+      if(k==='000'){h+=`<button class="c x" disabled aria-label="000, nem létezik"><small>${k}</small></button>`;continue}
+      if(x){const mine=x.alias&&x.alias===me;
+        h+=`<button class="c got${mine?' mine':''}${prev[k]?'':' new'}" data-k="${k}" ${mine?'':'aria-disabled="true"'} aria-label="${k}: megvan${x.alias?', '+esc(x.alias):''}"><small>${k}</small>${x.alias?esc(x.alias):'✅'}${x.alias?'<span class="ok">✅</span>':''}</button>`}
+      else h+=`<button class="c" data-k="${k}" aria-label="${k}: hiányzik"><small>${k}</small></button>`;
+    }
+  }
+  const first=!Object.keys(prev).length;
+  $('grid').innerHTML=h;
+  if(!first)$('grid').querySelectorAll('.c.new').forEach(el=>el.classList.add('flash'));
+  prev={...R};
+  const max=Math.max(1,...Object.values(by),none);
+  const rank=G.contributors.filter(c=>by[c.alias]).sort((a,b)=>by[b.alias]-by[a.alias]);
+  $('rank').innerHTML=rank.map(c=>`<li><span class="al">${esc(c.alias)}</span><span class="nm">${esc(c.name)}</span><b>${by[c.alias]}</b><span class="bar"><i style="width:${100*by[c.alias]/max}%"></i></span></li>`).join('')
+    +(none?`<li><span class="al">✅</span><span class="nm">alias nélkül</span><b>${none}</b><span class="bar"><i style="width:${100*none/max}%"></i></span></li>`:'')
+    ||'<li><span></span><span class="nm">Még nincs nyugta.</span></li>';
+  $('people').innerHTML=G.contributors.map(c=>`<li><span class="al">${esc(c.alias)}</span><span class="nm">${esc(c.name)}</span><b>${by[c.alias]||0}</b></li>`).join('');
+}
+$('grid').addEventListener('click',e=>{
+  const b=e.target.closest('.c');if(!b||b.disabled||!G)return;
+  const k=b.dataset.k,x=G.receipts[k];
+  if(!me){toast('Előbb válaszd ki fent az aliasodat.');$('who').scrollIntoView({behavior:'smooth',block:'center'});return}
+  if(!x)send({t:'gyros-claim',number:k,alias:me});
+  else if(x.alias===me){if(confirm(`Visszavonod a ${k} számú nyugtát?`))send({t:'gyros-unclaim',number:k,alias:me})}
+  else toast(`A ${k} már megvan${x.alias?' ('+x.alias+')':''}.`);
+});
+$('addform').onsubmit=e=>{e.preventDefault();const name=$('nName').value.trim(),alias=$('nAlias').value.trim();
+  if(!name||!alias){toast('Add meg a nevet és az aliast is.');return}
+  send({t:'gyros-add',name,alias});$('nName').value='';$('nAlias').value='';
+  if(!me){me=alias;safeSet('gyros-alias',me)}};
+connect();
+</script>
+</body>
+</html>

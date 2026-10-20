@@ -7,6 +7,7 @@ const express = require('express');
 const { WebSocketServer } = require('ws');
 const game = require('./game');
 const physics = require('./physics');
+const gyros = require('./gyros');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -23,6 +24,14 @@ const DOOR = 'ajtó';
 // ---- állapot (a perzisztens rész a data/state.json-ban) ----
 const S = { pot: START_POT, history: [], stats: {}, doorOpens: 0, credited: { date: '', names: [] }, bent: {}, roundBets: [], rest: physics.DEFAULT_REST };
 try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch {}
+// Gyros: a kezdő adat (teljes nevekkel) a data/gyros-seed.json-ból jön, ami nincs a repóban
+if (!S.gyros || (!S.gyros.contributors.length && !Object.keys(S.gyros.receipts).length)) {
+  S.gyros = gyros.empty();
+  try {
+    S.gyros = gyros.fromSeed(JSON.parse(fs.readFileSync(path.join(path.dirname(DATA_FILE), 'gyros-seed.json'), 'utf8')));
+    console.log(`Gyros: ${Object.keys(S.gyros.receipts).length} nyugta betöltve a seedből.`);
+  } catch (e) { if (e.code !== 'ENOENT') console.error('gyros-seed.json hibás:', e.message); }
+}
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -155,6 +164,7 @@ function snapshot(withTrack) {
     rest: S.rest || physics.DEFAULT_REST,
     bets: R.bets, history: S.history, board, feed: feed.slice(0, 15),
     door: { opens: S.doorOpens, net: S.stats[DOOR]?.net || 0 },
+    gyros: S.gyros,
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -182,6 +192,18 @@ wss.on('connection', (ws) => {
       if (nick.length < 2) return err('A becenév legalább 2 karakter.');
       if (nick.toLowerCase() === DOOR) return err('Az „ajtó” becenév foglalt.');
       ws.nick = nick; ws.send(JSON.stringify({ t: 'hello', nick }));
+      return;
+    }
+    if (m.t === 'gyros-claim' || m.t === 'gyros-unclaim' || m.t === 'gyros-add') {
+      const G = S.gyros, num = gyros.key(parseInt(m.number, 10));
+      const e = m.t === 'gyros-claim' ? gyros.claim(G, m.number, m.alias)
+        : m.t === 'gyros-unclaim' ? gyros.unclaim(G, m.number, m.alias)
+          : gyros.addContributor(G, m.name, m.alias);
+      if (e) return err(e);
+      if (m.t === 'gyros-claim') say(`${m.alias} rögzítette a ${num} számú gyrosnyugtát. Összesen: ${Object.keys(G.receipts).length}.`);
+      else if (m.t === 'gyros-unclaim') say(`${m.alias} visszavonta a ${num} számú nyugtát.`);
+      else say(`Új gyros-hozzájáruló: ${G.contributors[G.contributors.length - 1].alias}`);
+      save(); broadcast();
       return;
     }
     if (!ws.nick) return err('Előbb adj meg becenevet.');

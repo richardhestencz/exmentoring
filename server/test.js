@@ -73,6 +73,41 @@ test('a tétasztal: mező = szám, rés = 2 szám, kereszteződés = sarok, mind
     }
   assert.strictEqual(seen.size, g.INSIDE.size, 'minden belső tét elérhető kattintással');
 });
+test('gyros: rögzítés, foglalt cella, visszavonás csak a sajáttal, bővülés', () => {
+  const gy = require('./gyros');
+  const G = gy.fromSeed({ contributors: [{ name: 'Teszt Anna', alias: '🐬' }, { name: 'Teszt Béla', alias: '🎾' }], receipts: { '008': null, '016': '🎾' }, maxNumber: 209 });
+  assert.deepStrictEqual(gy.counts(G), { by: { '🎾': 1 }, none: 1, total: 2, of: 209 });
+  assert.strictEqual(gy.claim(G, '091', '🐬', 1), null);
+  assert.deepStrictEqual(G.receipts['091'], { alias: '🐬', at: 1 });
+  assert.match(gy.claim(G, '091', '🎾'), /már megvan/, 'foglalt cellát nem lehet felülírni');
+  assert.match(gy.claim(G, '092', '🦄'), /aliasodat/, 'csak létező alias rögzíthet');
+  assert.match(gy.claim(G, '000', '🐬'), /között/, 'a 000 nem létezik');
+  assert.match(gy.claim(G, 220, '🐬'), /között/, 'max+10 fölött nem');
+  assert.match(gy.unclaim(G, '091', '🎾'), /saját/, 'más nyugtáját nem lehet visszavonni');
+  assert.match(gy.unclaim(G, '008', '🐬'), /saját/, 'alias nélküli pipát sem');
+  assert.strictEqual(gy.unclaim(G, '091', '🐬'), null);
+  assert.strictEqual(G.receipts['091'], undefined);
+  assert.strictEqual(gy.claim(G, 213, '🐬'), null, '209 fölött is rögzíthető');
+  assert.strictEqual(G.maxNumber, 219, 'a rács egy sorral bővül');
+  assert.strictEqual(gy.counts(G).of, 219);
+});
+test('gyros: új hozzájáruló, egyedi és legfeljebb 2 karakteres alias', () => {
+  const gy = require('./gyros');
+  const G = gy.empty();
+  assert.strictEqual(gy.addContributor(G, '  Teszt   Elek ', '🌮'), null);
+  assert.deepStrictEqual(G.contributors[0], { name: 'Teszt Elek', alias: '🌮' });
+  assert.match(gy.addContributor(G, 'Más Valaki', '🌮'), /foglalt/);
+  assert.match(gy.addContributor(G, 'Más Valaki', 'ABC'), /2 karakter/);
+  assert.strictEqual(gy.addContributor(G, 'Zászlós Zoli', '🇭🇺'), null, 'egy zászló egy karakternek számít');
+  assert.strictEqual(gy.addContributor(G, 'Két Jel', 'KJ'), null);
+  assert.match(gy.addContributor(G, 'X', '🍕'), /legalább 2/);
+  assert.match(gy.addContributor(G, 'Üres Alias', '  '), /aliast/);
+});
+test('gyros: a teljes nevek nincsenek a repóban', () => {
+  const { execSync } = require('child_process');
+  const tracked = execSync('git ls-files', { cwd: path.join(__dirname, '..') }).toString();
+  assert.ok(!/gyros-seed/.test(tracked), 'a seed fájl nincs verziókezelve');
+});
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;
