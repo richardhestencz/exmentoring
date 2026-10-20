@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>Exmentoring</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M10 38 8 6l28 12z' fill='%238b9096'/%3E%3Cpath d='M90 38 92 6 64 18z' fill='%238b9096'/%3E%3Cpath d='M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z' fill='%23aeb3b8'/%3E%3Cpath d='M14 44c12-8 26-4 36 4 10-8 24-12 36-4 0 16-14 20-26 14-6-2-14-2-20 0-12 6-26 2-26-14z' fill='%232b2f33'/%3E%3Cellipse cx='50' cy='68' rx='20' ry='14' fill='%23f1f2f3'/%3E%3Ccircle cx='33' cy='48' r='6' fill='%23fff'/%3E%3Ccircle cx='67' cy='48' r='6' fill='%23fff'/%3E%3Cellipse cx='50' cy='60' rx='7' ry='5' fill='%2316181a'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -182,7 +183,7 @@ ul{list-style:none;margin:0;padding:0}
   .tr{right:8px;top:58px;width:calc(48% - 8px);padding:8px 10px}
   .tr li{font-size:.76rem;padding:2px 0}.tr li:nth-child(n+3){display:none}.tr h2{font-size:.8rem;margin-bottom:2px}
   .feed{font-size:.72rem;padding:5px 10px}.feed li:nth-child(n+2){display:none}
-  .me{padding:6px 10px;font-size:.88rem}.me svg{width:22px;height:20px}
+  .me{padding:6px 10px;font-size:.88rem}.me svg{width:22px;height:20px}.me .rc{width:24px;height:24px}
   .door{font-size:.72rem;margin-top:5px;padding-top:5px}.door b{font-size:.9rem}.door svg{width:16px;height:21px}
   .dock{left:8px;right:8px;bottom:8px;gap:8px;grid-template-columns:1fr 1fr;grid-template-areas:"board board" "pills side"}
   .boardwrap{grid-area:board}.pills{grid-area:pills}.side{grid-area:side}
@@ -215,6 +216,13 @@ footer strong{color:#fff}
 .upd{padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:600;cursor:pointer}
 .upd:focus-visible{outline:3px solid #fff;outline-offset:2px}
 #updmsg{font-size:.88rem;margin-left:8px}
+.rc{border-radius:50%;object-fit:cover;flex:none;display:inline-block}
+.studio .rc{width:26px;height:26px}
+.me .rc{width:30px;height:30px}
+.modal .rc{width:84px;height:84px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
+.people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
+.rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
 </style>
 </head>
 <body>
@@ -241,7 +249,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <a class="studio" href="#jatek"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Mentoring szoba</a>
+    <a class="studio" href="#jatek"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
     <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -260,7 +268,7 @@ footer strong{color:#fff}
   </div>
 
   <div class="tl">
-    <div class="glass me" id="me"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button></div>
+    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
   </div>
 
@@ -296,7 +304,7 @@ footer strong{color:#fff}
 
   <div class="modal" id="nickmodal">
     <div class="glass card">
-      <svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>
+      <img class="rc" src="/img/raccoon-128.png" alt="" aria-hidden="true">
       <h1>Mi a beceneved?</h1>
       <p>Ezzel a névvel kerülsz a ranglistára. A téteket a szoba közös potjából teszed fel.</p>
       <form class="nick" id="nickform">
@@ -313,9 +321,9 @@ footer strong{color:#fff}
     <h2 class="sec">Hogyan működik</h2>
     <p class="lead">Virtuális játék, nem valódi pénz. Mosómedvékben játszunk, és a pot csak a szobáé.</p>
     <ol class="steps">
-      <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először beér az irodába, +10 000 mosómedvét hoz a közösnek (ez a <a href="/bent.html">Ki van bent?</a> funkcióval indul, hamarosan).</div></li>
-      <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Valódi fizika</h3>A golyó fizikai szimulációval forog, pattog és áll meg. A nyerő szám abból jön, hol marad a golyó.</div></li>
-      <li><div class="card"><h3><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Ajtó és Pörgetés</h3>A kerék akkor indul, ha nyílik az ajtó, vagy valaki a tétei után megnyomja a Pörgetés gombot. Az ajtó is tesz fel 1000 mosómedvét. Az ajtót az irodai MacBook figyeli: <a href="/ajto.html">így kell beállítani</a>.</div></li>
+      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először beér az irodába, +10 000 mosómedvét hoz a közösnek (ez a <a href="/bent.html">Ki van bent?</a> funkcióval indul, hamarosan).</div></li>
+      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Valódi fizika</h3>A golyó fizikai szimulációval forog, pattog és áll meg. A nyerő szám abból jön, hol marad a golyó.</div></li>
+      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Ajtó és Pörgetés</h3>A kerék akkor indul, ha nyílik az ajtó, vagy valaki a tétei után megnyomja a Pörgetés gombot. Az ajtó is tesz fel 1000 mosómedvét. Az ajtót az irodai MacBook figyeli: <a href="/ajto.html">így kell beállítani</a>.</div></li>
     </ol>
   </div>
 </section>
@@ -336,6 +344,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
 const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 const stage=$('stage');
+const RC='<img class="rc em" src="/img/raccoon-32.png" alt="mosómedve">';
 
 /* ---------- állapot + websocket ---------- */
 let S=null,nick=safeGet('nick'),offset=0,ws,retry=0,canSpin=false,curSpin=null;
@@ -520,7 +529,7 @@ function render(){
   $('dopens').textContent=fmt(S.door.opens);
   const dn=$('dnet');dn.textContent=(S.door.net>0?'+':'')+fmt(S.door.net);dn.className=S.door.net>0?'pos':S.door.net<0?'neg':'';
   $('board').innerHTML=S.board.length?S.board.slice(0,6).map(b=>`<li><span>${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`).join(''):'<li><span>Még nincs lejátszott kör.</span></li>';
-  $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text)}</li>`).join(''):'<li>Még nem történt semmi.</li>';
+  $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,RC)}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }
 setInterval(()=>{
   if(!S)return;

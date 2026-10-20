@@ -5,7 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <title>Ajtófigyelő beállítása</title>
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 90'%3E%3Cpath d='M10 38 8 6l28 12z' fill='%238b9096'/%3E%3Cpath d='M90 38 92 6 64 18z' fill='%238b9096'/%3E%3Cpath d='M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z' fill='%23aeb3b8'/%3E%3C/svg%3E">
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
@@ -73,6 +74,13 @@ footer strong{color:#fff}
   .code pre{padding-right:16px;padding-top:46px}
   th:first-child,td:first-child{width:38%}
 }
+.rc{border-radius:50%;object-fit:cover;flex:none;display:inline-block}
+.studio .rc{width:26px;height:26px}
+.me .rc{width:30px;height:30px}
+.modal .rc{width:84px;height:84px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
+.people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
+.rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
 </style>
 </head>
 <body>
@@ -94,7 +102,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <a class="studio" href="/"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Mentoring szoba</a>
+    <a class="studio" href="/"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
     <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html" aria-current="page">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
 </header>
@@ -107,7 +115,7 @@ footer strong{color:#fff}
     <li>🚪 Shelly szenzor</li><li class="arr" aria-hidden="true">→</li>
     <li>💻 irodai MacBook (Bluetooth)</li><li class="arr" aria-hidden="true">→</li>
     <li>🌐 internet</li><li class="arr" aria-hidden="true">→</li>
-    <li>🦝 ez az oldal (Mac mini)</li>
+    <li><img class="rc em" src="/img/raccoon-32.png" alt="" aria-hidden="true"> ez az oldal (Mac mini)</li>
   </ul>
 </div></div>
 
