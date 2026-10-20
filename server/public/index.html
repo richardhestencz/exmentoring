@@ -105,7 +105,7 @@ ul{list-style:none;margin:0;padding:0}
 .boardwrap{position:relative;transition:transform .9s cubic-bezier(.2,.8,.2,1),opacity .9s;transform-origin:50% 100%}
 .stage.overhead .boardwrap{transform:scale(.42);opacity:.85}
 .felt{padding:8px}
-.tbl{display:grid;grid-template-columns:1.1fr repeat(12,minmax(0,1fr)) 1.15fr;grid-auto-rows:minmax(34px,auto);gap:3px}
+.tbl{cursor:pointer;display:grid;grid-template-columns:1.1fr repeat(12,minmax(0,1fr)) 1.15fr;grid-auto-rows:minmax(34px,auto);gap:3px}
 .cell{position:relative;border:1px solid rgba(255,255,255,.14);border-radius:7px;cursor:pointer;font-weight:700;font-variant-numeric:tabular-nums;
   background:rgba(255,255,255,.06);color:#fff;padding:0 2px;font-size:.95rem;transition:transform .08s,background .15s}
 .cell:hover:not(:disabled){background:rgba(255,255,255,.16)}
@@ -380,40 +380,57 @@ function mk(parent,kind,label,cls,row,col,aria){
   b.onclick=()=>sendBet(kind);
   parent.appendChild(b);kinds[kind]=b;return b;
 }
-// szám-mezők: a kattintás helye dönti el a tétet (közép = szám, határ = 2 szám, sarok = 4, alsó szél = sor, alsó sarok = hatos sor)
+// szám-mezők: a mező belseje = a szám; a rés két mező között = 2 szám (a zseton a rés közepére kerül);
+// négy mező találkozása = sarok; az alsó vonal = sor (3 szám), az alsó vonal kereszteződése = hatos sor
 const inKind=a=>'in:'+a.slice().sort((x,y)=>x-y).join('-');
-function kindAt(n,fx,fy){
-  if(n===0)return 'in:0';
-  const c=(n-1)/3|0,r=2-(n-1)%3,E=.28;
-  const h=fx<E?'L':fx>1-E?'R':null;let v=fy<E?'T':fy>1-E?'B':null;
-  if(v==='B'&&r===2){
-    const st=k=>[3*k+1,3*k+2,3*k+3];
-    if(h==='L')return c===0?inKind([0,1,2,3]):inKind([...st(c-1),...st(c)]);
-    if(h==='R')return c<11?inKind([...st(c),...st(c+1)]):inKind(st(c));
-    return inKind(st(c));
+// G: a rések helyzete képpontban. bx[0] a 0 és az első oszlop közti rés, bx[k] a k-1. és k. oszlop közti rés;
+// by[1], by[2] a sorok közti rések, by[3] az alsó vonal; top/right a számmező széle; tol a rés körüli ráhagyás
+function zoneKind(x,y,G){
+  if(y<G.top||y>G.by[3]+G.tol||x>G.right+G.tol)return null;
+  const n=(c,r)=>3*c+3-r, st=c=>[3*c+1,3*c+2,3*c+3];
+  let k=null,j=null;
+  for(let i=0;i<12;i++)if(Math.abs(x-G.bx[i])<=G.tol){k=i;break}
+  for(let i=1;i<=3;i++)if(Math.abs(y-G.by[i])<=G.tol){j=i;break}
+  if(x>G.right)k=null;
+  let c=-1;for(let i=0;i<12;i++)if(x>=G.bx[i])c=i;
+  const r=y<G.by[1]?0:y<G.by[2]?1:y<G.by[3]?2:3;
+  if(k!==null&&j!==null){
+    if(j===3)return k===0?inKind([0,1,2,3]):inKind([...st(k-1),...st(k)]);
+    return k===0?inKind([0,n(0,j-1),n(0,j)]):inKind([n(k-1,j-1),n(k,j-1),n(k-1,j),n(k,j)]);
   }
-  if(v==='T'&&r===0)v=null;
-  const nv=v==='T'?n+1:v==='B'?n-1:null;
-  const nh=h==='L'?(c>0?n-3:0):h==='R'?(c<11?n+3:null):null;
-  if(nv!==null&&nh!==null)return nh===0?inKind([0,n,nv]):inKind([n,nv,nh,nh+(nv-n)]);
-  if(nh!==null)return inKind([n,nh]);
-  if(nv!==null)return inKind([n,nv]);
-  return inKind([n]);
+  if(k!==null)return r>2?null:k===0?inKind([0,n(0,r)]):inKind([n(k-1,r),n(k,r)]);
+  if(j!==null){
+    if(c<0)return j===3?null:'in:0';
+    return j===3?inKind(st(c)):inKind([n(c,j-1),n(c,j)]);
+  }
+  if(r>2)return null;
+  return c<0?'in:0':inKind([n(c,r)]);
 }
-function numPick(e,n){
-  if(e.detail===0)return 'in:'+n;                      // billentyűzetről: a szám maga
-  const r=e.currentTarget.getBoundingClientRect();
-  return kindAt(n,(e.clientX-r.left)/r.width,(e.clientY-r.top)/r.height);
+function geom(){
+  const R=n=>numCell[n].getBoundingClientRect(), z=numCell[0].getBoundingClientRect();
+  const bx=[(z.right+R(1).left)/2];
+  for(let c=1;c<12;c++)bx.push((R(3*c-2).right+R(3*c+1).left)/2);
+  const dz=kinds['dozen:1'].getBoundingClientRect(), gap=Math.max(1,R(2).left-z.right);
+  return{bx,by:[0,(R(3).bottom+R(2).top)/2,(R(2).bottom+R(1).top)/2,(R(1).bottom+dz.top)/2],
+    top:R(3).top,right:R(36).right,tol:clamp(gap/2+R(1).width*.11,4,9)};
 }
+const pickAt=e=>zoneKind(e.clientX,e.clientY,geom());   // mindig frissen mérünk (a tétasztal nagyítva is lehet)
 function mkNum(t,n,cls,row,col){
-  const b=mk(t,'in:'+n,String(n),cls,row,col);
-  b.onclick=e=>sendBet(numPick(e,n));
-  b.onpointermove=e=>{if(e.pointerType==='mouse')ghost(numPick(e,n))};
-  b.onpointerleave=()=>ghost(null);
+  const b=mk(t,'in:'+n,String(n),cls,row,col);       // billentyűzetről (Enter/Szóköz) a szám maga
   numCell[n]=b;return b;
 }
+function wireTable(t){
+  // a kattintást a tétasztal egészén figyeljük, így a rések (a mezők közti hézag) is kattinthatók
+  t.addEventListener('click',e=>{
+    if(e.detail===0)return;
+    const k=pickAt(e);
+    if(k){e.stopPropagation();e.preventDefault();sendBet(k)}
+  },true);
+  t.addEventListener('pointermove',e=>{if(e.pointerType==='mouse')ghost(pickAt(e))});
+  t.addEventListener('pointerleave',()=>ghost(null));
+}
 (function build(){
-  const t=$('tbl');
+  const t=$('tbl');wireTable(t);
   mkNum(t,0,'zero','1 / span 3','1');
   for(let row=0;row<3;row++){
     for(let c=0;c<12;c++){const n=c*3+(3-row);mkNum(t,n,colorOf(n),row+1,c+2)}

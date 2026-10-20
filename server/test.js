@@ -41,21 +41,38 @@ test('visszatérülés ~ 97,3% minden tétfajtánál', () => {
     assert.ok(Math.abs(back / (37 * 100) - 36 / 37) < 1e-9, k);
   }
 });
-test('a tétasztal minden kattintási pontja érvényes tétet ad', () => {
+test('a tétasztal: mező = szám, rés = 2 szám, kereszteződés = sarok, minden pont érvényes', () => {
   const html = fs.readFileSync(path.join(__dirname, 'public', 'index.html'), 'utf8');
-  const src = html.slice(html.indexOf('const inKind='), html.indexOf('function numPick'));
-  const kindAt = new Function(src + 'return kindAt;')();
+  const src = html.slice(html.indexOf('const inKind='), html.indexOf('function geom'));
+  const zoneKind = new Function(src + 'return zoneKind;')();
+  // egy 50×36 képpontos mezőkből, 3 képpontos résekkel felépített asztal (a 0 mező 0..55 között)
+  const W = 50, H = 36, GAP = 3, X0 = 58, Y0 = 0;
+  const left = (c) => X0 + c * (W + GAP), top = (r) => Y0 + r * (H + GAP);
+  const G = { bx: [], by: [0], top: Y0, right: left(11) + W, tol: 6 };
+  G.bx.push(X0 - GAP / 2); for (let c = 1; c < 12; c++) G.bx.push(left(c) - GAP / 2);
+  for (let r = 1; r <= 3; r++) G.by.push(top(r) - GAP / 2);
+  const at = (x, y) => zoneKind(x, y, G);
+  assert.strictEqual(at(left(5) + 25, top(1) + 18), 'in:17', 'mező közepe');
+  assert.strictEqual(at(left(5) + 40, top(1) + 18), 'in:17', 'mező széle is még a szám');
+  assert.strictEqual(at(G.bx[6], top(1) + 18), 'in:17-20', 'rés két oszlop között');
+  assert.strictEqual(at(left(5) + 25, G.by[1]), 'in:17-18', 'rés két sor között');
+  assert.strictEqual(at(G.bx[6], G.by[1]), 'in:17-18-20-21', 'négy mező találkozása');
+  assert.strictEqual(at(left(0) + 25, G.by[3]), 'in:1-2-3', 'alsó vonal: sor');
+  assert.strictEqual(at(G.bx[1], G.by[3]), 'in:1-2-3-4-5-6', 'alsó kereszteződés: hatos sor');
+  assert.strictEqual(at(G.bx[0], top(2) + 18), 'in:0-1', 'rés a 0 mellett');
+  assert.strictEqual(at(G.bx[0], G.by[2]), 'in:0-1-2', 'trió');
+  assert.strictEqual(at(G.bx[0], G.by[3]), 'in:0-1-2-3', 'első négy');
+  assert.strictEqual(at(20, 50), 'in:0', 'a 0 mező');
   const seen = new Set();
-  for (let n = 0; n <= 36; n++)
-    for (let fx = 0.01; fx < 1; fx += 0.07)
-      for (let fy = 0.01; fy < 1; fy += 0.07) {
-        const k = kindAt(n, fx, fy);
-        assert.ok(g.INSIDE.has(k), `${n} @ ${fx.toFixed(2)},${fy.toFixed(2)} -> ${k}`);
-        seen.add(k);
-      }
+  for (let x = 0; x <= G.right + 10; x += 1)
+    for (let y = 0; y <= G.by[3] + 10; y += 1) {
+      const k = at(x, y);
+      if (k === null) continue;
+      assert.ok(g.INSIDE.has(k), `${x},${y} -> ${k}`);
+      seen.add(k);
+    }
   assert.strictEqual(seen.size, g.INSIDE.size, 'minden belső tét elérhető kattintással');
 });
-
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;
