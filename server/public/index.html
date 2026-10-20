@@ -588,8 +588,9 @@ const trackMesh=new THREE.Mesh(new THREE.LatheGeometry(v2([[1.2,.165],[1.0,.07],
 trackMesh.receiveShadow=true;scene.add(trackMesh);
 [[.955,.04,.01]].forEach(([r,y,tube])=>{const t=new THREE.Mesh(new THREE.TorusGeometry(r,tube,12,128),copper);t.rotation.x=Math.PI/2;t.position.y=y;scene.add(t)});
 for(let k=0;k<8;k++){
-  const d=new THREE.Mesh(new THREE.OctahedronGeometry(.034),copper),a=k*TAU/8+.2,r=1.07;
-  d.position.set(Math.cos(a)*r,Hs(r)+.02,Math.sin(a)*r);d.rotation.y=-a;d.castShadow=true;scene.add(d);
+  // lapos rombusz, ugyanakkora, mint a fizikában a domborulat talpa (physics.js: DEF_RAD, DEF_SINK)
+  const d=new THREE.Mesh(new THREE.OctahedronGeometry(.028),copper),a=k*TAU/8+.2,r=1.07;
+  d.scale.set(1,.32,.62);d.position.set(Math.cos(a)*r,Hs(r)+.003,Math.sin(a)*r);d.rotation.y=-a;d.rotation.z=Math.atan(.475);d.castShadow=true;scene.add(d);
 }
 const wheel=new THREE.Group();scene.add(wheel);
 const faceGeo=new THREE.RingGeometry(.001,R_OUT,128,40);

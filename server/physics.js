@@ -11,7 +11,8 @@ const FRET = { L: R_OUT - R_IN - 0.005, R: 0.015, Y: 0.018, RC: (R_IN + R_OUT) /
 const WALL_R = 1.17, INNER_R = R_IN + 0.07;
 const DT = 1 / 1200, HZ = 60, TW = 13, T_MAX = 30, LAUNCH = 0.4;
 const DEFLECTORS = Array.from({ length: 8 }, (_, k) => k * TAU / 8 + 0.2);
-const DEF_R = 1.07, DEF_RAD = 0.03;
+// a terelők lapos domborulatok: egy nagy gömb, aminek csak a teteje áll ki a pályából, így a golyót inkább megdobják
+const DEF_R = 1.07, DEF_RAD = 0.045, DEF_SINK = 0.036;
 
 const rnd = () => crypto.randomBytes(4).readUInt32LE(0) / 4294967296;
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
@@ -83,13 +84,13 @@ function simulate(rest, rng = rnd) {
 
     // terelő rombuszok a lejtőn
     for (const da of DEFLECTORS) {
-      const dx0 = DEF_R * Math.cos(da), dz0 = DEF_R * Math.sin(da), dy0 = H(DEF_R) + 0.02;
+      const dx0 = DEF_R * Math.cos(da), dz0 = DEF_R * Math.sin(da), dy0 = H(DEF_R) - DEF_SINK;
       const dx = x - dx0, dy = y - dy0, dz = z - dz0, d = Math.hypot(dx, dy, dz), min = BALL_R + DEF_RAD;
       if (d < min && d > 1e-9) {
         const nx = dx / d, ny = dy / d, nz = dz / d;
         x += nx * (min - d); y += ny * (min - d); z += nz * (min - d);
         const vn = vx * nx + vy * ny + vz * nz;
-        if (vn < 0) { vx -= 1.5 * vn * nx; vy -= 1.5 * vn * ny; vz -= 1.5 * vn * nz; hit(t, -vn); }
+        if (vn < 0) { vx -= 1.35 * vn * nx; vy -= 1.35 * vn * ny; vz -= 1.35 * vn * nz; hit(t, -vn); }
       }
     }
 
