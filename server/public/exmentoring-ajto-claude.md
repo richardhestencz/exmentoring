@@ -89,7 +89,7 @@ Ellenőrzés: `pmset -g | grep -E ' sleep'` (töltőn `0` legyen).
 
 1. Kérd meg a felhasználót, hogy nyissa ki, majd csukja be az ajtót.
 2. Az ajtófigyelő ablakában meg kell jelennie: `Az ajtó ki lett nyitva`, majd `Az ajtó be lett csukva`, mindkettő alatt: `szerver: elküldve`.
-3. Az oldalon (https://hestencz-mac-mini.tail018e03.ts.net) nyitáskor nő az ajtószámláló, záráskor elindul egy pörgetés.
+3. Az oldalon (https://hestencz-mac-mini.tail018e03.ts.net) nyitáskor nő az ajtószámláló és az ajtó felteszi a tétjét, csukáskor elindul a pörgetés.
 
 Ha nem jelez: a szenzor legyen 10 méteren belül; a hirdetéseket így lehet nézni: `cd ~/exmentoring-ajto && set -a && . ./ajto.env && set +a && shelly-ajto/.venv/bin/python shelly-ajto/ajto.py --debug` (előtte állítsd le a futó példányt, és utána indítsd újra a 4. lépés parancsával).
 

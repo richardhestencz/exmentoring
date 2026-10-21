@@ -5,7 +5,7 @@
 
 ## Mi ez, egy bekezdésben
 
-Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás, középen egy 3D kerék, körülötte mosómedvék. A tétek egy közös, virtuális mosómedve-potból mennek, valódi pénz nincs benne. A golyót a szerver valódi fizikával szimulálja, így mindenki ugyanazt a pörgetést látja egyszerre. A kerék akkor indul, ha valaki tét után megnyomja a **Pörgetés** gombot, vagy ha kinyílik az ajtó.
+Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás, középen egy 3D kerék, körülötte mosómedvék. A tétek egy közös, virtuális mosómedve-potból mennek, valódi pénz nincs benne. A golyót a szerver valódi fizikával szimulálja, így mindenki ugyanazt a pörgetést látja egyszerre. A kerék akkor indul, ha valaki tét után megnyomja a **Pörgetés** gombot, vagy ha becsukódik az ajtó. Nyitáskor az ajtó maga is feltesz 1000 mosómedvét, csukáskor pörög.
 
 ## Felállás
 

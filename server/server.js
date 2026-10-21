@@ -87,7 +87,7 @@ function undoBet(nick, all) {
 function placeDoorBet() {
   const bets = game.doorBet();
   for (const b of bets) if (addBet(DOOR, b.kind, b.stake)) { say('Az ajtó tétje elmaradt: nincs elég mosómedve a potban.'); return; }
-  say(`Az ajtó 1000 🦝-t tett fel (${bets.length === 1 ? kindName(bets[0].kind) : bets.length + ' mezőre'}).`);
+  say(`Az ajtó 1000 🦝-t tett fel (${bets.length === 1 ? kindName(bets[0].kind) : bets.length + ' mezőre'}). Csukásra pörög a kerék.`);
 }
 const KIND_NAMES = { red: 'pirosra', black: 'feketére', even: 'párosra', odd: 'páratlanra', low: '1–18-ra', high: '19–36-ra' };
 const kindName = (k) => KIND_NAMES[k] || k;
@@ -119,11 +119,13 @@ function tease(spinner, net) {
 
 // ---- körök: a kerék csak ajtózárásra vagy „Pörgetés” gombra indul ----
 function startBetting() {
-  R.id++; R.phase = 'betting'; R.result = null; R.endAt = 0; R.spinner = ''; R.net = null;
+  R.id++; R.phase = 'betting'; R.result = null; R.endAt = 0; R.spinner = ''; R.net = null; R.doorBet = false;
   S.roundBets = []; R.bets = S.roundBets;
-  if (R.doorQueue > 0) { // közben csukódott be az ajtó: tegyen tétet és pörgessen
-    R.doorQueue--; placeDoorBet(); R.spinner = DOOR;
+  if (R.doorQueue > 0) { // pörgés közben csukódott be az ajtó: tegyen tétet és pörgessen
+    R.doorQueue--; R.doorOpenQueued = false; placeDoorBet(); R.doorBet = true; R.spinner = DOOR;
     setTimeout(startSpin, T_DOOR_DELAY);
+  } else if (R.doorOpenQueued) { // pörgés közben nyílt ki, és még nyitva van: tegyen tétet, csukásra pörög
+    R.doorOpenQueued = false; placeDoorBet(); R.doorBet = true;
   }
   save(); broadcast();
 }
@@ -245,12 +247,18 @@ app.get('/api/ping', ingest, (req, res) => res.json({ ok: true })); // az irodai
 app.post('/api/door', ingest, (req, res) => {
   const st = req.body?.state;
   console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] ajtó: ${st} (fázis: ${R.phase})`);
+  // nyitásra az ajtó felteszi a tétjét, csukásra pörög a kerék
   if (st === 'open') {
     S.doorOpens++;
     say('🚪 Az ajtó kinyílt.');
-  } else if (st === 'closed') { // minden zárásnál az ajtó tesz fel és pörget
+    if (R.phase === 'betting') { if (!R.doorBet) { placeDoorBet(); R.doorBet = true; } }
+    else R.doorOpenQueued = true;                  // pörgés közben nyílt: a következő körben tesz fel
+  } else if (st === 'closed') {
     say('🚪 Az ajtó becsukódott.');
-    if (R.phase === 'betting') { placeDoorBet(); R.spinner = DOOR; startSpin(); } else R.doorQueue++;
+    if (R.phase === 'betting') {
+      if (!R.doorBet) { placeDoorBet(); R.doorBet = true; }   // ha a nyitás jele elveszett, most tesz fel
+      R.spinner = DOOR; startSpin();
+    } else R.doorQueue++;                          // pörgés közben csukódott: a következő körben tesz fel és pörget
   } else return res.status(400).json({ error: 'state: open|closed' });
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
