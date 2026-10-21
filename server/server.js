@@ -24,13 +24,19 @@ const DOOR = 'ajtó';
 // ---- állapot (a perzisztens rész a data/state.json-ban) ----
 const S = { pot: START_POT, history: [], stats: {}, doorOpens: 0, credited: { date: '', names: [] }, bent: {}, roundBets: [], rest: physics.DEFAULT_REST };
 try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch {}
-// Gyros: a kezdő adat (teljes nevekkel) a data/gyros-seed.json-ból jön, ami nincs a repóban
-if (!S.gyros || (!S.gyros.contributors.length && !Object.keys(S.gyros.receipts).length)) {
-  S.gyros = gyros.empty();
-  try {
-    S.gyros = gyros.fromSeed(JSON.parse(fs.readFileSync(path.join(path.dirname(DATA_FILE), 'gyros-seed.json'), 'utf8')));
-    console.log(`Gyros: ${Object.keys(S.gyros.receipts).length} nyugta betöltve a seedből.`);
-  } catch (e) { if (e.code !== 'ENOENT') console.error('gyros-seed.json hibás:', e.message); }
+// Gyros: a kezdő adat a data/gyros-seed.json-ból jön (nincs a repóban). Csak becenevek legyenek benne (Ricsi, Matyi…),
+// teljes név soha. Induláskor a seedben lévő beceneveket aliasonként átvesszük, így ott lehet javítani őket.
+{
+  let seed = null;
+  try { seed = JSON.parse(fs.readFileSync(path.join(path.dirname(DATA_FILE), 'gyros-seed.json'), 'utf8')); }
+  catch (e) { if (e.code !== 'ENOENT') console.error('gyros-seed.json hibás:', e.message); }
+  if (!S.gyros || (!S.gyros.contributors.length && !Object.keys(S.gyros.receipts).length)) {
+    S.gyros = seed ? gyros.fromSeed(seed) : gyros.empty();
+    if (seed) console.log(`Gyros: ${Object.keys(S.gyros.receipts).length} nyugta betöltve a seedből.`);
+  } else if (seed) {
+    const names = gyros.fromSeed(seed).contributors;
+    for (const c of S.gyros.contributors) { const n = names.find((x) => x.alias === c.alias); if (n) c.name = n.name; }
+  }
 }
 let saveTimer;
 function save() {

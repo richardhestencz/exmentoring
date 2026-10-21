@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
 <title>Gyros Központ</title>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
 <link rel="apple-touch-icon" href="/img/raccoon-256.png">
@@ -130,6 +132,26 @@ footer strong{color:#fff}
 .toastg.show{opacity:1}
 .conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
 .muted{color:var(--muted);font-size:.9rem}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;transition:transform .2s}
+.themebtn:hover{transform:rotate(-12deg) scale(1.08)}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* sötét mód */
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] main a{color:#f6a77c}
+:root[data-theme="dark"] main a.btn{color:#fff}
+:root[data-theme="dark"] pre{border:1px solid var(--line)}
+:root[data-theme="dark"] .flow li,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .who button,:root[data-theme="dark"] .c,
+:root[data-theme="dark"] .add input,:root[data-theme="dark"] .prog{background:#1d1519;color:var(--ink)}
+:root[data-theme="dark"] .card.note{background:#2b2312;border-color:#5e4c1d}
+:root[data-theme="dark"] .card.bad{background:#341818;border-color:#6d2c2c}
+:root[data-theme="dark"] .card.dl{background:#1c151a}
+:root[data-theme="dark"] .c:hover:not(:disabled){background:#2c1d22}
+:root[data-theme="dark"] .c.got{background:#2f1e1a;border-color:#6b3d2a}
+:root[data-theme="dark"] .c.mine{background:#4a2516}
+:root[data-theme="dark"] .who button[aria-pressed="true"]{background:#3a2117}
+:root[data-theme="dark"] .people li{background:#1c151a}
 </style>
 </head>
 <body>
@@ -151,7 +173,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <a class="studio" href="/"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
     <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html" aria-current="page">Gyros</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -187,11 +209,11 @@ footer strong{color:#fff}
     <h2>Hozzájárulók</h2>
     <ul class="rank" id="people"></ul>
     <form class="add" id="addform">
-      <input id="nName" maxlength="40" placeholder="Név" autocomplete="off" aria-label="Név">
+      <input id="nName" maxlength="16" placeholder="Becenév, pl. Ricsi" autocomplete="off" aria-label="Becenév">
       <input id="nAlias" maxlength="8" placeholder="🌮" autocomplete="off" aria-label="Alias (1-2 karakter)">
       <button type="submit">Felveszem</button>
     </form>
-    <p class="muted">Az alias legfeljebb 2 karakter (például egy emoji), és egyedinek kell lennie.</p>
+    <p class="muted">Csak becenevet írj (Ricsi, Matyi, Nándi…), teljes nevet ne, mert az oldal nyilvános. Az alias legfeljebb 2 karakter (például egy emoji), és egyedinek kell lennie.</p>
   </div>
 </div></section>
 <div class="toastg" id="toast" role="status"></div>
@@ -262,7 +284,7 @@ $('grid').addEventListener('click',e=>{
   else toast(`A ${k} már megvan${x.alias?' ('+x.alias+')':''}.`);
 });
 $('addform').onsubmit=e=>{e.preventDefault();const name=$('nName').value.trim(),alias=$('nAlias').value.trim();
-  if(!name||!alias){toast('Add meg a nevet és az aliast is.');return}
+  if(!name||!alias){toast('Add meg a becenevet és az aliast is.');return}
   send({t:'gyros-add',name,alias});$('nName').value='';$('nAlias').value='';
   if(!me){me=alias;safeSet('gyros-alias',me)}};
 connect();

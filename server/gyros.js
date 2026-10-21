@@ -4,7 +4,7 @@ const ROW = 10;
 
 const key = (n) => String(n).padStart(3, '0');
 const graphemes = (s) => [...new Intl.Segmenter('hu', { granularity: 'grapheme' }).segment(s)].length;
-const cleanName = (s) => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40);
+const cleanName = (s) => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').replace(/\s+/g, ' ').trim().slice(0, 16);   // becenév, nem teljes név
 const cleanAlias = (s) => String(s || '').replace(/[\u0000-\u001f<>&"\s]/g, '');
 
 function empty() {
@@ -58,7 +58,7 @@ function unclaim(g, number, alias) {
 
 function addContributor(g, name, alias) {
   name = cleanName(name); alias = cleanAlias(alias);
-  if (name.length < 2) return 'A név legalább 2 karakter.';
+  if (name.length < 2) return 'A becenév legalább 2 karakter.';
   if (!alias) return 'Adj meg egy aliast (1-2 karakter, pl. emoji).';
   if (graphemes(alias) > 2) return 'Az alias legfeljebb 2 karakter lehet.';
   if (g.contributors.some((c) => c.alias === alias)) return 'Ez az alias már foglalt.';

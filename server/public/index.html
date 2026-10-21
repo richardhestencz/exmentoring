@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
 <title>Exmentoring</title>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
 <link rel="apple-touch-icon" href="/img/raccoon-256.png">
@@ -223,6 +225,20 @@ footer strong{color:#fff}
 .steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
 .people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
 .rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;transition:transform .2s}
+.themebtn:hover{transform:rotate(-12deg) scale(1.08)}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* sötét mód: éjszakai tisztás */
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] .stage{background:linear-gradient(180deg,#2b1630 0%,#2b1630 35%,#170d19 65%,#0b080d 100%)}
+:root[data-theme="dark"] .logo small{color:#e9b9a3}
+:root[data-theme="dark"] .wm{filter:drop-shadow(0 2px 0 rgba(0,0,0,.35))}
+:root[data-theme="dark"] .steps .card{color:var(--ink-2)}
+:root[data-theme="dark"] main a{color:#f6a77c}
+:root[data-theme="dark"] main a.btn{color:#fff}
+:root[data-theme="dark"] pre{border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -249,7 +265,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <a class="studio" href="#jatek"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a></span>
     <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -344,7 +360,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
 const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 const stage=$('stage');
-const RC='<img class="rc em" src="/img/raccoon-32.png" alt="mosómedve">';
+const rcImg=()=>`<img class="rc em" src="/img/raccoon-${window.isDark&&isDark()?'night-':''}32.png" alt="mosómedve">`;
 
 /* ---------- állapot + websocket ---------- */
 let S=null,nick=safeGet('nick'),offset=0,ws,retry=0,canSpin=false,curSpin=null;
@@ -529,7 +545,7 @@ function render(){
   $('dopens').textContent=fmt(S.door.opens);
   const dn=$('dnet');dn.textContent=(S.door.net>0?'+':'')+fmt(S.door.net);dn.className=S.door.net>0?'pos':S.door.net<0?'neg':'';
   $('board').innerHTML=S.board.length?S.board.slice(0,6).map(b=>`<li><span>${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`).join(''):'<li><span>Még nincs lejátszott kör.</span></li>';
-  $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,RC)}</li>`).join(''):'<li>Még nem történt semmi.</li>';
+  $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }
 setInterval(()=>{
   if(!S)return;
@@ -633,14 +649,16 @@ ball.castShadow=true;scene.add(outline(ball,1.18));
 /* ---------- háttérkép + kamera: a kerék a kép kőkörére kerül ---------- */
 // a kőkör/tisztás helye a képeken (képpontban), ezekre igazodik a kerék
 const SCENES={
-  wide:{src:'img/scene-wide.jpg',w:2000,h:848,cx:1000,cy:678,wheel:600,head:285,zoom:1.3},
+  wide:{src:'img/scene-wide.jpg',night:'img/scene-night-wide.jpg',w:2000,h:848,cx:1000,cy:678,wheel:600,head:285,zoom:1.3},
   tall:{src:'img/scene-tall.jpg',w:1116,h:2000,cx:560,cy:1288,wheel:657,head:770,zoom:1.1},
 };
 const bg=$('bg');
-let SW=1,SH=1,mobile=false,camT=0,ring={x:0,y:0,w:600},bgBox={left:0,top:0};
+let nightFilter='',SW=1,SH=1,mobile=false,camT=0,ring={x:0,y:0,w:600},bgBox={left:0,top:0};
 function layoutBg(){
-  const sc=SW/SH<1?SCENES.tall:SCENES.wide;
-  if(bg.getAttribute('src')!==sc.src)bg.src=sc.src;
+  const sc=SW/SH<1?SCENES.tall:SCENES.wide, dark=isDark();
+  const src=dark&&sc.night?sc.night:sc.src;
+  if(bg.getAttribute('src')!==src)bg.src=src;
+  nightFilter=dark&&!sc.night?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs éjszakai: besötétítjük
   const dockTop=$('dock').getBoundingClientRect().top-stage.getBoundingClientRect().top;
   const ringY=Math.min(dockTop-(mobile?36:44),SH*.56);           // a kerék közepe a tétasztal fölé
   const sCover=SW/sc.w, sHead=(ringY-(mobile?200:150))/(sc.cy-sc.head);         // a mosómedvék feje ne lógjon ki felül
@@ -654,6 +672,7 @@ function fit(){
   renderer.setSize(SW,SH,false);camera.aspect=SW/SH;layoutBg();
 }
 new ResizeObserver(fit).observe(stage);fit();
+addEventListener('themechange',()=>{layoutBg();if(S)render()});
 const WHEEL_IDLE=.8;                                  // várakozáskor a kerék a kőkör 80%-a
 let zoomK=0;
 function updateCamera(T,dt){
@@ -681,7 +700,7 @@ function updateCamera(T,dt){
   const ox=ring.x-bgBox.left, oy=ring.y-bgBox.top;
   bg.style.transform=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;
   const blur=Math.max(0,(k-.35)/.65);
-  bg.style.filter=blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'none';
+  bg.style.filter=((blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'')+' '+nightFilter).trim()||'none';
 }
 
 /* ---------- golyó: a szerver fizikai szimulációjának visszajátszása ---------- */

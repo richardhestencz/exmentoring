@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
 <title>Ajtófigyelő beállítása</title>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
 <link rel="apple-touch-icon" href="/img/raccoon-256.png">
@@ -81,6 +83,26 @@ footer strong{color:#fff}
 .steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
 .people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
 .rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;transition:transform .2s}
+.themebtn:hover{transform:rotate(-12deg) scale(1.08)}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* sötét mód */
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] main a{color:#f6a77c}
+:root[data-theme="dark"] main a.btn{color:#fff}
+:root[data-theme="dark"] pre{border:1px solid var(--line)}
+:root[data-theme="dark"] .flow li,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .who button,:root[data-theme="dark"] .c,
+:root[data-theme="dark"] .add input,:root[data-theme="dark"] .prog{background:#1d1519;color:var(--ink)}
+:root[data-theme="dark"] .card.note{background:#2b2312;border-color:#5e4c1d}
+:root[data-theme="dark"] .card.bad{background:#341818;border-color:#6d2c2c}
+:root[data-theme="dark"] .card.dl{background:#1c151a}
+:root[data-theme="dark"] .c:hover:not(:disabled){background:#2c1d22}
+:root[data-theme="dark"] .c.got{background:#2f1e1a;border-color:#6b3d2a}
+:root[data-theme="dark"] .c.mine{background:#4a2516}
+:root[data-theme="dark"] .who button[aria-pressed="true"]{background:#3a2117}
+:root[data-theme="dark"] .people li{background:#1c151a}
 </style>
 </head>
 <body>
@@ -102,7 +124,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <a class="studio" href="/"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Mentoring szoba</a>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
     <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html" aria-current="page">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
 </header>
