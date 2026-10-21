@@ -9,6 +9,7 @@ const game = require('./game');
 const physics = require('./physics');
 const gyros = require('./gyros');
 const presence = require('./presence');
+const cola = require('./cola');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -40,6 +41,7 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
   }
 }
 S.presence ||= presence.empty();
+S.cola ||= cola.empty();
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -182,6 +184,7 @@ function snapshot(withTrack) {
     door: { opens: S.doorOpens, net: S.stats[DOOR]?.net || 0 },
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
+    cola: (cola.prune(S.cola), S.cola.codes),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -209,6 +212,15 @@ wss.on('connection', (ws) => {
       if (nick.length < 2) return err('A becenév legalább 2 karakter.');
       if (nick.toLowerCase() === DOOR) return err('Az „ajtó” becenév foglalt.');
       ws.nick = nick; ws.send(JSON.stringify({ t: 'hello', nick }));
+      return;
+    }
+    if (m.t === 'cola-add' || m.t === 'cola-used' || m.t === 'cola-unused') {
+      let e = null;
+      if (m.t === 'cola-add') { const r = cola.add(S.cola, m.code, m.by); e = r.error; if (!e) say(`🥤 Új kólakód került fel${r.item.by ? ` (${r.item.by})` : ''}.`); }
+      else if (m.t === 'cola-used') { e = cola.markUsed(S.cola, String(m.id || ''), m.by); if (!e) say('🥤 Egy kólakódot felhasználtak.'); }
+      else e = cola.unmark(S.cola, String(m.id || ''));
+      if (e) return err(e);
+      save(); broadcast();
       return;
     }
     if (m.t === 'gyros-claim' || m.t === 'gyros-unclaim' || m.t === 'gyros-add') {

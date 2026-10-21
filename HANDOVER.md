@@ -22,6 +22,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | `server/public/ajto.html` | Útmutató az ajtófigyelő beállításához (az oldalon: Ajtó beállítása) |
 | `server/public/exmentoring-ajto-claude.md` | Ugyanez Claude-nak: ha odaadod neki az irodai MacBookon, elvégzi a beállítást |
 | `server/public/bent.html`, `server/public/itt.html`, `server/presence.js` | „Ki van bent?”: QR-kódos bejelentkezés az ajtónál (`/itt?k=<ajtókód>`), a becenév a telefonhoz kötve |
+| `server/public/cola.html`, `server/cola.js` | Kólakódok: bárki feltehet egy nem használt kódot, aki felhasználta, megjelöli (10 percig visszavonható, 30 nap után eltűnik) |
 | `server/public/gyros.html`, `server/gyros.js` | Gyros Központ: a számozott gyrosnyugták gyűjtése és automatikus számolása (a Confluence-táblázat helyett) |
 | `shelly-ajto/ajto.py` | A Bluetooth-figyelő, ami nyitáskor/záráskor jelez a szervernek |
 | `iroda-macbook/install.sh` | Az ajtófigyelő telepítője az irodai MacBookra |

@@ -133,6 +133,23 @@ test('ki van bent: QR-kód, becenév a telefonhoz kötve, napi lejárat', () => 
   assert.ok(pr.claim(P, 'X', phoneA), 'túl rövid becenév');
   assert.ok(pr.claim(P, 'Valaki', 'nem-hex'), 'hibás eszközazonosító');
 });
+test('kólakódok: feltöltés, duplikátum, felhasználva, visszavonás 10 percig', () => {
+  const co = require('./cola');
+  const C = co.empty();
+  const r = co.add(C, ' ab12 cd34 ', 'Ricsi', 1000);
+  assert.strictEqual(r.item.code, 'AB12CD34', 'szóköz nélkül, nagybetűvel');
+  assert.match(co.add(C, 'ab12cd34').error, /már fent/, 'ugyanaz kétszer nem');
+  assert.ok(co.add(C, 'x!').error, 'hibás formátum');
+  assert.ok(co.add(C, '<script>').error, 'nem lehet benne HTML');
+  assert.strictEqual(co.markUsed(C, r.item.id, 'Matyi', 2000), null);
+  assert.match(co.markUsed(C, r.item.id, 'Dani', 3000), /már valaki/, 'kétszer nem lehet felhasználni');
+  assert.strictEqual(co.unmark(C, r.item.id, 2000 + co.UNDO_MS - 1), null, '10 percen belül visszavonható');
+  assert.strictEqual(C.codes[0].usedAt, 0);
+  co.markUsed(C, r.item.id, 'Matyi', 5000);
+  assert.match(co.unmark(C, r.item.id, 5000 + co.UNDO_MS + 1), /10 percig/, 'utána már nem');
+  co.prune(C, 5000 + 31 * 24 * 3600 * 1000);
+  assert.strictEqual(C.codes.length, 0, 'a régi felhasznált kódok eltűnnek');
+});
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;
