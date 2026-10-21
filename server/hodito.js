@@ -191,7 +191,7 @@ class Manager {
 
   start(room, nick) {
     if (!room || room.host !== nick) return { error: 'Csak a szoba gazdája indíthat.' };
-    if (room.players.length < 2) return { error: 'Legalább két játékos kell.' };
+    if (room.players.length < 1) return { error: 'Legalább egy játékos kell.' };
     const map = createMap(room.players.length);
     room.map = map.territories; room.mapCols = map.cols; room.mapRows = map.rows; room.territories = emptyTerritories(room.map);
     room.phase = 'base'; room.message = 'Válassz egy bázisterületet!'; room.baseDeadline = now() + BASE_MS; room.endAt = room.baseDeadline;

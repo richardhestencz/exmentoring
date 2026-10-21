@@ -22,12 +22,13 @@
 .modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(10,15,22,.48)}.modal[hidden]{display:none}.modal-card{width:min(440px,100%);padding:25px;border-radius:20px;background:var(--sand);box-shadow:0 18px 60px rgba(0,0,0,.3)}.modal-card h2{margin:0 0 8px;color:var(--ink)}.modal-card p{margin:0 0 15px}.nick-form{display:flex;gap:8px}.nick-form input{min-width:0;flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}.nick-form button{padding:11px 15px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-weight:800;cursor:pointer}
 @media(max-width:980px){.columns,.game-content{grid-template-columns:1fr}.side{order:-1}}@media(max-width:640px){.top nav a{padding:12px 8px}.game-top{align-items:stretch;flex-direction:column}.game-content{padding:10px}.map{grid-template-columns:repeat(6,minmax(42px,1fr));grid-template-rows:repeat(4,minmax(60px,1fr));gap:4px;min-height:270px;padding:4px}.territory{font-size:.62rem;padding:4px}.territory .owner{font-size:.55rem}.nick-form{flex-direction:column}}
 :root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}:root[data-theme="dark"] body{background:#110d12}:root[data-theme="dark"] .card,:root[data-theme="dark"] .modal-card,:root[data-theme="dark"] .player{background:#1d1519}:root[data-theme="dark"] .room-form input,:root[data-theme="dark"] .nick-form input,:root[data-theme="dark"] .answer{background:#2a2024;color:var(--ink)}:root[data-theme="dark"] .room-code{background:#2a2024}:root[data-theme="dark"] .question{background:#2a2024}:root[data-theme="dark"] .territory{background:#2a2024;color:var(--ink)}
+.columns.game-active{grid-template-columns:minmax(0,1fr)}.room-hidden{display:none}.game.map-focus .game-content{display:block}.game.map-focus .side{display:none}.game.question-focus .game-content{display:block;min-height:420px}.game.question-focus .map-wrap{display:none}.game.question-focus .side{width:min(720px,100%);margin:0 auto}.game.question-focus .question{padding:clamp(20px,4vw,42px)}.game.question-focus .question .text{font-size:clamp(1.15rem,2.4vw,1.55rem)}
 </style>
 </head>
 <body>
 <header class="top"><div class="wrap"><span class="studio"><button type="button" class="themebtn" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span><nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/aknakereso.html">Aknakereső</a><a href="/hodito.html" aria-current="page">Hódító</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav></div><div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div></header>
 <section class="hero"><div class="wrap"><h1>🗺️ Hódító</h1><p class="lead">Honfoglaló-szerű, realtime területfoglaló játék a Mentoring szobának. Válassz bázist, terjeszkedj közös kérdésekkel, szerezd meg a maradék területeket tippeléssel, majd támadj!</p><div class="player">Játékos: <span id="playerName">–</span> <button type="button" id="changeNick">becenév módosítása</button></div></div></section>
-<main class="main"><div class="wrap columns">
+<main class="main"><div class="wrap columns" id="layout">
   <section class="card" id="roomCard"><div class="card-head"><h2>Játékszoba</h2><button class="btn secondary" type="button" id="leave" hidden>Kilépés</button></div><div class="card-body">
     <div id="roomEntry"><p class="hint">Hozz létre új szobát, vagy csatlakozz egy meglévőhöz a szobakóddal.</p><div class="room-form"><button class="btn" type="button" id="create">Új szoba</button><input id="roomCode" maxlength="6" placeholder="SZÓBA KÓD" aria-label="Szobakód"><button class="btn secondary" type="button" id="join">Csatlakozás</button></div></div>
     <div class="room-info" id="roomInfo"><div class="room-code"><span>Szobakód</span><b id="codeLabel">–</b><button type="button" id="copyCode">Másolás</button></div><ul class="players" id="players"></ul><div class="start-row"><button class="btn" type="button" id="start" hidden>Játék indítása</button><span class="hint" id="lobbyHint"></span></div></div>
@@ -128,9 +129,14 @@
   }
 
   function render() {
-    const inRoom = !!state; $('roomEntry').style.display = inRoom ? 'none' : 'block'; $('roomInfo').classList.toggle('show', inRoom); $('leave').hidden = !inRoom; $('game').classList.toggle('show', !!state && state.phase !== 'lobby');
+    const inRoom = !!state, inGame = inRoom && state.phase !== 'lobby';
+    const waitingForTarget = state?.phase === 'expand' && state.selections?.[nick] === undefined;
+    const questionFocus = inGame && !!state.question && !waitingForTarget;
+    $('roomEntry').style.display = inRoom ? 'none' : 'block'; $('roomInfo').classList.toggle('show', inRoom); $('leave').hidden = !inRoom;
+    $('roomCard').classList.toggle('room-hidden', inGame); $('layout').classList.toggle('game-active', inGame); $('game').classList.toggle('show', inGame);
+    $('game').classList.toggle('question-focus', questionFocus); $('game').classList.toggle('map-focus', inGame && !questionFocus);
     if (!inRoom) { $('start').hidden = true; return; }
-    $('codeLabel').textContent = state.code; renderPlayers(); $('start').hidden = !(state.phase === 'lobby' && state.host === nick); $('lobbyHint').textContent = state.phase === 'lobby' ? (state.players.length < 2 ? 'Legalább két játékos kell az indításhoz.' : 'A gazda elindíthatja a játékot.') : '';
+    $('codeLabel').textContent = state.code; renderPlayers(); $('start').hidden = !(state.phase === 'lobby' && state.host === nick); $('lobbyHint').textContent = state.phase === 'lobby' ? 'A gazda elindíthatja a játékot.' : '';
     $('phase').textContent = phaseText(); $('message').textContent = state.message; renderMap(); renderLegend(); renderQuestion();
   }
 
