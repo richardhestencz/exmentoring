@@ -281,41 +281,61 @@ app.post('/api/presence', ingest, (req, res) => {
   save(); broadcast(); res.json({ ok: true, credited: first });
 });
 
-// ---- Ki van bent: a telefon személyes linkje (a céges hálózatot nem figyeljük, a telefon maga szól) ----
-// A gazda (a mester tokennel) ad ki személyes linket egy becenévhez; a tokenből csak a lenyomatot tároljuk.
-app.post('/api/presence/people', ingest, (req, res) => {
-  const nick = cleanNick(req.body?.nick);
-  const r = presence.addPerson(S.presence, nick);
-  if (r.error) return res.status(400).json({ error: r.error });
-  save(); broadcast(); res.json({ ok: true, nick, token: r.token });
+// ---- Ki van bent: QR-kód (vagy NFC-matrica) az ajtón -> /itt?k=<ajtókód> ----
+// A céges hálózatot nem figyeljük: a telefon csak megnyit egy weboldalt. A becenév a telefonhoz kötődik
+// (a szerver által adott, HttpOnly süti), így más telefonról nem lehet valaki nevében bejelentkezni.
+const DOOR_CODE = process.env.DOOR_CODE || '';
+const DEV_COOKIE = 'exm_dev';
+const cookies = (req) => Object.fromEntries((req.get('cookie') || '').split(';').map((c) => c.trim().split('=')).filter((x) => x.length === 2));
+const hitsI = new Map();
+setInterval(() => hitsI.clear(), 60000);
+function itt(req, res, next) {
+  const n = (hitsI.get(req.ip) || 0) + 1; hitsI.set(req.ip, n);
+  if (n > 120) return res.status(429).json({ error: 'Túl sok kérés, próbáld újra egy perc múlva.' });
+  if (!DOOR_CODE) return res.status(503).json({ error: 'Az ajtókód nincs beállítva a szerveren.' });
+  const k = String(req.body?.k || ''), a = Buffer.from(k), b = Buffer.from(DOOR_CODE);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) return res.status(403).json({ error: 'Ez a link nem érvényes. Olvasd be az ajtón lévő QR-kódot.' });
+  req.dev = cookies(req)[DEV_COOKIE] || '';
+  next();
+}
+function setDevice(req, res, dev) {
+  const https = req.get('x-forwarded-proto') === 'https' || req.secure;
+  res.setHeader('Set-Cookie', `${DEV_COOKIE}=${dev}; Path=/api/itt; Max-Age=${400 * 86400}; HttpOnly; SameSite=Lax${https ? '; Secure' : ''}`);
+}
+function arrived(nick, res, req) {
+  const P = S.presence, fresh = presence.checkin(P, nick, Date.now(), today());
+  let credited = false;
+  if (fresh) { credited = credit(nick); say(credited ? `📱 ${nick} beért, +${fmt(DAILY_CREDIT)} a potba.` : `📱 ${nick} visszaért.`); }
+  setDevice(req, res, req.dev);                       // minden beolvasás meghosszabbítja a sütit
+  save(); broadcast();
+  res.json({ status: 'in', nick, fresh, credited, since: P.here[nick].since, bonus: DAILY_CREDIT });
+}
+// beolvasás: ha a telefon ismert, bejelentkezik; ha nem, becenevet kér
+app.post('/api/itt', itt, (req, res) => {
+  const nick = presence.nickOf(S.presence, req.dev);
+  if (!nick) { const v = presence.view(S.presence, today()); return res.json({ status: 'need-nick', taken: v.people.filter((n) => !v.free.includes(n)) }); }
+  arrived(nick, res, req);
 });
+app.post('/api/itt/claim', itt, (req, res) => {
+  const nick = cleanNick(req.body?.nick);
+  if (!presence.validDevice(req.dev)) req.dev = presence.newDevice();
+  const e = presence.claim(S.presence, nick, req.dev);
+  if (e) return res.status(409).json({ error: e });
+  arrived(nick, res, req);
+});
+app.post('/api/itt/leave', itt, (req, res) => {
+  const nick = presence.nickOf(S.presence, req.dev);
+  if (!nick) return res.status(404).json({ error: 'Ez a telefon nincs becenévhez kötve.' });
+  if (presence.checkout(S.presence, nick)) say(`📱 ${nick} elment.`);
+  save(); broadcast(); res.json({ status: 'out', nick });
+});
+// a gazda (mester token) felszabadíthat egy becenevet, pl. telefoncsere után
 app.delete('/api/presence/people/:nick', ingest, (req, res) => {
-  const e = presence.removePerson(S.presence, cleanNick(req.params.nick));
+  const e = presence.release(S.presence, cleanNick(req.params.nick));
   if (e) return res.status(404).json({ error: e });
   save(); broadcast(); res.json({ ok: true });
 });
-const hitsP = new Map();
-setInterval(() => hitsP.clear(), 60000);
-function phone(req, res, next) {
-  const n = (hitsP.get(req.ip) || 0) + 1; hitsP.set(req.ip, n);
-  if (n > 60) return res.status(429).json({ error: 'túl sok kérés' });
-  const nick = presence.byToken(S.presence, req.params.token);
-  if (!nick) return res.status(404).json({ error: 'ismeretlen link' });
-  req.nick = nick; next();
-}
-const checkinH = (req, res) => {
-  const n = req.nick, fresh = presence.checkin(S.presence, n, Date.now(), today());
-  if (fresh) say(credit(n) ? `📱 ${n} beért, +${fmt(DAILY_CREDIT)} a potba.` : `📱 ${n} visszaért.`);
-  save(); broadcast(); res.json({ ok: true, nick: n, here: true });
-};
-const checkoutH = (req, res) => {
-  const n = req.nick;
-  if (presence.checkout(S.presence, n)) say(`📱 ${n} elment.`);
-  save(); broadcast(); res.json({ ok: true, nick: n, here: false });
-};
-// GET is, mert egyes telefonos automatizálások alapból azt küldik
-app.post('/api/checkin/:token', phone, checkinH); app.get('/api/checkin/:token', phone, checkinH);
-app.post('/api/checkout/:token', phone, checkoutH); app.get('/api/checkout/:token', phone, checkoutH);
+app.get('/itt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'itt.html')));
 
 // ---- frissítés a GitHubról (a Mac mini napi frissítése mellett bárki kérheti az oldalról) ----
 const UPDATE_SCRIPT = path.join(__dirname, '..', 'mac-mini', 'update.sh');

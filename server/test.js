@@ -108,26 +108,30 @@ test('gyros: a teljes nevek nincsenek a repóban', () => {
   const tracked = execSync('git ls-files', { cwd: path.join(__dirname, '..') }).toString();
   assert.ok(!/gyros-seed/.test(tracked), 'a seed fájl nincs verziókezelve');
 });
-test('ki van bent: személyes link, be- és kijelentkezés, napi lejárat', () => {
+test('ki van bent: QR-kód, becenév a telefonhoz kötve, napi lejárat', () => {
   const pr = require('./presence');
-  const P = pr.empty();
-  const { token } = pr.addPerson(P, 'Ricsi', 1);
-  assert.match(token, /^[0-9a-f]{32}$/);
-  assert.ok(!JSON.stringify(P).includes(token), 'a tokent nem tároljuk, csak a lenyomatát');
-  assert.ok(pr.addPerson(P, 'Ricsi').error, 'egy becenév csak egyszer');
-  assert.strictEqual(pr.byToken(P, token), 'Ricsi');
-  assert.strictEqual(pr.byToken(P, 'f'.repeat(32)), null, 'ismeretlen link');
-  assert.strictEqual(pr.byToken(P, '../x'), null, 'hibás formátum');
+  const P = pr.empty(), DAY = 24 * 3600 * 1000;
+  const phoneA = pr.newDevice(), phoneB = pr.newDevice();
+  assert.strictEqual(pr.nickOf(P, phoneA), null, 'új telefon: becenevet kell választani');
+  assert.strictEqual(pr.claim(P, 'Ricsi', phoneA, 1000), null);
+  assert.ok(!JSON.stringify(P).includes(phoneA), 'a telefon azonosítóját nem tároljuk, csak a lenyomatát');
+  assert.strictEqual(pr.nickOf(P, phoneA), 'Ricsi', 'utána a telefon magától Ricsi');
+  assert.match(pr.claim(P, 'Ricsi', phoneB, 2000), /másik telefon/, 'más telefon nem veheti el');
+  assert.strictEqual(pr.claim(P, 'Ricsi', phoneA, 3000), null, 'a saját telefon újra választhatja');
   assert.strictEqual(pr.checkin(P, 'Ricsi', 100, '2026-10-21'), true, 'első érkezés');
-  assert.strictEqual(pr.checkin(P, 'Ricsi', 200, '2026-10-21'), false, 'ismételt jelzés nem új érkezés');
-  assert.deepStrictEqual(pr.view(P, '2026-10-21').here, [{ nick: 'Ricsi', since: 100 }]);
+  assert.strictEqual(pr.checkin(P, 'Ricsi', 200, '2026-10-21'), false, 'második beolvasás nem új érkezés');
+  assert.deepStrictEqual(pr.view(P, '2026-10-21', 300).here, [{ nick: 'Ricsi', since: 100 }]);
   assert.strictEqual(pr.checkout(P, 'Ricsi'), true);
-  assert.strictEqual(pr.checkout(P, 'Ricsi'), false);
-  pr.checkin(P, 'Ricsi', 300, '2026-10-21');
-  assert.deepStrictEqual(pr.view(P, '2026-10-22').here, [], 'másnapra lejár');
-  assert.deepStrictEqual(pr.view(P, '2026-10-22').people, ['Ricsi']);
-  assert.strictEqual(pr.removePerson(P, 'Ricsi'), null);
-  assert.strictEqual(pr.byToken(P, token), null, 'törlés után a link nem él');
+  pr.checkin(P, 'Ricsi', 400, '2026-10-21');
+  assert.deepStrictEqual(pr.view(P, '2026-10-22', 500).here, [], 'másnapra lejár');
+  assert.strictEqual(pr.claim(P, 'Ricsi', phoneB, 400 + 31 * DAY), null, '30 nap használat nélkül felszabadul');
+  assert.strictEqual(pr.nickOf(P, phoneA), null);
+  assert.strictEqual(pr.claim(P, 'Matyi', phoneB, 400 + 32 * DAY), null, 'telefonváltás becenevet: a régi felszabadul');
+  assert.deepStrictEqual(pr.view(P, '2026-11-30', 400 + 32 * DAY).people, ['Matyi']);
+  assert.strictEqual(pr.release(P, 'Matyi'), null, 'a gazda felszabadíthatja');
+  assert.strictEqual(pr.nickOf(P, phoneB), null);
+  assert.ok(pr.claim(P, 'X', phoneA), 'túl rövid becenév');
+  assert.ok(pr.claim(P, 'Valaki', 'nem-hex'), 'hibás eszközazonosító');
 });
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');

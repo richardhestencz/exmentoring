@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
+<meta name="robots" content="noindex">
+<title>Beértem</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#202324;--ink-2:#45494b;--muted:#696e72;--line:#d5dadd;--peach:#fbe4d7;--sand:#f4f0ed;--apricot:#f8c7a3;--orange:#eb772e;--dark:#0a0f16;
+  --ok:#11845b;--bad:#c4302b;--grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);--font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif}
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630;--ok:#5fd39a;--bad:#ff8a80}
+*{box-sizing:border-box}
+body{margin:0;min-height:100svh;display:grid;place-items:center;padding:24px 16px;background:var(--sand);color:var(--ink-2);font-family:var(--font);line-height:1.5}
+:root[data-theme="dark"] body{background:#110d12}
+.card{width:min(420px,100%);background:#fff;border:1px solid var(--line);border-radius:24px;padding:28px 22px;text-align:center;box-shadow:0 12px 40px rgba(42,15,30,.12)}
+:root[data-theme="dark"] .card{background:#1b1418;box-shadow:none}
+.rc{width:96px;height:96px;border-radius:50%;display:block;margin:0 auto 14px;box-shadow:0 6px 20px rgba(0,0,0,.25)}
+h1{margin:0 0 6px;font-size:clamp(1.7rem,7vw,2.2rem);font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.15}
+p{margin:0 0 14px}
+.big{font-size:1.15rem;color:var(--ink)}
+.bonus{display:inline-flex;align-items:center;gap:8px;margin:4px 0 16px;padding:8px 16px;border-radius:999px;background:var(--peach);color:var(--ok);font-weight:800;font-size:1.25rem}
+.bonus img{width:28px;height:28px}
+.muted{color:var(--muted);font-size:.92rem}
+form{display:flex;flex-direction:column;gap:10px;margin:8px 0 6px}
+input{padding:14px;border-radius:12px;border:1px solid var(--line);font:inherit;font-size:1.1rem;text-align:center;background:#fff;color:var(--ink)}
+:root[data-theme="dark"] input{background:#110d12}
+input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.btn{display:block;width:100%;padding:14px 18px;border:0;border-radius:12px;background:var(--grad);color:#fff;font:inherit;font-weight:800;font-size:1.05rem;cursor:pointer;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:700}
+.btn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.btn:disabled{opacity:.6}
+.err{color:var(--bad);font-weight:600;min-height:1.4em;margin:6px 0 0}
+.links{display:flex;gap:10px;margin-top:14px}
+.links a{flex:1}
+.spin{width:36px;height:36px;margin:10px auto;border-radius:50%;border:4px solid var(--line);border-top-color:var(--orange);animation:r 1s linear infinite}
+@keyframes r{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){.spin{animation:none}}
+</style>
+</head>
+<body>
+<main class="card" id="card" aria-live="polite">
+  <div class="spin" aria-hidden="true"></div>
+  <p class="muted">Bejelentkezés…</p>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fmt=n=>Number(n).toLocaleString('hu-HU');
+const hm=t=>new Date(t).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});
+const av=()=>`<img class="rc" src="/img/raccoon-${window.isDark&&isDark()?'night-':''}256.png" alt="">`;
+// az ajtókódot ne hagyjuk a címsorban (így nem kerül könyvjelzőbe), de frissítéskor még meglegyen
+let k=new URLSearchParams(location.search).get('k')||'';
+try{if(k)sessionStorage.setItem('exm-k',k);else k=sessionStorage.getItem('exm-k')||''}catch{}
+if(location.search)history.replaceState(null,'',location.pathname);
+const card=$('card'), show=h=>{card.innerHTML=h};
+async function call(path,body){
+  const r=await fetch(path,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({k,...body}),credentials:'same-origin'});
+  const j=await r.json().catch(()=>({error:'Hibás válasz a szervertől.'}));
+  if(!r.ok)throw new Error(j.error||('HTTP '+r.status));
+  return j;
+}
+const links=`<div class="links"><a class="btn ghost" href="/">Rulett</a><a class="btn ghost" href="/bent.html">Ki van bent?</a></div>`;
+function done(j){
+  try{if(!localStorage.getItem('nick'))localStorage.setItem('nick',j.nick)}catch{}     // a rulett is ezt a becenevet használja ezen a telefonon
+  if(j.fresh){
+    show(`${av()}<h1>Szia ${esc(j.nick)}!</h1><p class="big">${hm(j.since)}-kor beértél.</p>
+      ${j.credited?`<div class="bonus">+${fmt(j.bonus)} <img src="/img/token-96.png" alt="mosómedve"></div><p class="muted">Ma te hoztad elsőként a mosómedvéket a közös potba.</p>`:'<p class="muted">Ma már egyszer bejelentkeztél, a napi bónusz megvan.</p>'}${links}`);
+  }else{
+    show(`${av()}<h1>Szia ${esc(j.nick)}!</h1><p class="big">${hm(j.since)} óta bent vagy.</p>
+      <button class="btn" id="leave" type="button">Elmegyek</button>${links}`);
+    $('leave').onclick=async()=>{$('leave').disabled=true;
+      try{await call('/api/itt/leave');show(`${av()}<h1>Szia ${esc(j.nick)}!</h1><p class="big">Kijelentkeztél. Jó pihenést!</p>${links}`)}
+      catch(e){show(`<h1>Hoppá</h1><p class="err">${esc(e.message)}</p>`)}};
+  }
+}
+function askNick(){
+  show(`${av()}<h1>Ki vagy?</h1><p>Ez az első beolvasásod ezen a telefonon. Válassz becenevet (pl. Ricsi, Matyi), ezzel jelensz meg a „Ki van bent?” oldalon. Csak becenév, teljes név ne.</p>
+    <form id="f"><input id="nick" maxlength="16" autocomplete="nickname" placeholder="Beceneved" aria-label="Beceneved" required><button class="btn" type="submit">Ez vagyok, beértem</button></form>
+    <p class="err" id="err" role="alert"></p><p class="muted">Ezután minden nap elég beolvasni a QR-kódot. A becenév ehhez a telefonhoz kötődik.</p>`);
+  let pre='';try{pre=localStorage.getItem('nick')||''}catch{}
+  $('nick').value=pre;$('nick').focus();
+  $('f').onsubmit=async e=>{e.preventDefault();const nick=$('nick').value.trim();if(nick.length<2){$('err').textContent='A becenév legalább 2 karakter.';return}
+    try{done(await call('/api/itt/claim',{nick}))}catch(err){$('err').textContent=err.message}};
+}
+(async()=>{
+  if(!k){show(`${av()}<h1>Olvasd be a QR-kódot</h1><p>Ezt az oldalt az iroda ajtaján lévő QR-kód nyitja meg.</p>${links}`);return}
+  try{const j=await call('/api/itt');j.status==='need-nick'?askNick():done(j)}
+  catch(e){show(`${av()}<h1>Hoppá</h1><p class="err">${esc(e.message)}</p>${links}`)}
+})();
+</script>
+</body>
+</html>

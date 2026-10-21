@@ -21,7 +21,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | `server/` | Node.js játékszerver és a weboldal (`public/`), a golyófizika (`physics.js`), tesztek (`npm test`) |
 | `server/public/ajto.html` | Útmutató az ajtófigyelő beállításához (az oldalon: Ajtó beállítása) |
 | `server/public/exmentoring-ajto-claude.md` | Ugyanez Claude-nak: ha odaadod neki az irodai MacBookon, elvégzi a beállítást |
-| `server/public/bent.html` | „Ki van bent?” oldal (hamarosan) |
+| `server/public/bent.html`, `server/public/itt.html`, `server/presence.js` | „Ki van bent?”: QR-kódos bejelentkezés az ajtónál (`/itt?k=<ajtókód>`), a becenév a telefonhoz kötve |
 | `server/public/gyros.html`, `server/gyros.js` | Gyros Központ: a számozott gyrosnyugták gyűjtése és automatikus számolása (a Confluence-táblázat helyett) |
 | `shelly-ajto/ajto.py` | A Bluetooth-figyelő, ami nyitáskor/záráskor jelez a szervernek |
 | `iroda-macbook/install.sh` | Az ajtófigyelő telepítője az irodai MacBookra |
@@ -76,6 +76,7 @@ Claude-dal is mehet: töltsd le az oldalról az `exmentoring-ajto-claude.md` fá
 |---|---|
 | `PORT` | A szerver portja (3000) |
 | `INGEST_TOKEN` | A titkos kulcs az ajtós jelzéshez. A telepítő generálja, ne add ki |
+| `DOOR_CODE` | A „Ki van bent?” QR-kód titkos kódja. Ha kiszivárog: új kód, új QR-kód nyomtatása (a lap: `data/qr/ki-van-bent-qr-A5.pdf`, gitben nincs) |
 
 **Irodai MacBook, `~/exmentoring-ajto/ajto.env`** (a telepítő írja, újrafuttatással módosítható)
 
@@ -124,5 +125,5 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 
 ## Ami még nincs kész
 
-- **„Ki van bent?”:** az oldalon már van menüpontja (hamarosan). A terv: az irodai MacBook a közeli telefonok BLE jelét figyeli, és neveket társítunk hozzájuk. A szerver már fogadja (`POST /api/presence`, `{"present":["Név"]}` a tokennel); aki aznap először jelentkezik, +10 000 mosómedvét hoz a potba. Gond: az iPhone-ok és az újabb Androidok cserélik a Bluetooth-címüket, ezt előbb ki kell próbálni.
+- **„Ki van bent?”:** QR-kód az ajtón. Első beolvasáskor becenév (a telefonhoz kötve, HttpOnly süti, 400 nap), utána minden beolvasás bejelentkezés; az aznapi első +10 000 a potba; második beolvasás: „Elmegyek”; éjfélkor lejár. A céges hálózathoz nem nyúl (NIS2). A gazda a mester tokennel szabadít fel becenevet; 30 nap használat nélkül magától felszabadul.
 - **Mosómedve-animáció:** ha a három figura külön, átlátszó hátterű PNG-ben is meglesz, megmozdíthatók.
