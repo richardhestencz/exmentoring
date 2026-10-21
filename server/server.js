@@ -146,6 +146,12 @@ function startResult() {
   for (const [nick, v] of Object.entries(net)) { const s = stat(nick); s.net += v; s.rounds++; }
   const color = n === 0 ? 'zöld' : game.RED.has(n) ? 'piros' : 'fekete';
   say(`${n} (${color}). ${tease(R.spinner, net)}`);
+  // kör-napló a logs/server.log-ba: ki pörgetett, ki mire tett, mi jött, ki mennyit nyert/veszített
+  const bySum = {};
+  for (const b of R.bets) ((bySum[b.nick] ||= {})[b.kind] = (bySum[b.nick][b.kind] || 0) + b.stake);
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] kör ${R.id} | pörgetett: ${R.spinner || '?'} | eredmény: ${n} | tétek: ${
+    Object.entries(bySum).map(([k, v]) => `${k}{${Object.entries(v).map(([kk, vv]) => kk + '=' + vv).join(' ')}}`).join(' ')} | nettó: ${
+    Object.entries(net).map(([k, v]) => `${k} ${v > 0 ? '+' : ''}${v}`).join(', ')} | pot: ${S.pot}`);
   R.net = net;
   S.history.unshift(n); S.history = S.history.slice(0, 20);
   S.rest = R.sim.rest; R.sim = null;
@@ -238,6 +244,7 @@ function ingest(req, res, next) {
 app.get('/api/ping', ingest, (req, res) => res.json({ ok: true })); // az irodai telepítő ezzel ellenőrzi a címet és a tokent
 app.post('/api/door', ingest, (req, res) => {
   const st = req.body?.state;
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] ajtó: ${st} (fázis: ${R.phase})`);
   if (st === 'open') {
     S.doorOpens++;
     say('🚪 Az ajtó kinyílt.');
