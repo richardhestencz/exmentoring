@@ -1,0 +1,343 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
+<title>Aknakereső – Exmentoring</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324;--ink-2:#45494b;--muted:#696e72;--line:#d5dadd;
+  --peach:#fbe4d7;--sand:#f4f0ed;--apricot:#f8c7a3;
+  --orange:#eb772e;--red:#df312d;--dark:#0a0f16;--green:#11845b;
+  --grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.5}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1260px;margin:0 auto;padding:0 16px}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;white-space:nowrap}
+.studio a{color:inherit;text-decoration:none}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;transition:transform .2s}
+.themebtn:hover{transform:rotate(-12deg) scale(1.08)}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.rc{width:26px;height:26px;border-radius:50%;object-fit:cover;display:block}
+.conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
+.hero{background:var(--sand);padding:38px 0 28px}
+h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.lead{margin:0;max-width:68ch;font-size:1.05rem}
+.player{display:inline-flex;align-items:center;gap:8px;margin-top:18px;padding:8px 12px;border:1px solid var(--line);border-radius:999px;background:#fff;color:var(--ink);font-weight:700}
+.player button{border:0;background:none;color:var(--orange);font-weight:700;cursor:pointer;padding:0}
+.game-section{padding:24px 0 46px}
+.game-layout{display:grid;grid-template-columns:minmax(0,1fr) 320px;gap:20px;align-items:start}
+.game-card,.rankings{border:1px solid var(--line);border-radius:20px;background:#fff;box-shadow:0 8px 28px rgba(35,28,25,.07)}
+.game-card{overflow:hidden}
+.game-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--peach)}
+.modes{display:flex;gap:6px;flex-wrap:wrap}
+.mode,.new-game,.flag-mode{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 11px;font-weight:700;cursor:pointer}
+.mode[aria-pressed="true"]{border-color:var(--orange);background:var(--orange);color:#fff}
+.mode:focus-visible,.new-game:focus-visible,.flag-mode:focus-visible,.cell:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.new-game,.flag-mode{background:var(--grad);border-color:transparent;color:#fff;white-space:nowrap}
+.flag-mode{display:none}
+.stats{display:flex;gap:16px;align-items:center;padding:13px 18px 0;color:var(--muted);font-weight:600}
+.stats b{color:var(--ink);font-variant-numeric:tabular-nums}
+.board-wrap{padding:16px;overflow:auto}
+#board{--cols:14;--board-ratio:14 / 12;display:grid;grid-template-columns:repeat(var(--cols),minmax(24px,1fr));grid-auto-rows:1fr;gap:3px;width:min(100%,1080px);aspect-ratio:var(--board-ratio);margin:0 auto;user-select:none}
+.cell{min-width:0;min-height:0;border:1px solid #c7cdd1;border-radius:6px;background:linear-gradient(145deg,#fff,#e8ecee);color:var(--ink);font-weight:800;font-size:clamp(.78rem,2.2vw,1.15rem);line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
+.cell:hover:not(:disabled){border-color:var(--orange);filter:brightness(1.04)}
+.cell.revealed{background:var(--sand);border-color:var(--line);cursor:default;box-shadow:none}
+.cell.flagged{color:var(--red)}
+.cell.mine.revealed{background:#ffd9d5;border-color:var(--red)}
+.cell.zero{color:transparent}
+.cell.n1{color:#2669ad}.cell.n2{color:#2e8b57}.cell.n3{color:#c23a2b}.cell.n4{color:#6747a7}.cell.n5{color:#8f3d1d}.cell.n6{color:#188b91}.cell.n7{color:#30343a}.cell.n8{color:#6d747a}
+.message{min-height:1.6em;padding:0 18px 16px;color:var(--muted);font-weight:600}
+.message.win{color:var(--green)}.message.lose{color:var(--red)}
+.rankings{padding:18px;position:sticky;top:60px}
+.rankings h2{margin:0 0 6px;color:var(--ink);font-size:1.25rem}
+.rankings .hint{margin:0 0 14px;color:var(--muted);font-size:.88rem}
+.rank-section{margin-top:16px}
+.rank-section h3{display:flex;justify-content:space-between;gap:8px;margin:0 0 6px;color:var(--ink);font-size:.95rem}
+.rank-section h3 span{color:var(--muted);font-size:.78rem;font-weight:500}
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:25px minmax(0,1fr) auto;gap:7px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.rank li:last-child{border-bottom:0}
+.rank .place{color:var(--muted);font-variant-numeric:tabular-nums;text-align:center}
+.rank .name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:700}
+.rank .time{color:var(--ink);font-variant-numeric:tabular-nums;font-weight:800}
+.empty{grid-column:1/-1;color:var(--muted);font-size:.84rem}
+.rules{padding:0 0 42px}
+.rules .card{padding:18px 20px;border-radius:18px;background:var(--peach)}
+.rules h2{margin:0 0 8px;color:var(--ink);font-size:1.25rem}
+.rules p{margin:0;color:var(--ink-2)}
+.modal{position:fixed;inset:0;z-index:60;display:grid;place-items:center;padding:16px;background:rgba(10,15,22,.48)}
+.modal[hidden]{display:none}
+.modal-card{width:min(440px,100%);padding:25px;border-radius:20px;background:var(--sand);box-shadow:0 18px 60px rgba(0,0,0,.3)}
+.modal-card h2{margin:0 0 8px;color:var(--ink)}
+.modal-card p{margin:0 0 15px;color:var(--ink-2)}
+.nick-form{display:flex;gap:8px}
+.nick-form input{min-width:0;flex:1;padding:11px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.nick-form button{padding:11px 15px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-weight:800;cursor:pointer}
+.form-error{min-height:1.4em;margin:8px 0 0;color:var(--red);font-size:.9rem}
+@media (max-width:900px){.game-layout{grid-template-columns:1fr}.rankings{position:static}.rankings-inner{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.rank-section{margin-top:0}}
+@media (max-width:640px){
+  .top nav a{padding:12px 8px}
+  .hero{padding:28px 0 22px}
+  .game-head{align-items:stretch;flex-direction:column}
+  .game-head .new-game{align-self:flex-start}
+  .flag-mode{display:block}
+  .stats{justify-content:space-between;gap:8px;font-size:.9rem}
+  .board-wrap{padding:10px 6px}
+  #board{gap:2px;grid-template-columns:repeat(var(--cols),minmax(20px,1fr))}
+  .cell{border-radius:4px}
+  .rankings-inner{grid-template-columns:1fr}
+  .nick-form{flex-direction:column}
+}
+@media (min-width:761px){
+  body.expert-mode{overflow:hidden}
+  body.expert-mode main{height:calc(100svh - 44px)}
+  body.expert-mode .hero{display:none}
+  body.expert-mode .game-section{height:100%;padding:14px 16px}
+  body.expert-mode .game-layout{height:100%;grid-template-columns:minmax(0,1fr) 300px}
+  body.expert-mode .game-card{height:100%;display:flex;flex-direction:column}
+  body.expert-mode .board-wrap{display:grid;place-items:center;flex:1;min-height:0}
+  body.expert-mode #board{width:min(100%,1080px);max-height:100%;}
+  body.expert-mode .rankings{height:100%;overflow:auto}
+}
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] .game-card,:root[data-theme="dark"] .rankings,:root[data-theme="dark"] .player,:root[data-theme="dark"] .modal-card{background:#1d1519}
+:root[data-theme="dark"] .mode{background:#2a1c23;color:var(--ink)}
+:root[data-theme="dark"] .cell{background:linear-gradient(145deg,#3b3034,#281e23);border-color:#55464a;color:var(--ink)}
+:root[data-theme="dark"] .cell.revealed{background:#2a2024;border-color:var(--line)}
+:root[data-theme="dark"] .cell.mine.revealed{background:#522522}
+:root[data-theme="dark"] .nick-form input{background:#2a2024;color:var(--ink)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/aknakereso.html" aria-current="page">Aknakereső</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
+  </div>
+  <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
+</header>
+
+<main>
+  <section class="hero"><div class="wrap">
+    <h1>💣 Aknakereső</h1>
+    <p class="lead">Keresd meg az aknákat, zászlózd fel őket, és próbálj felkerülni a közös ranglistára. A ranglista nehézségenként a tíz legjobb időeredményt mutatja, ugyanaz a játékos többször is szerepelhet.</p>
+    <div class="player">Játékos: <span id="playerName">–</span> <button type="button" id="changeNick">becenév módosítása</button></div>
+  </div></section>
+
+  <section class="game-section"><div class="wrap game-layout">
+    <div class="game-card">
+      <div class="game-head">
+        <div class="modes" role="group" aria-label="Nehézségi szint">
+          <button class="mode" type="button" data-level="beginner" aria-pressed="true">Kezdő</button>
+          <button class="mode" type="button" data-level="intermediate" aria-pressed="false">Közepes</button>
+          <button class="mode" type="button" data-level="expert" aria-pressed="false">Haladó</button>
+        </div>
+        <button class="new-game" type="button" id="newGame">Új játék</button>
+      </div>
+      <div class="stats" aria-live="polite">
+        <span>Aknák: <b id="mineCount">30</b></span>
+        <span>Zászlók: <b id="flagCount">0</b></span>
+        <span>Idő: <b id="timer">0:00</b></span>
+        <button class="flag-mode" type="button" id="flagMode" aria-pressed="false">🚩 Zászló mód</button>
+      </div>
+      <div class="board-wrap"><div id="board" role="grid" aria-label="Aknakereső tábla"></div></div>
+      <div class="message" id="message" aria-live="polite">Kattints egy mezőre a kezdéshez.</div>
+    </div>
+
+    <aside class="rankings">
+      <h2>Globális ranglista</h2>
+      <p class="hint">A legjobb idők másodpercben. Döntetlenben a korábbi eredmény kerül előre.</p>
+      <div class="rankings-inner">
+        <section class="rank-section"><h3>Kezdő <span>14×12 · 30 akna</span></h3><ol class="rank" id="rank-beginner"></ol></section>
+        <section class="rank-section"><h3>Közepes <span>20×16 · 60 akna</span></h3><ol class="rank" id="rank-intermediate"></ol></section>
+        <section class="rank-section"><h3>Haladó <span>24×18 · 95 akna</span></h3><ol class="rank" id="rank-expert"></ol></section>
+      </div>
+    </aside>
+  </div></section>
+
+  <section class="rules"><div class="wrap"><div class="card"><h2>Játékszabály</h2><p>Az első kattintás biztonságos. Bal kattintással mezőt nyitsz ki, jobb kattintással zászlót teszel le; telefonon a „Zászló mód” gomb használható. Ha minden aknamentes mezőt kinyitottál, az időeredményed automatikusan felkerül a globális listára.</p></div></div></section>
+</main>
+
+<div class="modal" id="nickModal" hidden>
+  <div class="modal-card">
+    <h2>Ki játszik?</h2>
+    <p>A ranglistához és a játékhoz használd a Mentoring szobában megszokott becenevedet.</p>
+    <form class="nick-form" id="nickForm"><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="Beceneved" required><button type="submit">Belépek</button></form>
+    <div class="form-error" id="nickError" aria-live="polite"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const LEVELS = {
+    beginner: { cols: 14, rows: 12, mines: 30, label: 'Kezdő' },
+    intermediate: { cols: 20, rows: 16, mines: 60, label: 'Közepes' },
+    expert: { cols: 24, rows: 18, mines: 95, label: 'Haladó' },
+  };
+  const rankIds = { beginner: 'rank-beginner', intermediate: 'rank-intermediate', expert: 'rank-expert' };
+  let level = 'beginner', cfg, cells = [], started = false, ended = false, won = false;
+  let startedAt = 0, elapsed = 0, timerId = null, flagMode = false, scoreSent = false, pendingScore = null;
+  let playerNick = '';
+  let ws = null, retry = null, scores = { beginner: [], intermediate: [], expert: [] };
+
+  const getNick = () => { try { return localStorage.getItem('nick') || ''; } catch { return ''; } };
+  const setNick = (n) => { try { localStorage.setItem('nick', n); } catch {} };
+  const fmtTime = (seconds) => `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`;
+  const announce = (text, cls = '') => { $('message').textContent = text; $('message').className = `message ${cls}`; };
+  const toastError = (text) => { $('nickError').textContent = text; };
+
+  function renderRanks() {
+    for (const key of Object.keys(LEVELS)) {
+      const list = $(rankIds[key]); list.textContent = '';
+      const rows = Array.isArray(scores[key]) ? scores[key] : [];
+      if (!rows.length) { const li = document.createElement('li'); li.className = 'empty'; li.textContent = 'Még nincs eredmény.'; list.append(li); continue; }
+      rows.forEach((s, i) => {
+        const li = document.createElement('li');
+        const place = document.createElement('span'); place.className = 'place'; place.textContent = `${i + 1}.`;
+        const name = document.createElement('span'); name.className = 'name'; name.textContent = s.nick;
+        const time = document.createElement('span'); time.className = 'time'; time.textContent = fmtTime(s.seconds);
+        li.append(place, name, time); list.append(li);
+      });
+    }
+  }
+
+  function neighbours(index) {
+    const row = Math.floor(index / cfg.cols), col = index % cfg.cols, out = [];
+    for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) {
+      if (!dr && !dc) continue;
+      const r = row + dr, c = col + dc;
+      if (r >= 0 && r < cfg.rows && c >= 0 && c < cfg.cols) out.push(r * cfg.cols + c);
+    }
+    return out;
+  }
+
+  function placeMines(safe) {
+    const pool = cells.map((_, i) => i).filter((i) => i !== safe);
+    for (let i = pool.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [pool[i], pool[j]] = [pool[j], pool[i]]; }
+    for (const i of pool.slice(0, cfg.mines)) cells[i].mine = true;
+    cells.forEach((cell, i) => { cell.count = neighbours(i).filter((n) => cells[n].mine).length; });
+  }
+
+  function updateCell(index) {
+    const cell = cells[index], el = cell.el;
+    el.className = 'cell';
+    if (cell.revealed) {
+      el.classList.add('revealed');
+      if (cell.mine) { el.classList.add('mine'); el.textContent = '💣'; }
+      else if (cell.count) { el.classList.add(`n${cell.count}`); el.textContent = cell.count; }
+      else { el.classList.add('zero'); el.textContent = ''; }
+    } else if (cell.flagged) { el.classList.add('flagged'); el.textContent = '🚩'; }
+    else { el.textContent = ''; }
+    el.disabled = cell.revealed;
+    el.setAttribute('aria-label', cell.revealed ? (cell.mine ? 'Akna' : `${cell.count} szomszédos akna`) : (cell.flagged ? 'Zászlózott mező' : 'Le nem fedett mező'));
+  }
+
+  function renderBoard() { cells.forEach((_, i) => updateCell(i)); $('flagCount').textContent = cells.filter((c) => c.flagged).length; }
+
+  function stopTimer() { if (timerId) { clearInterval(timerId); timerId = null; } }
+  function tick() { if (started && !ended) { elapsed = Math.floor((Date.now() - startedAt) / 1000); $('timer').textContent = fmtTime(elapsed); } }
+
+  function submitScore() {
+    if (!won || scoreSent || !playerNick) return;
+    pendingScore = { difficulty: level, seconds: elapsed };
+    if (!ws || ws.readyState !== WebSocket.OPEN) return;
+    ws.send(JSON.stringify({ t: 'minesweeper-score', ...pendingScore }));
+    scoreSent = true; pendingScore = null;
+    announce(`Nyertél ${fmtTime(elapsed)} alatt! Az eredményed bekerült a ranglistára.`, 'win');
+  }
+
+  function reveal(index) {
+    const cell = cells[index];
+    if (ended || cell.revealed || cell.flagged) return;
+    if (!started) { started = true; startedAt = Date.now(); timerId = setInterval(tick, 250); placeMines(index); }
+    if (cell.mine) {
+      ended = true; stopTimer(); cells.forEach((c) => { if (c.mine) c.revealed = true; }); renderBoard(); announce('Bumm. Akna volt alatta – próbáld újra!', 'lose'); return;
+    }
+    const queue = [index], seen = new Set();
+    while (queue.length) {
+      const current = queue.shift(); if (seen.has(current)) continue; seen.add(current);
+      const c = cells[current]; if (c.revealed || c.flagged || c.mine) continue;
+      c.revealed = true;
+      if (!c.count) for (const n of neighbours(current)) if (!seen.has(n)) queue.push(n);
+    }
+    renderBoard();
+    if (cells.every((c) => c.mine || c.revealed)) {
+      won = true; ended = true; stopTimer(); elapsed = Math.floor((Date.now() - startedAt) / 1000); $('timer').textContent = fmtTime(elapsed);
+      cells.forEach((c) => { if (c.mine) c.flagged = true; }); renderBoard();
+      if (playerNick) { announce('Eredmény mentése…', 'win'); submitScore(); } else announce(`Nyertél ${fmtTime(elapsed)} alatt!`, 'win');
+    }
+  }
+
+  function toggleFlag(index) {
+    const cell = cells[index]; if (ended || cell.revealed) return;
+    cell.flagged = !cell.flagged; renderBoard();
+  }
+
+  function newGame() {
+    cfg = LEVELS[level]; started = false; ended = false; won = false; elapsed = 0; scoreSent = false; pendingScore = null; stopTimer();
+    document.body.classList.toggle('expert-mode', level === 'expert');
+    $('mineCount').textContent = cfg.mines; $('flagCount').textContent = '0'; $('timer').textContent = '0:00';
+    const board = $('board'); board.style.setProperty('--cols', cfg.cols); board.style.setProperty('--board-ratio', `${cfg.cols} / ${cfg.rows}`); board.dataset.level = level; board.innerHTML = '';
+    cells = Array.from({ length: cfg.cols * cfg.rows }, (_, index) => ({ index, mine: false, flagged: false, revealed: false, count: 0, el: null }));
+    cells.forEach((cell, index) => {
+      const el = document.createElement('button'); el.type = 'button'; el.className = 'cell'; el.setAttribute('role', 'gridcell'); el.setAttribute('aria-label', 'Le nem fedett mező');
+      el.addEventListener('click', () => flagMode ? toggleFlag(index) : reveal(index));
+      el.addEventListener('contextmenu', (event) => { event.preventDefault(); toggleFlag(index); });
+      cell.el = el; board.append(el);
+    });
+    announce('Kattints egy mezőre a kezdéshez.');
+    document.querySelectorAll('.mode').forEach((button) => button.setAttribute('aria-pressed', String(button.dataset.level === level)));
+  }
+
+  function showNickModal() { $('nickInput').value = playerNick; $('nickError').textContent = ''; $('nickModal').hidden = false; setTimeout(() => $('nickInput').focus(), 0); }
+  function finishNick(nick) {
+    if (nick.length < 2) return toastError('A becenév legalább 2 karakter legyen.');
+    playerNick = nick.slice(0, 16); setNick(playerNick); $('playerName').textContent = playerNick; $('nickModal').hidden = true;
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ t: 'hello', nick: playerNick }));
+    submitScore();
+  }
+
+  function connect() {
+    clearTimeout(retry); ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
+    ws.onopen = () => { $('conn').style.display = 'none'; if (playerNick) ws.send(JSON.stringify({ t: 'hello', nick: playerNick })); submitScore(); };
+    ws.onmessage = (event) => {
+      let message; try { message = JSON.parse(event.data); } catch { return; }
+      if (message.t === 'state') { scores = message.minesweeper?.scores || scores; renderRanks(); }
+      else if (message.t === 'hello') { playerNick = message.nick; setNick(playerNick); $('playerName').textContent = playerNick; $('nickModal').hidden = true; submitScore(); }
+      else if (message.t === 'err') { scoreSent = false; pendingScore = null; announce(message.msg, 'lose'); }
+    };
+    ws.onclose = () => { $('conn').style.display = 'block'; retry = setTimeout(connect, 1500); };
+  }
+
+  document.querySelectorAll('.mode').forEach((button) => button.addEventListener('click', () => { if (level !== button.dataset.level) { level = button.dataset.level; newGame(); } }));
+  $('newGame').addEventListener('click', newGame);
+  $('flagMode').addEventListener('click', () => { flagMode = !flagMode; $('flagMode').setAttribute('aria-pressed', String(flagMode)); });
+  $('changeNick').addEventListener('click', showNickModal);
+  $('nickForm').addEventListener('submit', (event) => { event.preventDefault(); finishNick($('nickInput').value.trim()); });
+
+  playerNick = getNick(); $('playerName').textContent = playerNick || 'nincs megadva'; renderRanks(); newGame(); connect(); if (!playerNick) showNickModal();
+})();
+</script>
+</body>
+</html>

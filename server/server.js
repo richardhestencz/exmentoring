@@ -44,6 +44,23 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
+const cleanNick = (s) => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').trim().slice(0, 16);
+const MINESWEEPER_LEVELS = new Set(['beginner', 'intermediate', 'expert']);
+const emptyMinesweeper = () => ({ scores: { beginner: [], intermediate: [], expert: [] } });
+function normalizeMinesweeper(value) {
+  const out = emptyMinesweeper();
+  for (const level of MINESWEEPER_LEVELS) {
+    const scores = Array.isArray(value?.scores?.[level]) ? value.scores[level] : [];
+    out.scores[level] = scores
+      .filter((s) => s && typeof s.nick === 'string' && s.nick.length >= 2 && Number.isInteger(s.seconds) && s.seconds > 0 && s.seconds <= 3600)
+      .map((s) => ({ nick: cleanNick(s.nick), seconds: s.seconds, at: Number.isFinite(s.at) ? s.at : 0 }))
+      .filter((s) => s.nick.length >= 2)
+      .sort((a, b) => a.seconds - b.seconds || a.at - b.at)
+      .slice(0, 10);
+  }
+  return out;
+}
+S.minesweeper = normalizeMinesweeper(S.minesweeper);
 const LAST = {};   // becenév -> az előző köre tétjei („Ismétlés” gombhoz)
 let saveTimer;
 function save() {
@@ -203,6 +220,7 @@ function snapshot(withTrack) {
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
     profiles: S.profiles, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
+    minesweeper: S.minesweeper,
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -214,7 +232,15 @@ function broadcast(withTrack) {
   const msg = JSON.stringify(snapshot(withTrack));
   for (const c of wss.clients) if (c.readyState === 1) c.send(msg);
 }
-const cleanNick = (s) => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').trim().slice(0, 16);
+function addMinesweeperScore(nick, level, seconds) {
+  if (!MINESWEEPER_LEVELS.has(level)) return 'Ismeretlen nehézség.';
+  if (!Number.isInteger(seconds) || seconds < 1 || seconds > 3600) return 'Érvénytelen időeredmény.';
+  const scores = S.minesweeper.scores[level];
+  scores.push({ nick, seconds, at: Date.now() });
+  scores.sort((a, b) => a.seconds - b.seconds || a.at - b.at);
+  S.minesweeper.scores[level] = scores.slice(0, 10);
+  return null;
+}
 
 wss.on('connection', (ws) => {
   ws.nick = ''; ws.budget = 10;
@@ -254,6 +280,12 @@ wss.on('connection', (ws) => {
       return;
     }
     if (!ws.nick) return err('Előbb adj meg becenevet.');
+    if (m.t === 'minesweeper-score') {
+      const e = addMinesweeperScore(ws.nick, String(m.difficulty || ''), Number(m.seconds));
+      if (e) return err(e);
+      save(); broadcast();
+      return;
+    }
     if (m.t === 'spin') {
       if (R.phase !== 'betting') return err('A kerék éppen forog.');
       if (!R.bets.some((b) => b.nick === ws.nick)) return err('Pörgetés előtt tegyél legalább egy tétet.');
