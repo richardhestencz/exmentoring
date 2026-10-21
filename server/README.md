@@ -13,7 +13,7 @@ Ha nincs `INGEST_TOKEN`, a szerver kiír egy ideiglenes tokent.
 ## Szabályok
 - Pot: 100 000 🦝 induláskor; aznapi első érkezéskor személyenként +10 000 🦝 (`POST /api/presence`).
 - Szám 100 🦝 (max. 10), sor/oszlop 500 🦝, szín/páros-páratlan/magas-alacsony 1000 🦝.
-- Az "ajtó" minden nyitáskor 1000 🦝-t tesz fel véletlen módon.
+- Az "ajtó" minden záráskor 1000 🦝-t tesz fel véletlen módon, és megpörgeti a kereket.
 
 ## Gépről érkező jelek (Bearer token)
 ```bash

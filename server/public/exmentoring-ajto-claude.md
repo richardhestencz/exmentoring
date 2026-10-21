@@ -87,12 +87,12 @@ Ellenőrzés: `pmset -g | grep -E ' sleep'` (töltőn `0` legyen).
 
 ## 6. Végső ellenőrzés
 
-1. Kérd meg a felhasználót, hogy nyissa ki az ajtót (vagy nyomja meg a szenzor gombját).
-2. Az ajtófigyelő ablakában meg kell jelennie: `Az ajtó ki lett nyitva`, alatta: `szerver: elküldve`.
-3. Az oldalon (https://hestencz-mac-mini.tail018e03.ts.net) nő az ajtószámláló, és elindul egy pörgetés.
+1. Kérd meg a felhasználót, hogy nyissa ki, majd csukja be az ajtót.
+2. Az ajtófigyelő ablakában meg kell jelennie: `Az ajtó ki lett nyitva`, majd `Az ajtó be lett csukva`, mindkettő alatt: `szerver: elküldve`.
+3. Az oldalon (https://hestencz-mac-mini.tail018e03.ts.net) nyitáskor nő az ajtószámláló, záráskor elindul egy pörgetés.
 
 Ha nem jelez: a szenzor legyen 10 méteren belül; a hirdetéseket így lehet nézni: `cd ~/exmentoring-ajto && set -a && . ./ajto.env && set +a && shelly-ajto/.venv/bin/python shelly-ajto/ajto.py --debug` (előtte állítsd le a futó példányt, és utána indítsd újra a 4. lépés parancsával).
 
 ## Kész állapot
 
-Számolj be a felhasználónak checklistben: előfeltételek, token jó, telepítés kész, Bluetooth-engedély, alvás kikapcsolva, ajtónyitás megérkezett az oldalra. Ami nem sikerült, azt jelöld meg, és írd le, mit kell még tennie.
+Számolj be a felhasználónak checklistben: előfeltételek, token jó, telepítés kész, Bluetooth-engedély, alvás kikapcsolva, ajtózárás elindította a kereket. Ami nem sikerült, azt jelöld meg, és írd le, mit kell még tennie.

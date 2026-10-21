@@ -12,7 +12,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | Gép | Hol van | Mit csinál |
 |---|---|---|
 | **Mac mini** | otthon | A játékszerver és a weboldal. Tailscale Funnelen át fix címen érhető el. |
-| **Irodai MacBook** | az irodában, az ajtótól max. kb. 10 méterre | Bluetooth-on figyeli a Shelly BLU ajtószenzort, és minden nyitásról szól a szervernek az interneten át. |
+| **Irodai MacBook** | az irodában, az ajtótól max. kb. 10 méterre | Bluetooth-on figyeli a Shelly BLU ajtószenzort, és minden nyitásról és zárásról szól a szervernek az interneten át. Záráskor indul a pörgetés. |
 
 ## Mi van a repóban
 
@@ -88,7 +88,7 @@ Claude-dal is mehet: töltsd le az oldalról az `exmentoring-ajto-claude.md` fá
 ## 4. Ellenőrzés
 
 - **Oldal:** https://hestencz-mac-mini.tail018e03.ts.net, két eszközön egyszerre: tét, Pörgetés, mindkettőn egyszerre pörög.
-- **Ajtó:** nyisd ki. Az irodai MacBook ajtófigyelő ablakában: „Az ajtó ki lett nyitva”, alatta „szerver: elküldve”. Az oldalon nő az ajtószámláló, és indul egy pörgetés.
+- **Ajtó:** nyisd ki, majd csukd be. Az irodai MacBook ajtófigyelő ablakában: „Az ajtó ki lett nyitva”, majd „Az ajtó be lett csukva”, mindkettő alatt „szerver: elküldve”. Nyitáskor nő az ajtószámláló, záráskor indul egy pörgetés.
 - **Ajtó szenzor nélkül:**
 
   ```bash

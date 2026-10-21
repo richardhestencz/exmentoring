@@ -117,11 +117,11 @@ function tease(spinner, net) {
   return parts.join(' ');
 }
 
-// ---- körök: a kerék csak ajtónyitásra vagy „Pörgetés” gombra indul ----
+// ---- körök: a kerék csak ajtózárásra vagy „Pörgetés” gombra indul ----
 function startBetting() {
   R.id++; R.phase = 'betting'; R.result = null; R.endAt = 0; R.spinner = ''; R.net = null;
   S.roundBets = []; R.bets = S.roundBets;
-  if (R.doorQueue > 0) { // közben nyílt ajtó: tegyen tétet és pörgessen
+  if (R.doorQueue > 0) { // közben csukódott be az ajtó: tegyen tétet és pörgessen
     R.doorQueue--; placeDoorBet(); R.spinner = DOOR;
     setTimeout(startSpin, T_DOOR_DELAY);
   }
@@ -241,9 +241,10 @@ app.post('/api/door', ingest, (req, res) => {
   if (st === 'open') {
     S.doorOpens++;
     say('🚪 Az ajtó kinyílt.');
+  } else if (st === 'closed') { // minden zárásnál az ajtó tesz fel és pörget
+    say('🚪 Az ajtó becsukódott.');
     if (R.phase === 'betting') { placeDoorBet(); R.spinner = DOOR; startSpin(); } else R.doorQueue++;
-  } else if (st === 'closed') say('🚪 Az ajtó becsukódott.');
-  else return res.status(400).json({ error: 'state: open|closed' });
+  } else return res.status(400).json({ error: 'state: open|closed' });
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' });
