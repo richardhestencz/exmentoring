@@ -271,7 +271,7 @@ function render(){
   const max=Math.max(1,...Object.values(by),none);
   const rank=G.contributors.filter(c=>by[c.alias]).sort((a,b)=>by[b.alias]-by[a.alias]);
   $('rank').innerHTML=rank.map(c=>`<li><span class="al">${esc(c.alias)}</span><span class="nm">${esc(c.name)}</span><b>${by[c.alias]}</b><span class="bar"><i style="width:${100*by[c.alias]/max}%"></i></span></li>`).join('')
-    +(none?`<li><span class="al">✅</span><span class="nm">alias nélkül</span><b>${none}</b><span class="bar"><i style="width:${100*none/max}%"></i></span></li>`:'')
+    +(none?`<li><span class="al">✅</span><span class="nm">név nélkül</span><b>${none}</b><span class="bar"><i style="width:${100*none/max}%"></i></span></li>`:'')
     ||'<li><span></span><span class="nm">Még nincs nyugta.</span></li>';
   $('people').innerHTML=G.contributors.map(c=>`<li><span class="al">${esc(c.alias)}</span><span class="nm">${esc(c.name)}</span><b>${by[c.alias]||0}</b></li>`).join('');
 }
