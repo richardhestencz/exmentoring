@@ -3,9 +3,11 @@
 const COLORS = ['#eb772e', '#3778c2', '#8b4bb3', '#11845b', '#d23b62', '#aa7a18'];
 const MAX_PLAYERS = 6;
 const BASE_MS = 30000;
-const EXPAND_MS = 20000;
-const BONUS_MS = 20000;
-const ATTACK_MS = 15000;
+const QUESTION_MS = 15000;
+const EXPAND_MS = QUESTION_MS;
+const BONUS_MS = QUESTION_MS;
+const ATTACK_MS = QUESTION_MS;
+const BOT_DELAY_MS = 650;
 const EXPANSION_ROUNDS = 3;
 const ATTACKS_PER_PLAYER = 2;
 
@@ -155,8 +157,8 @@ class Manager {
     do { code = Math.random().toString(36).slice(2, 7).toUpperCase(); } while (this.rooms.has(code));
     const room = {
       code, host: nick, players: [], phase: 'lobby', map: [], mapCols: 0, mapRows: 0, territories: [],
-      baseDeadline: 0, endAt: 0, expansionRound: 0, activeIndex: 0, attackTurns: 0,
-      selections: new Map(), answers: {}, question: null, bonusTarget: null, bonusAnswers: {},
+      baseDeadline: 0, endAt: 0, expansionRound: 0, expansionStage: 'select', activeIndex: 0, attackTurns: 0,
+      selections: new Map(), answers: {}, question: null, bonusStage: 'question', bonusWinner: null, bonusAnswers: {},
       battle: null, selectedTarget: null, winner: '', message: 'Várjuk a játékosokat…',
       timer: null,
     };
@@ -173,7 +175,7 @@ class Manager {
     if (room.phase !== 'lobby') return { error: 'Ez a játék már elkezdődött.' };
     if (room.players.some((p) => p.nick === nick)) return { error: 'Ezzel a becenévvel már bent van valaki.' };
     if (room.players.length >= MAX_PLAYERS) return { error: 'A szoba megtelt.' };
-    room.players.push({ nick, color: COLORS[room.players.length], base: null, connected: true });
+    room.players.push({ nick, color: COLORS[room.players.length], base: null, connected: true, isBot: false, botAnswerCount: 0 });
     room.message = `${room.players.length} játékos a szobában.`; this.emit(room); return { room };
   }
 
@@ -192,10 +194,44 @@ class Manager {
   start(room, nick) {
     if (!room || room.host !== nick) return { error: 'Csak a szoba gazdája indíthat.' };
     if (room.players.length < 1) return { error: 'Legalább egy játékos kell.' };
+    if (room.players.length === 1) this.addBots(room);
     const map = createMap(room.players.length);
     room.map = map.territories; room.mapCols = map.cols; room.mapRows = map.rows; room.territories = emptyTerritories(room.map);
     room.phase = 'base'; room.message = 'Válassz egy bázisterületet!'; room.baseDeadline = now() + BASE_MS; room.endAt = room.baseDeadline;
-    this.arm(room, BASE_MS, () => this.finishBases(room)); this.emit(room); return { room };
+    this.arm(room, BASE_MS, () => this.finishBases(room)); this.emit(room); this.scheduleBotBases(room); return { room };
+  }
+
+  addBots(room) {
+    for (let i = 1; i <= 2; i++) room.players.push({ nick: `Robot ${i}`, color: COLORS[room.players.length], base: null, connected: true, isBot: true, botAnswerCount: 0 });
+  }
+
+  scheduleBotBases(room) {
+    room.players.filter((p) => p.isBot).forEach((bot, index) => setTimeout(() => {
+      if (room.phase !== 'base' || bot.base !== null) return;
+      const free = room.territories.filter((t) => !t.owner);
+      if (free.length) this.chooseBase(room, bot.nick, randomItem(free).id);
+    }, BOT_DELAY_MS + index * 250));
+  }
+
+  botAnswerValue(bot, question) {
+    const correct = bot.botAnswerCount++ % 2 === 0;
+    if (question.type === 'choice') return correct ? question.answer : (question.answer + 1) % question.options.length;
+    if (correct) return question.answer;
+    const offset = Math.max(1, Math.round(Math.abs(question.answer) * 0.12));
+    return question.answer + offset;
+  }
+
+  scheduleBotAnswers(room, kind, battleStage) {
+    room.players.filter((p) => p.isBot && (kind !== 'battle' || [room.battle?.attacker, room.battle?.defender].includes(p.nick))).forEach((bot, index) => setTimeout(() => {
+      const active = kind === 'expand'
+        ? room.phase === 'expand' && room.expansionStage === 'question'
+        : kind === 'bonus'
+          ? room.phase === 'bonus' && room.bonusStage === 'question'
+          : room.phase === 'battle' && room.battle?.stage === battleStage;
+      const answerMap = kind === 'battle' ? room.battle?.answers : kind === 'bonus' ? room.bonusAnswers : room.answers;
+      if (!active || !room.question || answerMap?.[bot.nick] !== undefined) return;
+      this.answer(room, bot.nick, this.botAnswerValue(bot, room.question));
+    }, BOT_DELAY_MS + index * 220));
   }
 
   chooseBase(room, nick, id) {
@@ -222,11 +258,38 @@ class Manager {
 
   prepareExpansionRound(room) {
     if (!room || room.phase !== 'expand') return;
-    room.selections = new Map(); room.answers = {}; room.question = this.nextQuestion();
+    room.expansionStage = 'select'; room.selections = new Map(); room.answers = {}; room.question = null; room.endAt = 0;
+    room.message = `Terjeszkedési kör ${room.expansionRound}/3: várjuk, hogy mindenki válasszon célterületet.`;
+    this.emit(room); this.scheduleBotExpansionTargets(room);
+  }
+
+  scheduleBotExpansionTargets(room) {
+    room.players.filter((p) => p.isBot).forEach((bot, index) => setTimeout(() => {
+      if (room.phase !== 'expand' || room.expansionStage !== 'select' || room.selections.has(bot.nick)) return;
+      const target = this.pickExpansionTarget(room, bot.nick);
+      if (target === null) {
+        room.selections.set(bot.nick, null);
+        this.maybeStartExpansionQuestion(room);
+      } else this.chooseTarget(room, bot.nick, target);
+    }, BOT_DELAY_MS + index * 220));
+  }
+
+  pickExpansionTarget(room, nick) {
+    const candidates = room.map.filter((territory) => this.isLegalExpansionTarget(room, nick, territory.id) && ![...room.selections.values()].includes(territory.id));
+    return candidates.length ? randomItem(candidates).id : null;
+  }
+
+  maybeStartExpansionQuestion(room) {
+    if (room.phase === 'expand' && room.expansionStage === 'select' && room.players.every((p) => room.selections.has(p.nick))) this.startExpansionQuestion(room);
+  }
+
+  startExpansionQuestion(room) {
+    if (!room || room.phase !== 'expand' || room.expansionStage !== 'select') return;
+    room.expansionStage = 'question'; room.question = this.nextQuestion();
     if (!room.question) return this.finish(room, 'Elfogyott a feleletválasztós kérdésbank.');
     room.endAt = now() + EXPAND_MS;
-    room.message = `Terjeszkedési kör ${room.expansionRound}/3: mindenki válasszon szabad szomszédos területet, majd válaszoljon!`;
-    this.arm(room, EXPAND_MS, () => this.resolveExpansionRound(room)); this.emit(room);
+    room.message = `Mindenki választott. Ugyanaz a kérdés jelenik meg mindenkinek: 15 másodperc a válaszra.`;
+    this.arm(room, EXPAND_MS, () => this.resolveExpansionRound(room)); this.emit(room); this.scheduleBotAnswers(room, 'expand');
   }
 
   isLegalExpansionTarget(room, nick, id) {
@@ -240,9 +303,10 @@ class Manager {
     const n = Number(id), p = byNick(room, nick);
     if (!p || !Number.isInteger(n) || !room.territories[n]) return { error: 'Hibás célterület.' };
     if (room.phase === 'expand') {
+      if (room.expansionStage !== 'select') return { error: 'Már elindult a kérdés, most már válaszolj.' };
       if (!this.isLegalExpansionTarget(room, nick, n)) return { error: 'Ez a terület nem választható terjeszkedési célpont.' };
       for (const [other, target] of room.selections) if (other !== nick && target === n) return { error: 'Ezt a területet már más választotta ebben a körben.' };
-      room.selections.set(nick, n); room.message = `${nick} célpontot választott: ${room.map[n].name}.`; this.emit(room); return { room };
+      room.selections.set(nick, n); room.message = `${nick} célpontot választott: ${room.map[n].name}.`; this.maybeStartExpansionQuestion(room); if (room.expansionStage === 'select') this.emit(room); return { room };
     }
     const active = room.players[room.activeIndex];
     if (!active || active.nick !== nick) return { error: 'Nem te vagy soron.' };
@@ -255,6 +319,7 @@ class Manager {
     if (!room || !room.question) return { error: 'Nincs aktív kérdés.' };
     const q = room.question;
     if (room.phase === 'expand') {
+      if (room.expansionStage !== 'question') return { error: 'Előbb várjuk meg, hogy mindenki területet válasszon.' };
       const a = Number(answerValue);
       if (!Number.isInteger(a) || a < 0 || a >= q.options.length) return { error: 'Hibás válasz.' };
       if (!byNick(room, nick) || !room.selections.has(nick)) return { error: 'Előbb válassz célterületet.' };
@@ -264,6 +329,7 @@ class Manager {
       return { room };
     }
     if (room.phase === 'bonus') {
+      if (room.bonusStage !== 'question') return { error: 'Most a tippelős kör győztese választ területet.' };
       const guess = Number(answerValue);
       if (!Number.isFinite(guess)) return { error: 'A tippnek számnak kell lennie.' };
       if (!byNick(room, nick)) return { error: 'Ez a játékos nincs a szobában.' };
@@ -293,12 +359,12 @@ class Manager {
   }
 
   resolveExpansionRound(room) {
-    if (!room || room.phase !== 'expand') return;
+    if (!room || room.phase !== 'expand' || room.expansionStage !== 'question') return;
     clearTimeout(room.timer);
     const captured = [];
     for (const p of room.players) {
       const target = room.selections.get(p.nick), answer = room.answers[p.nick];
-      if (target !== undefined && answer && answer.answer === room.question.answer && !room.territories[target].owner) {
+      if (target !== null && target !== undefined && answer && answer.answer === room.question.answer && !room.territories[target].owner) {
         room.territories[target].owner = p.nick; captured.push(`${p.nick}: ${room.map[target].name}`);
       }
     }
@@ -308,35 +374,50 @@ class Manager {
   }
 
   beginBonus(room) {
-    room.phase = 'bonus'; room.selections = new Map(); room.answers = {}; room.bonusTarget = null; room.bonusAnswers = {};
+    room.phase = 'bonus'; room.bonusStage = 'question'; room.bonusWinner = null; room.selections = new Map(); room.answers = {}; room.bonusAnswers = {};
     room.message = 'A maradék területekért tippelős kérdések jönnek.'; this.prepareBonus(room);
   }
 
   prepareBonus(room) {
-    const target = room.territories.find((t) => !t.owner);
-    if (!target) return this.beginAttacks(room);
-    room.bonusTarget = target.id; room.bonusAnswers = {}; room.question = this.nextNumericQuestion();
+    const free = room.territories.find((t) => !t.owner);
+    if (!free) return this.beginAttacks(room);
+    room.bonusStage = 'question'; room.bonusWinner = null; room.bonusAnswers = {}; room.question = this.nextNumericQuestion();
     if (!room.question) return this.finish(room, 'Elfogyott a tippelős kérdésbank.');
     room.endAt = now() + BONUS_MS;
-    room.message = `Tippelős kérdés: a legközelebbi válaszadóé lesz ${room.map[target.id].name}.`;
-    this.arm(room, BONUS_MS, () => this.resolveBonus(room)); this.emit(room);
+    room.message = 'Tippelős kérdés: aki a legközelebb válaszol, utána választhat egy szabad területet.';
+    this.arm(room, BONUS_MS, () => this.resolveBonus(room)); this.emit(room); this.scheduleBotAnswers(room, 'bonus');
   }
 
   resolveBonus(room) {
-    if (!room || room.phase !== 'bonus') return;
+    if (!room || room.phase !== 'bonus' || room.bonusStage !== 'question') return;
     clearTimeout(room.timer);
     const entries = room.players.map((p) => ({ nick: p.nick, value: room.bonusAnswers[p.nick]?.answer, at: room.bonusAnswers[p.nick]?.at })).filter((x) => Number.isFinite(x.value));
     entries.sort((a, b) => Math.abs(a.value - room.question.answer) - Math.abs(b.value - room.question.answer) || a.at - b.at);
     const winner = entries[0];
-    if (winner && room.bonusTarget !== null) {
-      room.territories[room.bonusTarget].owner = winner.nick;
-      room.message = `${winner.nick} tippelt a legközelebb, övé lett: ${room.map[room.bonusTarget].name}.`;
-    } else room.message = 'Erre a területre senki nem adott érvényes tippet, szürke maradt.';
-    room.bonusTarget = null; this.prepareBonus(room);
+    if (!winner) return this.prepareBonus(room);
+    room.bonusStage = 'select'; room.bonusWinner = winner.nick; room.bonusAnswers = {}; room.question = null; room.endAt = 0;
+    room.message = winner.nick + ' válaszolt a legközelebb. Válasszon egy szabad területet!';
+    if (byNick(room, winner.nick)?.isBot) this.scheduleBotBonusSelection(room, winner.nick); else this.emit(room);
+  }
+
+  scheduleBotBonusSelection(room, nick) {
+    setTimeout(() => {
+      if (room.phase !== 'bonus' || room.bonusStage !== 'select' || room.bonusWinner !== nick) return;
+      const free = room.territories.filter((t) => !t.owner);
+      if (free.length) this.chooseBonusTarget(room, nick, randomItem(free).id);
+    }, BOT_DELAY_MS);
+  }
+
+  chooseBonusTarget(room, nick, id) {
+    if (!room || room.phase !== 'bonus' || room.bonusStage !== 'select') return { error: 'Most nem választható szabad terület.' };
+    if (room.bonusWinner !== nick) return { error: 'Most a tippelős kör győztese választhat.' };
+    const n = Number(id);
+    if (!Number.isInteger(n) || !room.territories[n] || room.territories[n].owner) return { error: 'Ez a terület már foglalt vagy hibás.' };
+    room.territories[n].owner = nick; room.message = nick + ' elfoglalta: ' + room.map[n].name + '.'; this.prepareBonus(room); return { room };
   }
 
   beginAttacks(room) {
-    clearTimeout(room.timer); room.phase = 'attack'; room.attackTurns = 0; room.activeIndex = 0; room.selectedTarget = null; room.question = null; room.battle = null; room.bonusTarget = null;
+    clearTimeout(room.timer); room.phase = 'attack'; room.attackTurns = 0; room.activeIndex = 0; room.selectedTarget = null; room.question = null; room.battle = null; room.bonusStage = 'question'; room.bonusWinner = null;
     room.message = 'A terjeszkedés véget ért. Válassz támadási célpontot!'; this.prepareAttack(room);
   }
 
@@ -349,8 +430,15 @@ class Manager {
       if (room.attackTurns >= maxTurns) return this.finish(room);
     }
     if (!canAttack(room, room.players[room.activeIndex])) return this.finish(room);
-    room.selectedTarget = null; room.endAt = now() + ATTACK_MS; room.message = `${room.players[room.activeIndex].nick} támadást indíthat.`;
+    const activePlayer = room.players[room.activeIndex];
+    room.selectedTarget = null; room.endAt = now() + ATTACK_MS; room.message = `${activePlayer.nick} támadást indíthat.`;
     this.arm(room, ATTACK_MS, () => this.skipAttack(room)); this.emit(room);
+    if (activePlayer.isBot) setTimeout(() => {
+      if (room.phase !== 'attack' || room.players[room.activeIndex]?.nick !== activePlayer.nick) return;
+      const owned = playerTerritories(room, activePlayer.nick);
+      const target = room.map.find((territory) => room.territories[territory.id].owner && room.territories[territory.id].owner !== activePlayer.nick && owned.some((id) => neighborsOf(room, id).includes(territory.id)));
+      if (target) this.chooseTarget(room, activePlayer.nick, target.id); else this.skipAttack(room);
+    }, BOT_DELAY_MS);
   }
 
   beginBattle(room) {
@@ -360,7 +448,7 @@ class Manager {
     room.question = this.nextQuestion();
     if (!room.question) return this.finishBattle(room, false, 'Elfogyott a feleletválasztós kérdésbank, a védő megtartotta a területet.');
     room.endAt = now() + ATTACK_MS; room.message = `${attacker} támadja ${defender} területét: ABCD-kérdés.`;
-    this.arm(room, ATTACK_MS, () => this.resolveBattleChoice(room)); this.emit(room);
+    this.arm(room, ATTACK_MS, () => this.resolveBattleChoice(room)); this.emit(room); this.scheduleBotAnswers(room, 'battle', 'choice');
   }
 
   finishBattle(room, attackerWon, message) {
@@ -379,7 +467,7 @@ class Manager {
       b.stage = 'guess'; b.answers = {}; room.question = this.nextNumericQuestion();
       if (!room.question) return this.finishBattle(room, false, 'Elfogyott a tippelős kérdésbank, a védő megtartotta a területet.');
       room.endAt = now() + ATTACK_MS;
-      room.message = 'Mindketten eltalálták. Jön a számtipp: aki közelebb tippel, nyer.'; this.arm(room, ATTACK_MS, () => this.resolveBattleGuess(room)); this.emit(room); return;
+      room.message = 'Mindketten eltalálták. Jön a számtipp: aki közelebb tippel, nyer.'; this.arm(room, ATTACK_MS, () => this.resolveBattleGuess(room)); this.emit(room); this.scheduleBotAnswers(room, 'battle', 'guess'); return;
     }
     this.finishBattle(room, attackerCorrect && !defenderCorrect);
   }
@@ -410,10 +498,10 @@ class Manager {
     const answered = room.phase === 'expand' ? Object.keys(room.answers) : room.phase === 'bonus' ? Object.keys(room.bonusAnswers) : [];
     return {
       code: room.code, host: room.host, phase: room.phase, phaseEnd: room.endAt, now: now(), message: room.message,
-      expansionRound: room.expansionRound, active: room.players[room.activeIndex]?.nick || '', winner: room.winner,
+      expansionRound: room.expansionRound, expansionStage: room.expansionStage, bonusStage: room.bonusStage, bonusWinner: room.bonusWinner, active: room.players[room.activeIndex]?.nick || '', winner: room.winner,
       mapCols: room.mapCols, mapRows: room.mapRows, answered, selectedTarget: room.selectedTarget,
-      selections: Object.fromEntries(room.selections), bonusTarget: room.bonusTarget,
-      players: room.players.map((p) => ({ nick: p.nick, color: p.color, base: p.base, connected: p.connected, territories: playerTerritories(room, p.nick).length, selected: room.selections.get(p.nick) ?? null, answered: answered.includes(p.nick) })),
+      selections: Object.fromEntries(room.selections),
+      players: room.players.map((p) => ({ nick: p.nick, color: p.color, base: p.base, connected: p.connected, isBot: !!p.isBot, territories: playerTerritories(room, p.nick).length, selected: room.selections.get(p.nick) ?? null, answered: answered.includes(p.nick) })),
       map: room.map.map((t) => ({ id: t.id, name: t.name, row: t.row, col: t.col, neighbors: t.neighbors, owner: room.territories[t.id].owner })),
       question: publicQuestion(room.question),
       battle: room.battle && { attacker: room.battle.attacker, defender: room.battle.defender, target: room.battle.target, stage: room.battle.stage, answered: Object.keys(room.battle.answers) },

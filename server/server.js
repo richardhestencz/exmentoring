@@ -304,6 +304,7 @@ wss.on('connection', (ws) => {
       if (m.t === 'hodito-start') result = hodito.start(room, ws.nick);
       else if (m.t === 'hodito-base') result = hodito.chooseBase(room, ws.nick, m.id);
       else if (m.t === 'hodito-target') result = hodito.chooseTarget(room, ws.nick, m.id);
+      else if (m.t === 'hodito-bonus-target') result = hodito.chooseBonusTarget(room, ws.nick, m.id);
       else if (m.t === 'hodito-answer') result = hodito.answer(room, ws.nick, m.answer);
       else if (m.t === 'hodito-leave') { hodito.leave(room, ws.nick); ws.hoditoRoom = ''; return; }
       else return err('Ismeretlen Hódító-művelet.');

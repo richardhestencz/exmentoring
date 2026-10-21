@@ -27,7 +27,7 @@
 </head>
 <body>
 <header class="top"><div class="wrap"><span class="studio"><button type="button" class="themebtn" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span><nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/aknakereso.html">Aknakereső</a><a href="/hodito.html" aria-current="page">Hódító</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav></div><div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div></header>
-<section class="hero"><div class="wrap"><h1>🗺️ Hódító</h1><p class="lead">Honfoglaló-szerű, realtime területfoglaló játék a Mentoring szobának. Válassz bázist, terjeszkedj közös kérdésekkel, szerezd meg a maradék területeket tippeléssel, majd támadj!</p><div class="player">Játékos: <span id="playerName">–</span> <button type="button" id="changeNick">becenév módosítása</button></div></div></section>
+<section class="hero"><div class="wrap"><h1>🗺️ Hódító</h1><p class="lead">Honfoglaló-szerű, realtime területfoglaló játék a Mentoring szobának. Válassz területet, várd meg a közös kérdést, majd 15 másodperc alatt válaszolj!</p><div class="player">Játékos: <span id="playerName">–</span> <button type="button" id="changeNick">becenév módosítása</button></div></div></section>
 <main class="main"><div class="wrap columns" id="layout">
   <section class="card" id="roomCard"><div class="card-head"><h2>Játékszoba</h2><button class="btn secondary" type="button" id="leave" hidden>Kilépés</button></div><div class="card-body">
     <div id="roomEntry"><p class="hint">Hozz létre új szobát, vagy csatlakozz egy meglévőhöz a szobakóddal.</p><div class="room-form"><button class="btn" type="button" id="create">Új szoba</button><input id="roomCode" maxlength="6" placeholder="SZÓBA KÓD" aria-label="Szobakód"><button class="btn secondary" type="button" id="join">Csatlakozás</button></div></div>
@@ -36,7 +36,7 @@
   </div></section>
 
   <section class="card game" id="game"><div class="game-top"><div class="phase" id="phase">–</div><div class="timer" id="timer">—</div></div><div class="message" id="message">–</div><div class="game-content"><div class="map-wrap"><div class="map" id="map" aria-label="Hódító térkép"></div><div class="legend" id="legend"></div></div><aside class="side"><div class="question" id="question"><div class="no-question">A játék állapota betöltődik…</div></div></aside></div></section>
-</div><div class="wrap"><div class="rules"><h2>Játékmenet</h2><p>Először mindenki bázist választ. Három terjeszkedési körben mindenki célterületet választ, majd mindenki ugyanarra az ABCD-kérdésre válaszol: a helyes válasz foglal, a hibás szürke marad. Ezután a maradék területek egyesével, közös számtippel kelnek el. Támadásnál az ABCD-kérdést mindkét fél megválaszolja; ha mindketten helyeselnek, a közelebbi számtipp dönt.</p></div></div></main>
+</div><div class="wrap"><div class="rules"><h2>Játékmenet</h2><p>Először mindenki bázist választ. A három terjeszkedési körben előbb mindenki célterületet választ, csak ezután indul a közös, 15 másodperces kérdés. A helyes válasz foglal. A tippelős körben a legközelebbi válaszadó választhat egy szabad területet, amíg minden terület gazdára nem talál.</p></div></div></main>
 
 <div class="modal" id="nickModal" hidden><div class="modal-card"><h2>Ki játszik?</h2><p>A Hódítóhoz használd a Mentoring szobában megszokott becenevedet.</p><form class="nick-form" id="nickForm"><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="Beceneved" required><button type="submit">Belépek</button></form></div></div>
 <script>
@@ -52,8 +52,8 @@
   const phaseText = () => {
     if (!state) return '–';
     if (state.phase === 'base') return `${phaseNames.base} · válassz egy szabad területet`;
-    if (state.phase === 'expand') return `${phaseNames.expand} · ${state.expansionRound}/3 · mindenki válaszol`;
-    if (state.phase === 'bonus') return `${phaseNames.bonus} · tippelj a ${territoryName(state.bonusTarget)} területre`;
+    if (state.phase === 'expand') return state.expansionStage === 'select' ? `${phaseNames.expand} · ${state.expansionRound}/3 · mindenki területet választ` : `${phaseNames.expand} · ${state.expansionRound}/3 · 15 mp a válaszra`;
+    if (state.phase === 'bonus') return state.bonusStage === 'select' ? `${phaseNames.bonus} · ${state.bonusWinner} választ területet` : `${phaseNames.bonus} · mindenki tippel`;
     if (state.phase === 'attack') return phaseNames.attack;
     if (state.phase === 'battle') return `${phaseNames.battle} · ${state.battle?.stage === 'guess' ? 'számtipp' : 'ABCD-kérdés'}`;
     return phaseNames[state.phase] || state.phase;
@@ -65,6 +65,7 @@
       const li = document.createElement('li'); li.innerHTML = `<span class="dot" style="--player-color:${p.color}"></span>`;
       const name = document.createElement('span'); name.textContent = p.nick; li.append(name);
       if (p.nick === state.host) { const host = document.createElement('span'); host.className = 'host'; host.textContent = 'gazda'; li.append(host); }
+      if (p.isBot) { const bot = document.createElement('span'); bot.className = 'host'; bot.textContent = 'robot'; li.append(bot); }
       const count = document.createElement('span'); count.className = 'host'; count.textContent = `${p.territories} terület`; li.append(count);
       if (state.phase === 'expand' && p.selected !== null) { const selected = document.createElement('span'); selected.className = 'host'; selected.textContent = p.answered ? 'válaszolt' : 'célpont választva'; li.append(selected); }
       list.append(li);
@@ -90,7 +91,8 @@
       b.setAttribute('aria-label', p ? `${t.name}, ${p.nick} területe` : `${t.name}, szabad`);
       b.addEventListener('click', () => {
         if (state.phase === 'base') send({ t: 'hodito-base', id: t.id });
-        else if (state.phase === 'expand' && state.players.some((x) => x.nick === nick)) send({ t: 'hodito-target', id: t.id });
+        else if (state.phase === 'expand' && state.expansionStage === 'select' && state.players.some((x) => x.nick === nick)) send({ t: 'hodito-target', id: t.id });
+        else if (state.phase === 'bonus' && state.bonusStage === 'select' && state.bonusWinner === nick) send({ t: 'hodito-bonus-target', id: t.id });
         else if (state.phase === 'attack' && state.active === nick) send({ t: 'hodito-target', id: t.id });
       });
       map.append(b);
@@ -101,16 +103,16 @@
     const box = $('question'); box.textContent = '';
     if (!state?.question) {
       const p = document.createElement('div'); p.className = 'no-question';
-      p.textContent = state?.phase === 'attack' ? 'Válassz egy szomszédos ellenséges területet a támadáshoz.' : state?.phase === 'base' ? 'Válassz egy bázist a térképen.' : 'A játék állapota betöltődik…';
+      p.textContent = state?.phase === 'attack' ? 'Válassz egy szomszédos ellenséges területet a támadáshoz.' : state?.phase === 'base' ? 'Válassz egy bázist a térképen.' : state?.phase === 'expand' ? 'Várjuk, hogy mindenki területet válasszon.' : state?.phase === 'bonus' ? `${state.bonusWinner || 'A győztes'} válasszon egy szabad területet.` : 'A játék állapota betöltődik…';
       box.append(p); return;
     }
-    const q = state.question, key = `${state.phase}:${q.id}:${state.expansionRound}:${state.bonusTarget}:${state.battle?.stage || ''}`;
+    const q = state.question, key = `${state.phase}:${q.id}:${state.expansionRound}:${state.bonusStage}:${state.battle?.stage || ''}`;
     if (key !== questionKey) { questionKey = key; answerLocked = false; }
     const cat = document.createElement('div'); cat.className = 'category'; cat.textContent = q.category; box.append(cat);
     const h = document.createElement('h3'); h.textContent = state.phase === 'battle' ? (state.battle.stage === 'guess' ? 'Számtipp a csatához' : 'Csatakérdés') : state.phase === 'bonus' ? 'Tippelős területfoglalás' : 'Terjeszkedési kérdés'; box.append(h);
     const note = document.createElement('p'); note.className = 'target-note';
     if (state.phase === 'expand') note.innerHTML = state.selections?.[nick] === undefined ? 'Előbb válassz célterületet a térképen.' : `Saját célpontod: <strong>${territoryName(state.selections[nick])}</strong>`;
-    else if (state.phase === 'bonus') note.innerHTML = `A legközelebbi tipp foglalja el: <strong>${territoryName(state.bonusTarget)}</strong>${q.unit ? ` · ${q.unit}` : ''}`;
+    else if (state.phase === 'bonus') note.innerHTML = `A legközelebbi tippelő választhat egy szabad területet${q.unit ? ` · ${q.unit}` : ''}`;
     else if (state.phase === 'battle') note.innerHTML = `Támadó: <strong>${state.battle.attacker}</strong> · védő: <strong>${state.battle.defender}</strong>`;
     box.append(note);
     const text = document.createElement('div'); text.className = 'text'; text.textContent = q.text; box.append(text);
@@ -130,7 +132,7 @@
 
   function render() {
     const inRoom = !!state, inGame = inRoom && state.phase !== 'lobby';
-    const waitingForTarget = state?.phase === 'expand' && state.selections?.[nick] === undefined;
+    const waitingForTarget = (state?.phase === 'expand' && state.expansionStage === 'select') || (state?.phase === 'bonus' && state.bonusStage === 'select');
     const questionFocus = inGame && !!state.question && !waitingForTarget;
     $('roomEntry').style.display = inRoom ? 'none' : 'block'; $('roomInfo').classList.toggle('show', inRoom); $('leave').hidden = !inRoom;
     $('roomCard').classList.toggle('room-hidden', inGame); $('layout').classList.toggle('game-active', inGame); $('game').classList.toggle('show', inGame);
