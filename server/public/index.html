@@ -142,6 +142,12 @@ ul{list-style:none;margin:0;padding:0}
 .pick:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .tool{margin-left:auto;padding:6px 10px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.06);color:#fff;font-weight:600;font-size:.78rem;cursor:pointer}
 .tool+.tool{margin-left:0}
+.profbar{display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin:0 0 7px}
+.profbar .tool{margin-left:0}
+.profbar select{min-width:0;max-width:170px;padding:6px 8px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(10,15,22,.6);color:#fff;font:inherit;font-size:.78rem}
+.profbar select:focus-visible{outline:2px solid #fff;outline-offset:1px}
+.profbar .auto{display:flex;align-items:center;gap:5px;font-size:.76rem;color:#f3e6de;cursor:pointer;margin-left:auto}
+.profbar .auto input{accent-color:#eb772e;width:15px;height:15px}
 .tool:disabled{opacity:.45;cursor:not-allowed}
 .tool:focus-visible{outline:2px solid #fff;outline-offset:1px}
 .chips{position:absolute;inset:0;pointer-events:none;z-index:3}
@@ -205,7 +211,7 @@ ul{list-style:none;margin:0;padding:0}
   .tbl{grid-auto-rows:30px;gap:2px}
   .cell{font-size:.7rem;border-radius:5px}.cell em{display:none}
   .ch{width:18px;height:18px;margin:-9px 0 0 -9px;font-size:.42rem}.ch.oth{width:13px;height:13px;font-size:0}
-  .pick{width:30px;height:30px;font-size:.58rem}.chipbar small{display:none}.chipbar{margin-bottom:5px;gap:5px}.tool{padding:4px 8px;font-size:.7rem}
+  .pick{width:30px;height:30px;font-size:.58rem}.profbar{gap:4px;margin-bottom:5px}.profbar select{max-width:110px;font-size:.7rem;padding:4px 6px}.profbar .auto{font-size:.68rem}.chipbar small{display:none}.chipbar{margin-bottom:5px;gap:5px}.tool{padding:4px 8px;font-size:.7rem}
   .dia{width:18px;height:10px}
   .hint{display:none}
   .stage.overhead .boardwrap{transform:scale(.6)}
@@ -318,6 +324,14 @@ footer strong{color:#fff}
       <div class="glass felt">
         <div class="chipbar" role="group" aria-label="Zseton"><small>Zseton:</small><span id="picks" style="display:contents"></span>
           <button class="tool" id="undo" type="button">Visszavonás</button><button class="tool" id="clear" type="button">Mind le</button></div>
+        <div class="profbar" role="group" aria-label="Tét-profilok">
+          <button class="tool" id="rebet" type="button" title="Az előző köröd tétjei újra">↺ Ismétlés</button>
+          <select id="prof" aria-label="Tét-profil"></select>
+          <button class="tool" id="papply" type="button">Felrak</button>
+          <button class="tool" id="psave" type="button" title="A mostani tétjeid mentése profilként">Mentés</button>
+          <button class="tool" id="pdel" type="button" aria-label="A kiválasztott profil törlése" title="Profil törlése">✕</button>
+          <label class="auto" title="Minden új körben magától felrakja a kiválasztott profilt, amíg nyitva az oldal"><input type="checkbox" id="pauto"> minden körben</label>
+        </div>
         <div class="tbl" id="tbl"></div>
         <div class="chips" id="chips" aria-hidden="true"></div>
       </div>
@@ -480,9 +494,35 @@ function wireTable(t){
   document.querySelectorAll('.pick').forEach(b=>b.onclick=()=>{chip=+b.dataset.v;safeSet('chip',chip);markChip()});
   markChip();
   $('undo').onclick=()=>send({t:'undo'});
+  $('rebet').onclick=()=>send({t:'rebet'});
+  $('prof').onchange=()=>{safeSet('prof-sel',$('prof').value);if(safeGet('prof-auto'))safeSet('prof-auto',$('prof').value)};
+  $('papply').onclick=()=>{if($('prof').value)send({t:'profile-apply',name:$('prof').value})};
+  $('psave').onclick=()=>{const name=(prompt('Profil neve (pl. Szokásos, Piros + 17):',$('prof').value||'Szokásos')||'').trim();
+    if(name){send({t:'profile-save',name});safeSet('prof-sel',name);toast(`„${name}” profil elmentve a mostani tétjeiddel.`)}};
+  $('pdel').onclick=()=>{const n=$('prof').value;if(n&&confirm(`Törlöd a(z) „${n}” profilt?`)){send({t:'profile-delete',name:n});if(safeGet('prof-auto')===n)safeSet('prof-auto','')}};
+  $('pauto').onchange=()=>{safeSet('prof-auto',$('pauto').checked?$('prof').value:'');lastAutoRound=-1;
+    if($('pauto').checked)toast('Minden új körben felrakom ezt a profilt, amíg nyitva az oldal.');if(S)render()};
   $('clear').onclick=()=>send({t:'clear'});
   new ResizeObserver(()=>{if(S)drawChips()}).observe($('tbl'));
 })();
+// ---------- tét-profilok: mentés, felrakás, ismétlés, automatikus felrakás ----------
+let lastAutoRound=-1;
+const myProfiles=()=>(S&&nick&&S.profiles&&S.profiles[nick])||[];
+const profTotal=p=>p.bets.reduce((a,b)=>a+b.stake,0);
+function renderProfiles(open,myTotal){
+  const list=myProfiles(),sel=$('prof'),want=safeGet('prof-sel');
+  const opts=list.map(p=>`<option value="${esc(p.name)}">${esc(p.name)} · ${chipLabel(profTotal(p))}</option>`).join('');
+  if(sel.dataset.h!==opts){sel.innerHTML=opts||'<option value="">nincs profilod</option>';sel.dataset.h=opts}
+  if(list.some(p=>p.name===want))sel.value=want;
+  const has=!!list.length;
+  sel.disabled=!has||!nick;$('papply').disabled=!open||!has||!nick;$('pdel').disabled=!has||!nick;
+  $('psave').disabled=!nick||!myTotal||!open;
+  $('rebet').disabled=!open||!nick||!(S.last&&S.last[nick]);
+  $('rebet').title=S.last&&S.last[nick]?`Az előző köröd tétjei újra (${fmt(S.last[nick])})`:'Az előző körben nem volt téted';
+  const auto=safeGet('prof-auto');$('pauto').checked=!!auto&&list.some(p=>p.name===auto);$('pauto').disabled=!has||!nick;
+  // automatikus felrakás: új körben, ha még nincs tétem
+  if(open&&nick&&$('pauto').checked&&S.round!==lastAutoRound&&!myTotal){lastAutoRound=S.round;send({t:'profile-apply',name:auto})}
+}
 function markChip(){document.querySelectorAll('.pick').forEach(b=>b.setAttribute('aria-pressed',+b.dataset.v===chip))}
 const nums=k=>k.slice(3).split('-').map(Number);
 function wins(kind,n){
@@ -536,6 +576,7 @@ function render(){
     el.classList.toggle('win',S.phase==='result'&&S.result!=null&&wins(k,S.result));
   }
   $('undo').disabled=$('clear').disabled=!open||!myTotal;
+  renderProfiles(open,myTotal);
   drawChips();
   $('mybet').textContent=fmt(myTotal);
   canSpin=open&&!!nick&&myTotal>0;

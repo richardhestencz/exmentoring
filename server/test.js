@@ -150,6 +150,26 @@ test('kólakódok: feltöltés, duplikátum, felhasználva, visszavonás 10 perc
   co.prune(C, 5000 + 31 * 24 * 3600 * 1000);
   assert.strictEqual(C.codes.length, 0, 'a régi felhasznált kódok eltűnnek');
 });
+test('tét-profilok: mentés, felülírás, korlátok, törlés', () => {
+  const pf = require('./profiles');
+  const P = pf.empty();
+  const bets = [{ kind: 'red', stake: 1000 }, { kind: 'in:17', stake: 100 }, { kind: 'n:17', stake: 100 }];
+  assert.strictEqual(pf.saveProfile(P, 'Ricsi', 'Szokásos', bets), null);
+  assert.deepStrictEqual(pf.getProfile(P, 'Ricsi', 'Szokásos').bets[2], { kind: 'in:17', stake: 100 }, 'régi alak is jó');
+  assert.strictEqual(pf.total(pf.getProfile(P, 'Ricsi', 'Szokásos').bets), 1200);
+  assert.strictEqual(pf.saveProfile(P, 'Ricsi', 'Szokásos', [{ kind: 'black', stake: 500 }]), null, 'azonos névvel felülír');
+  assert.strictEqual(P.Ricsi.length, 1);
+  assert.strictEqual(pf.getProfile(P, 'Matyi', 'Szokásos'), null, 'a profil a becenévhez tartozik');
+  assert.match(pf.saveProfile(P, 'Ricsi', 'Üres', []), /téteket/);
+  assert.match(pf.saveProfile(P, 'Ricsi', 'Rossz', [{ kind: 'in:1-3', stake: 100 }]), /téteket/, 'érvénytelen tét nem menthető');
+  assert.match(pf.saveProfile(P, 'Ricsi', 'Rossz', [{ kind: 'red', stake: 123 }]), /téteket/, 'nem létező zseton');
+  assert.match(pf.saveProfile(P, 'Ricsi', 'Sok', Array(5).fill({ kind: 'red', stake: 5000 })), /20 000/);
+  assert.match(pf.saveProfile(P, 'Ricsi', '', bets), /nevet/);
+  for (let k = 2; k <= 6; k++) assert.strictEqual(pf.saveProfile(P, 'Ricsi', 'P' + k, bets), null);
+  assert.match(pf.saveProfile(P, 'Ricsi', 'P7', bets), /Legfeljebb 6/);
+  assert.strictEqual(pf.deleteProfile(P, 'Ricsi', 'P2'), null);
+  assert.ok(pf.deleteProfile(P, 'Ricsi', 'P2'));
+});
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;

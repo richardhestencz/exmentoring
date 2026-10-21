@@ -10,6 +10,7 @@ const physics = require('./physics');
 const gyros = require('./gyros');
 const presence = require('./presence');
 const cola = require('./cola');
+const profiles = require('./profiles');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -42,6 +43,8 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
 }
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
+S.profiles ||= profiles.empty();
+const LAST = {};   // becenév -> az előző köre tétjei („Ismétlés” gombhoz)
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -73,6 +76,18 @@ function addBet(nick, kind, amount) {
   if (S.pot < amount) return 'Nincs elég mosómedve a közös potban.';
   S.pot -= amount;
   R.bets.push({ nick, kind, stake: amount });
+  save();
+  return null;
+}
+// több tét egyszerre (profil vagy ismétlés): vagy mind felkerül, vagy egyik sem
+function addBets(nick, list) {
+  if (R.phase !== 'betting') return 'A tétek lezárultak, várj a következő körre.';
+  if (!list || !list.length) return 'Nincs mit felrakni.';
+  const mine = R.bets.filter((b) => b.nick === nick), sum = profiles.total(list);
+  if (mine.length + list.length > MAX_BETS) return 'Ennyi zseton már nem fér fel ebben a körben.';
+  if (profiles.total(mine) + sum > MAX_PER_ROUND) return `Egy körben legfeljebb ${fmt(MAX_PER_ROUND)} lehet a tétjeid összege.`;
+  if (S.pot < sum) return 'Nincs elég mosómedve a közös potban.';
+  for (const b of list) { S.pot -= b.stake; R.bets.push({ nick, kind: b.kind, stake: b.stake }); }
   save();
   return null;
 }
@@ -144,6 +159,8 @@ function startSpin() {
 function startResult() {
   const n = R.result;
   const net = {};
+  for (const k of Object.keys(LAST)) delete LAST[k];
+  for (const b of R.bets) if (b.nick !== DOOR) (LAST[b.nick] ||= []).push({ kind: b.kind, stake: b.stake });
   for (const b of R.bets) {
     const back = game.payout(b.kind, n, b.stake);
     S.pot += back;
@@ -185,6 +202,7 @@ function snapshot(withTrack) {
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
+    profiles: S.profiles, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -243,7 +261,19 @@ wss.on('connection', (ws) => {
       R.spinner = ws.nick;
       return startSpin();
     }
-    const e = m.t === 'bet' ? addBet(ws.nick, m.kind, m.amount) : m.t === 'undo' ? undoBet(ws.nick, false) : m.t === 'clear' ? undoBet(ws.nick, true) : null;
+    if (m.t === 'profile-save') {
+      const e = profiles.saveProfile(S.profiles, ws.nick, m.name, R.bets.filter((b) => b.nick === ws.nick));
+      if (e) return err(e);
+      save(); broadcast(); return;
+    }
+    if (m.t === 'profile-delete') {
+      const e = profiles.deleteProfile(S.profiles, ws.nick, String(m.name || ''));
+      if (e) return err(e);
+      save(); broadcast(); return;
+    }
+    const e = m.t === 'bet' ? addBet(ws.nick, m.kind, m.amount) : m.t === 'undo' ? undoBet(ws.nick, false) : m.t === 'clear' ? undoBet(ws.nick, true)
+      : m.t === 'profile-apply' ? (profiles.getProfile(S.profiles, ws.nick, String(m.name || '')) ? addBets(ws.nick, profiles.getProfile(S.profiles, ws.nick, String(m.name || '')).bets) : 'Nincs ilyen profil.')
+        : m.t === 'rebet' ? (LAST[ws.nick] ? addBets(ws.nick, LAST[ws.nick]) : 'Az előző körben nem volt téted.') : null;
     if (e) err(e); else broadcast();
   });
 });
