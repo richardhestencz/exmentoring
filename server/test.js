@@ -108,6 +108,27 @@ test('gyros: a teljes nevek nincsenek a repóban', () => {
   const tracked = execSync('git ls-files', { cwd: path.join(__dirname, '..') }).toString();
   assert.ok(!/gyros-seed/.test(tracked), 'a seed fájl nincs verziókezelve');
 });
+test('ki van bent: személyes link, be- és kijelentkezés, napi lejárat', () => {
+  const pr = require('./presence');
+  const P = pr.empty();
+  const { token } = pr.addPerson(P, 'Ricsi', 1);
+  assert.match(token, /^[0-9a-f]{32}$/);
+  assert.ok(!JSON.stringify(P).includes(token), 'a tokent nem tároljuk, csak a lenyomatát');
+  assert.ok(pr.addPerson(P, 'Ricsi').error, 'egy becenév csak egyszer');
+  assert.strictEqual(pr.byToken(P, token), 'Ricsi');
+  assert.strictEqual(pr.byToken(P, 'f'.repeat(32)), null, 'ismeretlen link');
+  assert.strictEqual(pr.byToken(P, '../x'), null, 'hibás formátum');
+  assert.strictEqual(pr.checkin(P, 'Ricsi', 100, '2026-10-21'), true, 'első érkezés');
+  assert.strictEqual(pr.checkin(P, 'Ricsi', 200, '2026-10-21'), false, 'ismételt jelzés nem új érkezés');
+  assert.deepStrictEqual(pr.view(P, '2026-10-21').here, [{ nick: 'Ricsi', since: 100 }]);
+  assert.strictEqual(pr.checkout(P, 'Ricsi'), true);
+  assert.strictEqual(pr.checkout(P, 'Ricsi'), false);
+  pr.checkin(P, 'Ricsi', 300, '2026-10-21');
+  assert.deepStrictEqual(pr.view(P, '2026-10-22').here, [], 'másnapra lejár');
+  assert.deepStrictEqual(pr.view(P, '2026-10-22').people, ['Ricsi']);
+  assert.strictEqual(pr.removePerson(P, 'Ricsi'), null);
+  assert.strictEqual(pr.byToken(P, token), null, 'törlés után a link nem él');
+});
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;

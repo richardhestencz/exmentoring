@@ -107,6 +107,27 @@ footer strong{color:#fff}
 :root[data-theme="dark"] .c.mine{background:#4a2516}
 :root[data-theme="dark"] .who button[aria-pressed="true"]{background:#3a2117}
 :root[data-theme="dark"] .people li{background:#1c151a}
+.livecount{display:flex;align-items:baseline;gap:10px;margin:14px 0 0;color:var(--ink)}
+.livecount b{font-size:clamp(2.2rem,6vw,3rem);font-weight:800;line-height:1}
+.livecount span{font-weight:600;color:var(--muted)}
+.people li.in{background:var(--peach);border:1px solid var(--apricot);color:var(--ink)}
+.people li.in .rc{opacity:1;box-shadow:0 0 0 3px #5fd39a}
+.people li .t{display:block;font-size:.78rem;font-weight:500;color:var(--muted);margin-top:2px}
+.people li b{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.steps2{margin:0 0 12px;padding-left:22px}.steps2 li{margin:6px 0}
+.tabs{display:flex;gap:6px;margin:0 0 12px}
+.tabs button{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font-weight:700;cursor:pointer}
+.tabs button[aria-selected="true"]{background:var(--grad);color:#fff;border-color:transparent}
+.tabs button:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+details.admin{border:1px solid var(--line);border-radius:16px;padding:14px 18px;background:var(--sand)}
+details.admin summary{cursor:pointer;font-weight:800;color:var(--ink)}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.row input{flex:1 1 200px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink)}
+.row button,.mini{padding:10px 16px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;cursor:pointer}
+.mini{padding:6px 10px;font-size:.82rem;background:transparent;color:var(--ink);border:1px solid var(--line)}
+.out{background:var(--dark);color:#f3ece7;border-radius:12px;padding:12px 14px;font:500 .84rem/1.5 var(--mono);white-space:pre-wrap;word-break:break-all;margin:8px 0}
+.plist{list-style:none;margin:8px 0 0;padding:0}.plist li{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+:root[data-theme="dark"] .row input{background:#1d1519}
 </style>
 </head>
 <body>
@@ -131,36 +152,75 @@ footer strong{color:#fff}
     <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
     <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html" aria-current="page">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
+  <div class="conn" id="conn" style="display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px">Nincs kapcsolat, újracsatlakozás…</div>
 </header>
 
 <main>
 <div class="hero"><div class="wrap">
-  <span class="soon">Hamarosan</span>
   <h1>Ki van bent?</h1>
-  <p class="lead">Itt fogod látni, ki van éppen a Mentoring szobában. Az irodai MacBook a közeli telefonok Bluetooth (BLE) jelét figyeli, és minden telefonhoz egy nevet társítunk. Ez a funkció még készül.</p>
+  <p class="lead">A telefonod szól az oldalnak, amikor beérsz az irodába, és amikor elmész. Aki aznap először beér, +10 000 mosómedvét hoz a közös potba.</p>
+  <div class="livecount" aria-live="polite"><b id="cnt">0</b><span id="cntl">ember van bent</span></div>
 </div></div>
 
 <section><div class="wrap">
-  <h2>Így fog kinézni</h2>
-  <ul class="people" aria-label="Minta, még nincs adat">
-    <li><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Hamarosan</li>
-    <li><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Hamarosan</li>
-    <li><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Hamarosan</li>
-  </ul>
+  <h2>Most bent</h2>
+  <ul class="people" id="here" aria-label="Kik vannak bent"></ul>
+  <h2 style="margin-top:22px">Nincs bent</h2>
+  <ul class="people" id="away" aria-label="Kik nincsenek bent"></ul>
 </div></section>
 
 <section><div class="wrap">
-  <h2>A terv</h2>
-  <ol class="list">
-    <li><strong>Jelek gyűjtése:</strong> az irodai MacBook, ami az ajtót is figyeli, a környező telefonok BLE jelét és a jel erősségét (RSSI) is méri.</li>
-    <li><strong>Telefonok és nevek párosítása:</strong> egyszer mindenki megmutatja, melyik jel az övé, és a nevét hozzárendeljük.</li>
-    <li><strong>Bent vagy kint:</strong> az erős, közeli jel azt jelenti, hogy az illető bent van. Ha a jel egy ideig eltűnik, kint van.</li>
-    <li><strong>Jutalom a potba:</strong> aki aznap először beér, +10 000 mosómedvét hoz a közös potba. A szerver ezt már most is tudja fogadni.</li>
-  </ol>
+  <h2>Biztonság: a céges hálózathoz nem nyúlunk</h2>
   <div class="card note">
-    <h3>Amit még meg kell oldani</h3>
-    <p>Az iPhone-ok és az újabb Androidok a Bluetooth-címüket rendszeresen cserélik, így egy telefont nem mindig lehet biztosan felismerni a jele alapján. Ezért az első verzió előtt kipróbáljuk, mennyire megbízható ez a gyakorlatban.</p>
+    <h3>Mi történik és mi nem</h3>
+    <ul class="list">
+      <li><strong>Nem</strong> pásztázzuk és nem figyeljük a céges Wi-Fit, nem kerül rá új eszköz, és nem nyitunk rajta portot.</li>
+      <li>A telefonod maga dönti el, hogy beértél: a saját automatizálása látja, hogy az irodai Wi-Fihez csatlakozott, vagy hogy megérkeztél az irodához. A Wi-Fi nevét csak a telefon nézi meg.</li>
+      <li>Ilyenkor a telefon megnyit egy személyes linket, egy szokásos HTTPS-kéréssel, mintha egy weboldalt nyitna meg. Mobilneten is működik.</li>
+      <li>Csak a beceneved és az érkezésed ideje kerül az oldalra. A személyes linkből a szerver csak egy lenyomatot tárol, és a gazda bármikor törölheti.</li>
+      <li>Önkéntes: akinek nincs beállítva, az egyszerűen nem jelenik meg.</li>
+    </ul>
   </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Beállítás a telefonodon (egyszer, 2 perc)</h2>
+  <p>Kell hozzá a <strong>személyes linked</strong>, amit az oldal gazdájától kapsz. Két linked van: egy a beérkezéshez (<code>/api/checkin/…</code>) és egy a távozáshoz (<code>/api/checkout/…</code>).</p>
+  <div class="tabs" role="tablist">
+    <button type="button" role="tab" id="t-ios" aria-selected="true" aria-controls="p-ios">iPhone</button>
+    <button type="button" role="tab" id="t-and" aria-selected="false" aria-controls="p-and">Android</button>
+  </div>
+  <div id="p-ios" role="tabpanel" aria-labelledby="t-ios">
+    <ol class="steps2">
+      <li>Nyisd meg a <strong>Parancsok</strong> (Shortcuts) appot, alul <strong>Automatizálás</strong> (Automation), majd <strong>+</strong> / <strong>Új automatizálás</strong>.</li>
+      <li>Válaszd a <strong>Wi-Fi</strong>-t, a hálózatnál az irodai Wi-Fit, és azt, hogy <strong>csatlakozik</strong> (Joins). Állítsd <strong>Azonnali futtatásra</strong> (Run Immediately), majd Tovább.</li>
+      <li><strong>Új üres automatizálás</strong>, majd <strong>Művelet hozzáadása</strong>: keresd meg az <strong>URL tartalmának lekérése</strong> (Get Contents of URL) műveletet.</li>
+      <li>Az URL helyére másold be a <strong>beérkező linkedet</strong>. Kész.</li>
+      <li>Ugyanígy egy második automatizálás: Wi-Fi, irodai hálózat, <strong>lecsatlakozik</strong> (Leaves), azonnal, a <strong>távozó linkeddel</strong>.</li>
+    </ol>
+    <p class="muted">Ha a telefonod nincs az irodai Wi-Fin (vagy nem is szabad rajta lennie), Wi-Fi helyett válaszd az <strong>Érkezés</strong> (Arrive) és <strong>Távozás</strong> (Leave) helyzetet az iroda címével. Így a kérés mobilneten megy, a céges hálózat egyáltalán nem érintett.</p>
+  </div>
+  <div id="p-and" role="tabpanel" aria-labelledby="t-and" hidden>
+    <ol class="steps2">
+      <li>Telepítsd a <strong>MacroDroid</strong> appot a Play Áruházból (ingyenes).</li>
+      <li><strong>Makró hozzáadása</strong>. Indító (Trigger): <strong>Wi-Fi állapotváltozás</strong>, <strong>Csatlakozva a hálózathoz</strong>, és válaszd az irodai Wi-Fit.</li>
+      <li>Művelet (Action): <strong>HTTP-kérés</strong> (HTTP Request), GET, az URL a <strong>beérkező linked</strong>. Mentés.</li>
+      <li>Második makró: <strong>Lecsatlakozva a hálózatról</strong>, ugyanígy a <strong>távozó linkeddel</strong>.</li>
+    </ol>
+    <p class="muted">Wi-Fi helyett itt is választhatsz helyalapú indítót (Location / Geofence) az iroda körül.</p>
+  </div>
+  <p>Kipróbálni úgy tudod, hogy megnyitod a beérkező linkedet a böngészőben: ezen az oldalon azonnal megjelensz a „Most bent” részben.</p>
+</div></section>
+
+<section><div class="wrap">
+  <details class="admin" id="admin">
+    <summary>Gazdának: személyes link kiadása</summary>
+    <p class="muted">Ehhez a mester token kell (a Mac minin: <code>grep INGEST_TOKEN ~/Exmentoring/.env</code>). Ez a böngésző megjegyzi, de csak itt, ezen a gépen.</p>
+    <div class="row"><input id="mtok" type="password" autocomplete="off" placeholder="Mester token" aria-label="Mester token"></div>
+    <form class="row" id="newp"><input id="pnick" maxlength="16" placeholder="Becenév, pl. Ricsi" autocomplete="off" aria-label="Becenév"><button type="submit">Link kiadása</button></form>
+    <div id="newout"></div>
+    <ul class="plist" id="plist"></ul>
+  </details>
 </div></section>
 </main>
 
@@ -168,5 +228,49 @@ footer strong{color:#fff}
   <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a> · <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">GitHub</a></p>
 </div></footer>
 
+<script>
+const $=id=>document.getElementById(id);
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
+const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+const hm=t=>new Date(t).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});
+const av=()=>`<img class="rc" src="/img/raccoon-${window.isDark&&isDark()?'night-':''}64.png" alt="">`;
+let P={people:[],here:[]},ws,retry=0,seenBoot=null;
+function connect(){
+  ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+  ws.onopen=()=>{retry=0;$('conn').style.display='none'};
+  ws.onclose=()=>{$('conn').style.display='block';setTimeout(connect,Math.min(8000,1000*++retry))};
+  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;if(m.presence){P=m.presence;render()}}};
+}
+function render(){
+  const inSet=new Set(P.here.map(h=>h.nick));
+  $('cnt').textContent=P.here.length;$('cntl').textContent=P.here.length===1?'ember van bent':'ember van bent';
+  $('here').innerHTML=P.here.map(h=>`<li class="in">${av()}<b>${esc(h.nick)}</b><span class="t">${hm(h.since)} óta</span></li>`).join('')||'<li>Most senki.</li>';
+  const away=P.people.filter(n=>!inSet.has(n));
+  $('away').innerHTML=away.map(n=>`<li>${av()}<b>${esc(n)}</b></li>`).join('')||(P.people.length?'<li>Mindenki bent van.</li>':'<li>Még senkinek nincs beállítva.</li>');
+  $('plist').innerHTML=P.people.map(n=>`<li><span>${esc(n)}${inSet.has(n)?' · bent':''}</span><button type="button" class="mini" data-del="${esc(n)}">Törlés</button></li>`).join('');
+}
+addEventListener('themechange',render);
+// fülek
+const tabs=[['t-ios','p-ios'],['t-and','p-and']];
+tabs.forEach(([t,p])=>$(t).onclick=()=>tabs.forEach(([t2,p2])=>{$(t2).setAttribute('aria-selected',t2===t);$(p2).hidden=p2!==p}));
+if(/android/i.test(navigator.userAgent))$('t-and').click();
+// gazda
+$('mtok').value=safeGet('exm-master');
+$('mtok').onchange=()=>safeSet('exm-master',$('mtok').value.trim());
+const api=async(method,url,body)=>{const r=await fetch(url,{method,headers:{'Authorization':'Bearer '+$('mtok').value.trim(),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j};
+$('newp').onsubmit=async e=>{e.preventDefault();const nick=$('pnick').value.trim();if(!nick)return;
+  try{const j=await api('POST','/api/presence/people',{nick});safeSet('exm-master',$('mtok').value.trim());
+    const ci=`${location.origin}/api/checkin/${j.token}`,co=`${location.origin}/api/checkout/${j.token}`;
+    const msg=`Szia ${j.nick}! Itt a személyes linked a Mentoring szoba „Ki van bent?” oldalához. Ne add tovább.\nBeérkezés: ${ci}\nTávozás: ${co}\nBeállítás (2 perc): ${location.origin}/bent.html`;
+    $('newout').innerHTML=`<p><strong>${esc(j.nick)}</strong> linkje (csak most látszik, mentsd el vagy küldd el neki):</p><div class="out" id="msg">${esc(msg)}</div><button type="button" class="mini" id="cp">Üzenet másolása</button>`;
+    $('cp').onclick=async()=>{try{await navigator.clipboard.writeText(msg);$('cp').textContent='Kimásolva'}catch{}};
+    $('pnick').value='';
+  }catch(err){$('newout').innerHTML=`<p style="color:#df312d">${esc(err.message)}</p>`}};
+$('plist').onclick=async e=>{const b=e.target.closest('[data-del]');if(!b)return;const n=b.dataset.del;
+  if(!confirm(`Törlöd ${n} linkjét? A telefonja ezután nem tud bejelentkezni.`))return;
+  try{await api('DELETE','/api/presence/people/'+encodeURIComponent(n))}catch(err){alert(err.message)}};
+connect();
+</script>
 </body>
 </html>

@@ -8,6 +8,7 @@ const { WebSocketServer } = require('ws');
 const game = require('./game');
 const physics = require('./physics');
 const gyros = require('./gyros');
+const presence = require('./presence');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -38,6 +39,7 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
     for (const c of S.gyros.contributors) { const n = names.find((x) => x.alias === c.alias); if (n) c.name = n.name; }
   }
 }
+S.presence ||= presence.empty();
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -179,6 +181,7 @@ function snapshot(withTrack) {
     bets: R.bets, history: S.history, board, feed: feed.slice(0, 15),
     door: { opens: S.doorOpens, net: S.stats[DOOR]?.net || 0 },
     gyros: S.gyros,
+    presence: presence.view(S.presence, today()),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -263,16 +266,56 @@ app.post('/api/door', ingest, (req, res) => {
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' });
+// aznapi első érkezés: +10 000 a közös potba (fejenként naponta egyszer)
+function credit(n) {
+  if (S.credited.date !== today()) S.credited = { date: today(), names: [] };
+  S.bent[n] = Date.now();
+  if (S.credited.names.includes(n)) return false;
+  S.credited.names.push(n); S.pot += DAILY_CREDIT;
+  return true;
+}
 app.post('/api/presence', ingest, (req, res) => {
   const names = (Array.isArray(req.body?.present) ? req.body.present : []).map(cleanNick).filter(Boolean).slice(0, 50);
-  if (S.credited.date !== today()) S.credited = { date: today(), names: [] };
   const first = [];
-  for (const n of names) {
-    S.bent[n] = Date.now();
-    if (!S.credited.names.includes(n)) { S.credited.names.push(n); S.pot += DAILY_CREDIT; first.push(n); say(`${n} beért, +${fmt(DAILY_CREDIT)} a potba.`); }
-  }
+  for (const n of names) if (credit(n)) { first.push(n); say(`${n} beért, +${fmt(DAILY_CREDIT)} a potba.`); }
   save(); broadcast(); res.json({ ok: true, credited: first });
 });
+
+// ---- Ki van bent: a telefon személyes linkje (a céges hálózatot nem figyeljük, a telefon maga szól) ----
+// A gazda (a mester tokennel) ad ki személyes linket egy becenévhez; a tokenből csak a lenyomatot tároljuk.
+app.post('/api/presence/people', ingest, (req, res) => {
+  const nick = cleanNick(req.body?.nick);
+  const r = presence.addPerson(S.presence, nick);
+  if (r.error) return res.status(400).json({ error: r.error });
+  save(); broadcast(); res.json({ ok: true, nick, token: r.token });
+});
+app.delete('/api/presence/people/:nick', ingest, (req, res) => {
+  const e = presence.removePerson(S.presence, cleanNick(req.params.nick));
+  if (e) return res.status(404).json({ error: e });
+  save(); broadcast(); res.json({ ok: true });
+});
+const hitsP = new Map();
+setInterval(() => hitsP.clear(), 60000);
+function phone(req, res, next) {
+  const n = (hitsP.get(req.ip) || 0) + 1; hitsP.set(req.ip, n);
+  if (n > 60) return res.status(429).json({ error: 'túl sok kérés' });
+  const nick = presence.byToken(S.presence, req.params.token);
+  if (!nick) return res.status(404).json({ error: 'ismeretlen link' });
+  req.nick = nick; next();
+}
+const checkinH = (req, res) => {
+  const n = req.nick, fresh = presence.checkin(S.presence, n, Date.now(), today());
+  if (fresh) say(credit(n) ? `📱 ${n} beért, +${fmt(DAILY_CREDIT)} a potba.` : `📱 ${n} visszaért.`);
+  save(); broadcast(); res.json({ ok: true, nick: n, here: true });
+};
+const checkoutH = (req, res) => {
+  const n = req.nick;
+  if (presence.checkout(S.presence, n)) say(`📱 ${n} elment.`);
+  save(); broadcast(); res.json({ ok: true, nick: n, here: false });
+};
+// GET is, mert egyes telefonos automatizálások alapból azt küldik
+app.post('/api/checkin/:token', phone, checkinH); app.get('/api/checkin/:token', phone, checkinH);
+app.post('/api/checkout/:token', phone, checkoutH); app.get('/api/checkout/:token', phone, checkoutH);
 
 // ---- frissítés a GitHubról (a Mac mini napi frissítése mellett bárki kérheti az oldalról) ----
 const UPDATE_SCRIPT = path.join(__dirname, '..', 'mac-mini', 'update.sh');
