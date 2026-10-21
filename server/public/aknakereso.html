@@ -49,11 +49,15 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
 .game-card{overflow:hidden}
 .game-head{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:16px 18px;border-bottom:1px solid var(--line);background:var(--peach)}
 .modes{display:flex;gap:6px;flex-wrap:wrap}
+.game-actions{display:flex;gap:6px;flex-wrap:wrap}
 .mode,.new-game,.flag-mode{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 11px;font-weight:700;cursor:pointer}
 .mode[aria-pressed="true"]{border-color:var(--orange);background:var(--orange);color:#fff}
 .mode:focus-visible,.new-game:focus-visible,.flag-mode:focus-visible,.cell:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
 .new-game,.flag-mode{background:var(--grad);border-color:transparent;color:#fff;white-space:nowrap}
 .flag-mode{display:none}
+.fullscreen-btn{border:1px solid var(--line);border-radius:10px;background:#fff;padding:8px 11px;color:var(--ink);font-weight:700;cursor:pointer;white-space:nowrap}
+.fullscreen-btn:hover{border-color:var(--orange);color:var(--orange)}
+.fullscreen-btn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
 .stats{display:flex;gap:16px;align-items:center;padding:13px 18px 0;color:var(--muted);font-weight:600}
 .stats b{color:var(--ink);font-variant-numeric:tabular-nums}
 .board-wrap{padding:16px;overflow:auto}
@@ -61,6 +65,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
 .cell{min-width:0;min-height:0;border:1px solid #c7cdd1;border-radius:6px;background:linear-gradient(145deg,#fff,#e8ecee);color:var(--ink);font-weight:800;font-size:clamp(.78rem,2.2vw,1.15rem);line-height:1;cursor:pointer;display:grid;place-items:center;padding:0;box-shadow:inset 0 1px 0 rgba(255,255,255,.7)}
 .cell:hover:not(:disabled){border-color:var(--orange);filter:brightness(1.04)}
 .cell.revealed{background:var(--sand);border-color:var(--line);cursor:default;box-shadow:none}
+.cell.revealed:hover{border-color:var(--line);filter:none}
 .cell.flagged{color:var(--red)}
 .cell.mine.revealed{background:#ffd9d5;border-color:var(--red)}
 .cell.zero{color:transparent}
@@ -118,10 +123,16 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
   body.expert-mode #board{width:min(100%,1080px);max-height:100%;}
   body.expert-mode .rankings{height:100%;overflow:auto}
 }
+.game-layout:fullscreen{width:100vw;height:100svh;max-width:none;margin:0;padding:16px;background:var(--sand);overflow:hidden}
+.game-layout:fullscreen .game-card{height:100%;display:flex;flex-direction:column}
+.game-layout:fullscreen .board-wrap{display:grid;place-items:center;flex:1;min-height:0;overflow:hidden}
+.game-layout:fullscreen #board{height:min(100%,72svh);width:auto;max-width:100%;}
+.game-layout:fullscreen .rankings{height:100%;overflow:auto}
 :root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
 :root[data-theme="dark"] body{background:#110d12}
 :root[data-theme="dark"] .game-card,:root[data-theme="dark"] .rankings,:root[data-theme="dark"] .player,:root[data-theme="dark"] .modal-card{background:#1d1519}
 :root[data-theme="dark"] .mode{background:#2a1c23;color:var(--ink)}
+:root[data-theme="dark"] .fullscreen-btn{background:#2a1c23;color:var(--ink);border-color:var(--line)}
 :root[data-theme="dark"] .cell{background:linear-gradient(145deg,#3b3034,#281e23);border-color:#55464a;color:var(--ink)}
 :root[data-theme="dark"] .cell.revealed{background:#2a2024;border-color:var(--line)}
 :root[data-theme="dark"] .cell.mine.revealed{background:#522522}
@@ -144,7 +155,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
     <div class="player">Játékos: <span id="playerName">–</span> <button type="button" id="changeNick">becenév módosítása</button></div>
   </div></section>
 
-  <section class="game-section"><div class="wrap game-layout">
+  <section class="game-section"><div class="wrap game-layout" id="gameArea">
     <div class="game-card">
       <div class="game-head">
         <div class="modes" role="group" aria-label="Nehézségi szint">
@@ -152,7 +163,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
           <button class="mode" type="button" data-level="intermediate" aria-pressed="false">Közepes</button>
           <button class="mode" type="button" data-level="expert" aria-pressed="false">Haladó</button>
         </div>
-        <button class="new-game" type="button" id="newGame">Új játék</button>
+        <div class="game-actions"><button class="fullscreen-btn" type="button" id="fullscreenBtn">⛶ Teljes képernyő</button><button class="new-game" type="button" id="newGame">Új játék</button></div>
       </div>
       <div class="stats" aria-live="polite">
         <span>Aknák: <b id="mineCount">30</b></span>
@@ -175,7 +186,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
     </aside>
   </div></section>
 
-  <section class="rules"><div class="wrap"><div class="card"><h2>Játékszabály</h2><p>Az első kattintás biztonságos. Bal kattintással mezőt nyitsz ki, jobb kattintással zászlót teszel le; telefonon a „Zászló mód” gomb használható. Ha minden aknamentes mezőt kinyitottál, az időeredményed automatikusan felkerül a globális listára.</p></div></div></section>
+  <section class="rules"><div class="wrap"><div class="card"><h2>Játékszabály</h2><p>Az első kattintás biztonságos. Bal kattintással mezőt nyitsz ki, jobb kattintással zászlót teszel le; telefonon a „Zászló mód” gomb használható. Duplán kattintva egy felnyitott számon felnyílnak a környező mezők, ha a körülötte lévő zászlók száma megegyezik a számmal. Ha minden aknamentes mezőt kinyitottál, az időeredményed automatikusan felkerül a globális listára.</p></div></div></section>
 </main>
 
 <div class="modal" id="nickModal" hidden>
@@ -249,7 +260,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
       else { el.classList.add('zero'); el.textContent = ''; }
     } else if (cell.flagged) { el.classList.add('flagged'); el.textContent = '🚩'; }
     else { el.textContent = ''; }
-    el.disabled = cell.revealed;
+    el.disabled = false;
     el.setAttribute('aria-label', cell.revealed ? (cell.mine ? 'Akna' : `${cell.count} szomszédos akna`) : (cell.flagged ? 'Zászlózott mező' : 'Le nem fedett mező'));
   }
 
@@ -294,6 +305,15 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
     cell.flagged = !cell.flagged; renderBoard();
   }
 
+  function chord(index) {
+    const cell = cells[index];
+    if (ended || !cell.revealed || cell.mine || !cell.count) return;
+    const nearby = neighbours(index);
+    const flagged = nearby.filter((n) => cells[n].flagged).length;
+    if (flagged !== cell.count) return;
+    nearby.filter((n) => !cells[n].revealed && !cells[n].flagged).forEach(reveal);
+  }
+
   function newGame() {
     cfg = LEVELS[level]; started = false; ended = false; won = false; elapsed = 0; scoreSent = false; pendingScore = null; stopTimer();
     document.body.classList.toggle('expert-mode', level === 'expert');
@@ -303,6 +323,7 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
     cells.forEach((cell, index) => {
       const el = document.createElement('button'); el.type = 'button'; el.className = 'cell'; el.setAttribute('role', 'gridcell'); el.setAttribute('aria-label', 'Le nem fedett mező');
       el.addEventListener('click', () => flagMode ? toggleFlag(index) : reveal(index));
+      el.addEventListener('dblclick', () => chord(index));
       el.addEventListener('contextmenu', (event) => { event.preventDefault(); toggleFlag(index); });
       cell.el = el; board.append(el);
     });
@@ -332,6 +353,20 @@ h1{margin:0 0 8px;color:var(--ink);font-size:clamp(1.8rem,4vw,2.8rem);font-weigh
 
   document.querySelectorAll('.mode').forEach((button) => button.addEventListener('click', () => { if (level !== button.dataset.level) { level = button.dataset.level; newGame(); } }));
   $('newGame').addEventListener('click', newGame);
+  const fullscreenBtn = $('fullscreenBtn');
+  function updateFullscreenButton() {
+    const active = document.fullscreenElement === $('gameArea');
+    fullscreenBtn.textContent = active ? '⛶ Kilépés' : '⛶ Teljes képernyő';
+    fullscreenBtn.setAttribute('aria-pressed', String(active));
+  }
+  fullscreenBtn.addEventListener('click', async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await $('gameArea').requestFullscreen();
+    } catch { announce('A böngésző nem engedélyezte a teljes képernyőt.', 'lose'); }
+  });
+  document.addEventListener('fullscreenchange', updateFullscreenButton);
+  updateFullscreenButton();
   $('flagMode').addEventListener('click', () => { flagMode = !flagMode; $('flagMode').setAttribute('aria-pressed', String(flagMode)); });
   $('changeNick').addEventListener('click', showNickModal);
   $('nickForm').addEventListener('submit', (event) => { event.preventDefault(); finishNick($('nickInput').value.trim()); });
