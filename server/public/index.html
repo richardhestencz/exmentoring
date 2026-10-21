@@ -73,9 +73,21 @@ ul{list-style:none;margin:0;padding:0}
 .feed li:first-child{color:#fff}
 .tr{position:absolute;z-index:5;right:16px;top:16px;width:min(270px,28vw);padding:12px 14px}
 .tr h2{margin:0 0 6px;font-size:.92rem;font-weight:700;color:#fff}
-.tr li{display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:.88rem;border-top:1px solid rgba(255,255,255,.1)}
-.tr li:first-child{border-top:0}
-.tr li span:first-child{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr ul#board{max-height:min(46vh,420px);overflow-y:auto;scrollbar-width:thin;margin:0 -6px;padding:0 6px}
+.tr li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:6px;padding:2px 6px;margin:1px -6px;font-size:.8rem;line-height:1.35;border-radius:7px}
+.tr li .rk{text-align:center;font-size:.72rem;color:#cdbfb8;font-variant-numeric:tabular-nums}
+.tr li .nk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.tr li span:last-child{font-variant-numeric:tabular-nums}
+/* dobogó: arany, ezüst, bronz; az utolsó a bohóc */
+.tr li.p1{background:linear-gradient(90deg,rgba(245,197,66,.42),rgba(245,197,66,.08));box-shadow:inset 0 0 0 1px rgba(255,214,102,.55)}
+.tr li.p1 .nk{font-weight:800;background:linear-gradient(180deg,#fff3b0,#f5c542 55%,#c9921a);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tr li.p2{background:linear-gradient(90deg,rgba(214,222,232,.34),rgba(214,222,232,.06));box-shadow:inset 0 0 0 1px rgba(220,228,238,.45)}
+.tr li.p2 .nk{font-weight:700;background:linear-gradient(180deg,#ffffff,#c9d1db 55%,#8e98a5);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tr li.p3{background:linear-gradient(90deg,rgba(205,127,50,.36),rgba(205,127,50,.06));box-shadow:inset 0 0 0 1px rgba(222,150,80,.45)}
+.tr li.p3 .nk{font-weight:700;background:linear-gradient(180deg,#ffd2a1,#cd7f32 55%,#8a4f1c);-webkit-background-clip:text;background-clip:text;color:transparent}
+.tr li.clown{background:rgba(255,90,90,.12);box-shadow:inset 0 0 0 1px rgba(255,120,120,.3)}
+.tr li.clown .nk{font-style:italic}
+.tr li.p1 .rk,.tr li.p2 .rk,.tr li.p3 .rk,.tr li.clown .rk{font-size:.95rem}
 .pos{color:var(--ok);font-weight:700}.neg{color:var(--bad);font-weight:700}
 .door{margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.22);display:grid;grid-template-columns:auto 1fr;gap:2px 10px;align-items:center;font-size:.85rem}
 .door svg{grid-row:span 2;width:26px;height:33px}
@@ -183,7 +195,7 @@ ul{list-style:none;margin:0;padding:0}
   .logo{top:8px}.logo small{display:none}
   .tl{left:8px;top:58px;width:calc(52% - 12px)}
   .tr{right:8px;top:58px;width:calc(48% - 8px);padding:8px 10px}
-  .tr li{font-size:.76rem;padding:2px 0}.tr li:nth-child(n+3){display:none}.tr h2{font-size:.8rem;margin-bottom:2px}
+  .tr li{font-size:.7rem;padding:1px 5px;grid-template-columns:16px minmax(0,1fr) auto;gap:4px}.tr ul#board{max-height:118px}.tr h2{font-size:.8rem;margin-bottom:2px}
   .feed{font-size:.72rem;padding:5px 10px}.feed li:nth-child(n+2){display:none}
   .me{padding:6px 10px;font-size:.88rem}.me svg{width:22px;height:20px}.me .rc{width:24px;height:24px}
   .door{font-size:.72rem;margin-top:5px;padding-top:5px}.door b{font-size:.9rem}.door svg{width:16px;height:21px}
@@ -544,7 +556,13 @@ function render(){
   $('hist').innerHTML=S.history.slice(0,6).map(n=>`<span class="num c-${colorOf(n)}">${n}</span>`).join('')||'<span style="font-size:.8rem;opacity:.8">Még nincs szám</span>';
   $('dopens').textContent=fmt(S.door.opens);
   const dn=$('dnet');dn.textContent=(S.door.net>0?'+':'')+fmt(S.door.net);dn.className=S.door.net>0?'pos':S.door.net<0?'neg':'';
-  $('board').innerHTML=S.board.length?S.board.slice(0,6).map(b=>`<li><span>${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`).join(''):'<li><span>Még nincs lejátszott kör.</span></li>';
+  // mindenki látszik: az első három dobogós (arany, ezüst, bronz), az utolsó a bohóc (ha legalább négyen vannak)
+  const nb=S.board.length;
+  $('board').innerHTML=nb?S.board.map((b,i)=>{
+    const cls=i===0?'p1':i===1?'p2':i===2?'p3':(i===nb-1&&nb>=4?'clown':'');
+    const rk={p1:'🥇',p2:'🥈',p3:'🥉',clown:'🤡'}[cls]||(i+1);
+    return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk">${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
+  }).join(''):'<li><span></span><span class="nk">Még nincs lejátszott kör.</span></li>';
   $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }
 setInterval(()=>{

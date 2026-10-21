@@ -170,7 +170,7 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
 
 function snapshot(withTrack) {
-  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net })).sort((a, b) => b.net - a.net).slice(0, 8);
+  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net })).sort((a, b) => b.net - a.net).slice(0, 60);
   const snap = {
     t: 'state', boot: BOOT_ID, now: Date.now(), pot: S.pot, round: R.id, phase: R.phase, endAt: R.endAt,
     spinStart: R.spinStart, spinMs: R.spinMs, result: R.phase === 'result' ? R.result : null,
