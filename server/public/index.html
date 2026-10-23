@@ -46,9 +46,101 @@ ul{list-style:none;margin:0;padding:0}
 /* a generált jelenet: méretét és helyét a JS állítja, hogy a kőkör pont a kerék alá essen */
 .land{position:absolute;left:0;top:0;max-width:none;z-index:1;transform-origin:0 0;will-change:transform,filter;user-select:none;pointer-events:none;
   -webkit-mask-image:linear-gradient(180deg,#000 88%,transparent);mask-image:linear-gradient(180deg,#000 88%,transparent)}
+.crowd{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none}
+.crowd .rcw{position:absolute}
+.crowd canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+.crowd .rcn{position:absolute;transform:translate(-50%,-100%);z-index:2;white-space:nowrap;font-weight:700;color:#fff;background:rgba(10,15,22,.55);
+  border-radius:999px;padding:.1em .55em;line-height:1.3;text-shadow:0 1px 2px rgba(0,0,0,.5)}
+.stage{perspective:1100px}
+.world{position:absolute;inset:0;transform-origin:50% 50%;transition:transform 1.25s cubic-bezier(.55,0,.25,1);will-change:transform}
+.torl{position:absolute;z-index:8;left:16px;top:16px;padding:10px 16px;font:inherit;font-weight:800;font-size:.95rem;cursor:pointer;color:#fff;
+  opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .3s,transform .3s}
+.stage.view-bj .torl{opacity:1;pointer-events:auto;transform:none;transition:opacity .4s .5s,transform .4s .5s}
+.torl:hover{background:rgba(10,15,22,.7)}
+.torl:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* a blackjack-nézet: saját kép (az asztalnál ülsz, szemben az osztó); a helyek a kép képpontjaiban, ugyanabban a tárolóban, mint a kép */
+.bjscene{position:absolute;inset:0;z-index:5;overflow:hidden;opacity:0;visibility:hidden;pointer-events:none;scale:1.06;
+  background:radial-gradient(80% 70% at 50% 45%,#1f5a3c,#0f2b1f 70%,#08140f);transition:opacity .6s .25s,visibility 0s .85s}
+.stage.view-bj .bjscene{opacity:1;visibility:visible;pointer-events:auto;scale:1;transition:opacity .6s .25s,visibility 0s,scale .9s .2s cubic-bezier(.2,.8,.2,1)}
+.bjin{position:absolute;left:0;top:0;transform-origin:0 0}
+.bjin img{position:absolute;inset:0;width:100%;height:100%;display:block;user-select:none}
+.bjin img[hidden]{display:none}
+/* a jelölők a kép egy pontjához kötve; a méretük a képernyőhöz igazodik (a tároló nagyítását a --k visszaosztja) */
+.bjpt{position:absolute;transform:translate(-50%,-50%) scale(var(--k,1));transform-origin:50% 50%;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bjpt.off{display:none}
+.bjpt{width:max-content}.bjpt .pc{flex:none}
+.bjpt.up{transform:translate(-50%,-100%) scale(var(--k,1));transform-origin:50% 100%}      /* a lapok a pont fölött (a kör közepén áll az aljuk) */
+.bjpt.down{transform:translate(-50%,0) scale(var(--k,1));transform-origin:50% 0;margin-top:26px}   /* a név a tétkör alatt */
+.bjpt.st.up{margin-top:6px}
+.bjsit{width:72px;height:72px;border-radius:50%;padding:0;cursor:pointer;color:#fff;font:inherit;font-weight:800;font-size:.86rem;line-height:1.1;
+  display:grid;place-items:center;align-content:center;gap:2px;border:2px solid rgba(255,255,255,.7)}
+.bjsit svg{width:26px;height:26px}
+.bjsit:hover:not(:disabled){background:rgba(17,132,91,.75)}
+.bjsit:focus-visible{outline:3px solid #ffd166;outline-offset:3px}
+.bjsit:disabled{opacity:.5;cursor:not-allowed}
+.bjpl{min-width:120px;max-width:180px;padding:6px 10px;text-align:center}
+.bjpl.turn{border-color:#ffd166;box-shadow:0 0 0 2px #ffd166 inset}
+.bjpl.me .nk{color:#ffd166}
+.bjpl .nk{display:block;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:.9rem}
+.bjpl small{display:block;font-size:.78rem;color:#f3e6de}
+.bjpt .hand{justify-content:center;min-height:0}
+.bjpt .val{min-width:0;text-shadow:0 1px 3px rgba(0,0,0,.6);color:#fff}
+.bjpt .res{font-weight:800;font-size:.86rem;text-shadow:0 1px 3px rgba(0,0,0,.7)}
+.bjdl .hand .pc{width:52px;height:74px;font-size:1.25rem}
+.bjdl .val{font-size:1.3rem}
+.stage.view-bj .tl,.stage.view-bj .tr{opacity:0;pointer-events:none;transition:opacity .4s}
+.tl,.tr{transition:opacity .4s}
+.stage.view-bj .dock,.stage.view-bj .banner,.stage.view-bj .logo{opacity:0;pointer-events:none;transition:opacity .5s}
+.dock{transition:opacity .5s}
+/* blackjack panel */
+.bjpanel{position:absolute;z-index:6;left:50%;bottom:16px;transform:translate(-50%,20px);width:min(860px,calc(100% - 32px));padding:14px 16px;opacity:0;transition:opacity .5s .45s,transform .5s .45s}
+.stage.view-bj .bjpanel{opacity:1;transform:translate(-50%,0)}
+.stage:not(.view-bj) .bjpanel{pointer-events:none;visibility:hidden;transition:opacity .3s,transform .3s,visibility 0s .3s}
+.bjhit{position:absolute;pointer-events:auto;cursor:pointer;background:transparent;border:0;border-radius:24px;padding:0}
+.bjhit:hover,.bjhit:focus-visible{background:radial-gradient(closest-side,rgba(255,209,102,.18),transparent);outline:none}
+.stage.view-bj .bjhit{pointer-events:none}
+/* a helyek a képen vannak: a panelben csak keskeny képernyőn listázzuk őket */
+.bjseats{display:none}
+@media (max-width:760px){.bjseats{display:grid}.bjpt.st .hand,.bjpt.st .val,.bjpl small{display:none}.bjpl{min-width:0;padding:3px 8px}.bjsit{width:64px;height:64px;font-size:.74rem}}
+.bjpanel .bjdealer{display:none}
+.bjsit.glass{border-radius:50%}
+.bjback{position:absolute;inset:-40px;width:calc(100% + 80px);height:calc(100% + 80px);object-fit:cover;filter:blur(18px) brightness(.55)}
+.bjchips{display:flex;gap:6px;flex-wrap:wrap}
+.bjchips button{width:auto;padding:10px 12px;border-radius:999px;border:2px solid rgba(255,255,255,.6);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.bjchips button:disabled,.bjctl button:disabled{opacity:.45;cursor:not-allowed}
+.bjwait{color:#f3e6de;font-size:.92rem}
+.bjhead{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:baseline}
+.bjhead b{font-size:1.15rem}
+.bjhead span{color:#f3e6de;font-size:.9rem}
+.bjhead .bar{grid-column:1/3;margin-top:2px}
+.bjdealer{display:flex;align-items:center;gap:12px;margin:10px 0}
+.bjdealer .lbl{font-weight:700;color:var(--apricot);min-width:52px}
+.hand{display:flex;gap:6px;min-height:58px}
+.val{font-weight:800;font-size:1.1rem;min-width:28px}
+.pc{width:40px;height:58px;border-radius:7px;background:#fffdf8;color:#1b1b1f;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  font-weight:800;font-size:1.05rem;line-height:1;box-shadow:0 3px 8px rgba(0,0,0,.35);border:1px solid #d9d2c8}
+.pc small{font-size:1rem;margin-top:2px}
+.pc.red{color:#c8312b}
+.pc.back{background:repeating-linear-gradient(45deg,#b83553 0 6px,#eb772e 6px 12px);border:2px solid #fff}
+.pc.deal{animation:dealin .45s cubic-bezier(.2,.8,.2,1)}
+@keyframes dealin{from{transform:translate(-60px,-40px) rotate(-18deg);opacity:0}to{transform:none;opacity:1}}
+@media (prefers-reduced-motion:reduce){.pc.deal{animation:none}.world,.bjscene{transition:none!important}}
+.bjseats{grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin:8px 0}
+.seat{border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:8px;background:rgba(255,255,255,.05)}
+.seat.turn{border-color:#ffd166;box-shadow:0 0 0 2px #ffd166 inset}
+.seat.me .nk{color:#ffd166}
+.seat .top{display:flex;justify-content:space-between;gap:6px;font-size:.84rem;margin-bottom:6px}
+.seat .nk{font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.seat .hand{gap:4px;min-height:46px}.seat .pc{width:31px;height:45px;font-size:.85rem}.seat .pc small{font-size:.8rem}
+.seat .res{font-weight:800;font-size:.86rem;margin-top:6px}
+.res.win,.res.blackjack{color:var(--ok)}.res.lose,.res.bust{color:var(--bad)}.res.push{color:#f3e6de}
+.bjctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.bjctl .go{width:auto;padding:12px 18px;font-size:1rem}
+.bjctl .tool{margin-left:0}
+@media (max-width:760px){.bjpanel{bottom:8px;padding:10px}.pc{width:32px;height:46px;font-size:.85rem}.bjseats{grid-template-columns:repeat(2,minmax(0,1fr))}}
 .shade{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity 1.2s;
   background:radial-gradient(65% 70% at 50% 46%,rgba(10,15,22,.15),rgba(10,15,22,.82))}
-#cv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2}
+#cv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:none}   /* a kerék alatt az asztal kattintható */
 .stage.overhead .shade{opacity:1}
 
 .glass{background:var(--glass);border:1px solid var(--glass-line);border-radius:14px;color:#fff;
@@ -292,9 +384,21 @@ footer strong{color:#fff}
 <main>
 <div class="stage nonick" id="stage">
   <span id="jatek" style="position:absolute;top:-44px"></span>
-  <img class="land" id="bg" alt="" src="img/scene-wide.jpg" decoding="async">
-  <div class="shade"></div>
-  <canvas id="cv" aria-label="3D rulettkerék"></canvas>
+  <div class="world" id="world">
+    <img class="land" id="bg" alt="" src="img/scene-wide.jpg" decoding="async">
+    <div class="crowd" id="crowd" aria-label="Kik vannak bent"></div>
+    <div class="shade"></div>
+    <canvas id="cv" aria-label="3D rulettkerék"></canvas>
+  </div>
+  <!-- a blackjack-nézet: az asztalra kattintva nyílik -->
+  <div class="bjscene" id="bjscene" aria-hidden="true"><img class="bjback" id="bjback" alt="" hidden><div class="bjin" id="bjin"><img id="bjimg" alt=""><div id="bjpts"></div></div></div>
+  <button type="button" class="torl glass" id="toRL">◀ Vissza a rulettehez</button>
+  <section class="bjpanel glass" id="bjpanel" aria-label="Blackjack" aria-hidden="true">
+    <div class="bjhead"><b>Blackjack</b><span id="bjinfo">Ülj le: tegyél fel tétet</span><div class="bar"><i id="bjbar"></i></div></div>
+    <div class="bjdealer"><span class="lbl">Osztó</span><div class="hand" id="bjdealer"></div><span class="val" id="bjdv"></span></div>
+    <div class="bjseats" id="bjseats"></div>
+    <div class="bjctl" id="bjctl"></div>
+  </section>
 
   <div class="logo">
     <span class="wm" role="img" aria-label="Exmentoring">exment<span class="o"></span>ring</span>
@@ -376,7 +480,14 @@ footer strong{color:#fff}
 </div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="/avatar.js"></script>
 <script>
+// a blackjack-nézet képe és rajta a pontok, a kép képpontjaiban (w x h): az osztó lapjai és a 6 hely (balról jobbra)
+// dealer: az osztó lapjainak alja (a posztón, az ív fölött; az osztó mancsa y ≈ 450, ennél feljebb ne); seats: a tétkörök közepe;
+// felt: a posztó alsó széle (alatta az asztal pereme és a pad, ezt takarhatja a panel)
+const BJ_SCENE={src:'img/bj-view.jpg',srcNight:'img/bj-view-night.jpg',w:1376,h:768,
+  dealer:{x:688,y:488},felt:600,
+  seats:[{x:370,y:501},{x:470,y:540},{x:611,y:564},{x:765,y:564},{x:906,y:540},{x:1006,y:501}]};
 const ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const colorOf=n=>n===0?'green':RED.has(n)?'red':'black';
@@ -404,7 +515,7 @@ function connect(){
 const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
 const serverNow=()=>Date.now()+offset;
 function showNick(){
-  const has=!!nick;
+  const has=!!nick||/[?&]demo/.test(location.search);   // ?demo: bemutató, nincs becenév-kérés
   $('nickmodal').hidden=has;stage.classList.toggle('nonick',!has);
   $('mename').textContent=has?nick:'Vendég';
   if(!has)setTimeout(()=>$('nick').focus(),50);
@@ -604,6 +715,7 @@ function render(){
     const rk={p1:'🥇',p2:'🥈',p3:'🥉',clown:'🤡'}[cls]||(i+1);
     return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk">${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
   }).join(''):'<li><span></span><span class="nk">Még nincs lejátszott kör.</span></li>';
+  drawCrowd();placeBjHit();renderBJ();
   $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }
 setInterval(()=>{
@@ -707,24 +819,23 @@ ball.castShadow=true;scene.add(outline(ball,1.18));
 
 /* ---------- háttérkép + kamera: a kerék a kép kőkörére kerül ---------- */
 // a kőkör/tisztás helye a képeken (képpontban), ezekre igazodik a kerék
-const SCENES={
-  wide:{src:'img/scene-wide.jpg',night:'img/scene-night-wide.jpg',w:2000,h:848,cx:1000,cy:678,wheel:600,head:285,zoom:1.3},
-  tall:{src:'img/scene-tall.jpg',w:1116,h:2000,cx:560,cy:1288,wheel:657,head:770,zoom:1.1},
-};
-const bg=$('bg');
+const SCENES=Avatar.SCENES;   // a kőkör helye és mérete a háttérképeken (avatar.js)
+const bg=$('bg'),crowd=$('crowd');let sceneInfo=null,crowdKey='';
 let nightFilter='',SW=1,SH=1,mobile=false,camT=0,ring={x:0,y:0,w:600},bgBox={left:0,top:0};
 function layoutBg(){
-  const sc=SW/SH<1?SCENES.tall:SCENES.wide, dark=isDark();
-  const src=dark&&sc.night?sc.night:sc.src;
-  if(bg.getAttribute('src')!==src)bg.src=src;
-  nightFilter=dark&&!sc.night?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs éjszakai: besötétítjük
+  const dark=isDark(), sc=SW/SH<1?SCENES.tall:dark?SCENES.night:SCENES.wide;
+  if(bg.getAttribute('src')!==sc.src)bg.src=sc.src;
+  nightFilter=dark&&sc===SCENES.tall?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs éjszakai: besötétítjük
   const dockTop=$('dock').getBoundingClientRect().top-stage.getBoundingClientRect().top;
   const ringY=Math.min(dockTop-(mobile?36:44),SH*.56);           // a kerék közepe a tétasztal fölé
   const sCover=SW/sc.w, sHead=(ringY-(mobile?200:150))/(sc.cy-sc.head);         // a mosómedvék feje ne lógjon ki felül
   const s=Math.max(sCover,Math.min(sCover*sc.zoom,sHead));
   const top=ringY-sc.cy*s, left=(SW-sc.w*s)/2;
   Object.assign(bg.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
+  Object.assign(crowd.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
   ring={x:left+sc.cx*s,y:ringY,w:sc.wheel*s};bgBox={left,top};
+  sceneInfo={sc,s};crowdKey='';drawCrowd();
+  if(typeof placeBjHit==='function'){placeBjHit();aimWorld();layoutBjScene()}
 }
 function fit(){
   SW=stage.clientWidth;SH=stage.clientHeight;mobile=SW<760;
@@ -760,7 +871,158 @@ function updateCamera(T,dt){
   bg.style.transform=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;
   const blur=Math.max(0,(k-.35)/.65);
   bg.style.filter=((blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'')+' '+nightFilter).trim()||'none';
+  crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
 }
+
+/* ---------- a tisztás: aki bent van, a jóváhagyott kép saját helyén ül (skin nélkül: a kép eredeti mosómedvéje) ---------- */
+const rcCache=new Map();
+// ?demo: mind a 16 hely benépesítve (bemutatóhoz, helyben), változatos kinézettel
+var DEMO=/[?&]demo/.test(location.search);   // var: a háttér elrendezése ennél korábban is lefuthat
+var DEMO_NICKS=['Mókus','Bandi','Csipke','Pötty','Bors','Málna','Zizi','Kópé','Tücsi','Szundi','Repkény','Pecás','Horog','Csali','Úszó','Evező'];
+function drawCrowd(){
+  if(!sceneInfo||(!DEMO&&(!S||!S.presence)))return;
+  const here=DEMO?[]:S.presence.here||[], av=DEMO?{}:S.avatars||{};
+  const list=(DEMO?DEMO_NICKS.map((nick,i)=>({nick,spot:i})):Avatar.assign(here,av)).map(o=>({...o,skin:Avatar.defaultSkin()}));
+  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,list]);
+  if(key===crowdKey)return;crowdKey=key;
+  const {sc,s}=sceneInfo,night=!!sc.night,frag=[];
+  // a hátrébb lévők előbb (a kép rétegrendje: a fej magassága szerint)
+  list.map(o=>({...o,pos:Avatar.spotPos(sc,o.spot)})).sort((a,b)=>a.pos.y-b.pos.y).forEach((o,z)=>{
+    const q=o.pos,sz=Avatar.size(o.spot),F=q.k*s;                 // alap-képpont -> képernyő
+    const el=document.createElement('div');el.className='rcw';
+    Object.assign(el.style,{left:q.left*s+'px',top:q.top*s+'px',width:sz.w*F+'px',height:sz.h*F+'px',zIndex:z+1});
+    const ck=JSON.stringify([o.skin,o.spot,night]);
+    if(!rcCache.has(ck))rcCache.set(ck,Avatar.draw(document.createElement('canvas'),o.skin,o.spot,night));
+    const cv=document.createElement('canvas');cv.width=sz.w;cv.height=sz.h;
+    rcCache.get(ck).then(src=>cv.getContext('2d').drawImage(src,0,0)).catch(()=>{});
+    const nm=document.createElement('span');nm.className='rcn';nm.textContent=o.nick;
+    nm.style.fontSize=Math.max(9,Math.min(15,Math.round(.2*q.hw*s)))+'px';
+    nm.style.left=(q.x-q.left)*s+'px';nm.style.top=(q.y-q.top-.62*q.hw)*s+'px';   // a név a fül fölött
+    el.append(cv,nm);frag.push(el);
+  });
+  crowd.replaceChildren(...frag);
+  if(bjHit)crowd.appendChild(bjHit);
+}
+
+/* ---------- blackjack: kattintás az asztalra -> a kép az asztalra közelít, és beúszik a blackjack-nézet ---------- */
+var BJ_TABLE={x:330,y:520,box:[150,375,430,280]};      // az asztal közepe és a kattintható terület az alap-képen
+var bjView=false;   // var: a háttér elrendezése (layoutBg) ennél korábban is lefuthat
+function setView(on){
+  bjView=on;stage.classList.toggle('view-bj',on);$('bjpanel').setAttribute('aria-hidden',on?'false':'true');$('bjscene').setAttribute('aria-hidden',on?'false':'true');
+  aimWorld();
+  if(on){layoutBjScene();renderBJ();setTimeout(()=>{const b=$('bjscene').querySelector('.bjsit:not(:disabled)')||$('bjpanel').querySelector('button:not(:disabled)');if(b)b.focus({preventScroll:true})},700)}
+  else bjHit.focus({preventScroll:true});
+}
+// az átmenet: a tisztás az asztal pontja felé nagyít, közben beúszik a blackjack-nézet képe
+function aimWorld(){
+  const world=$('world');
+  if(!bjView||!sceneInfo){world.style.transform='';return}
+  const {sc}=sceneInfo,r=bg.getBoundingClientRect(),st=stage.getBoundingClientRect();
+  const tx=r.left-st.left+(BJ_TABLE.x*sc.k+sc.ox)/sc.w*r.width, ty=r.top-st.top+(BJ_TABLE.y*sc.k+sc.oy)/sc.h*r.height;
+  const z=mobile?1.6:1.45, cy=SH*(mobile?.3:.36);
+  const cx=Math.min(SW/2,(tx-(r.left-st.left))*z*.9-8);   // a kép bal széle ne látsszon ki
+  world.style.transformOrigin=`${tx}px ${ty}px`;
+  world.style.transform=`translate(${(cx-tx).toFixed(1)}px,${(cy-ty).toFixed(1)}px) scale(${z})`;
+}
+$('toRL').onclick=()=>setView(false);
+// a blackjack-nézet képe kitölti a színpadot (cover); a helyek a panel fölé kerülnek, az osztó középre
+var bjK=1,bjSrc='';   // var: a háttér elrendezése (layoutBg) ennél korábban is lefuthat
+const bjImg=$('bjimg');
+bjImg.onerror=()=>{if(bjSrc===BJ_SCENE.srcNight&&BJ_SCENE.src!==bjSrc){bjSrc=BJ_SCENE.src;bjImg.src=bjSrc}else{bjImg.hidden=true;$('bjback').hidden=true}};   // ha nincs kép: zöld posztó
+bjImg.onload=()=>{bjImg.hidden=false;const k=$('bjback');k.src=bjImg.src;k.hidden=false};   // mögötte ugyanez elmosva, ha a kép nem tölti ki a színpadot
+function layoutBjScene(){
+  const B=BJ_SCENE,inn=$('bjin'),bjImg=$('bjimg');if(!inn||!SW||!SH)return;
+  const want=window.isDark&&isDark()&&B.srcNight?B.srcNight:B.src;
+  if(want!==bjSrc&&!(bjImg.hidden&&bjSrc)){bjSrc=want;bjImg.src=want}
+  const panelH=$('bjpanel').offsetHeight,regionB=SH-panelH-(mobile?16:28);
+  // alapból kitölti a színpadot; ha így a helyek a panel alá esnének, kicsinyítünk (legfeljebb 65%-ig), a széleken az elmosott kép
+  const maxY=B.felt||Math.max(...B.seats.map(p=>p.y)),pad=mobile?8:16,cover=mobile?Math.max(SW/B.w,regionB/B.h):Math.max(SW/B.w,SH/B.h);
+  const s=Math.max(cover*.65,Math.min(cover,(regionB-pad)/maxY));
+  const tx=B.w*s>=SW?clamp(SW/2-B.dealer.x*s,SW-B.w*s,0):(SW-B.w*s)/2;
+  const ty=Math.min(0,Math.max(regionB-pad-maxY*s,SH-B.h*s));   // a posztó a panel fölött, a kép alja nem csúszik a színpad alja fölé
+  Object.assign(inn.style,{width:B.w+'px',height:B.h+'px',transform:`translate(${tx.toFixed(1)}px,${ty.toFixed(1)}px) scale(${s.toFixed(4)})`});
+  bjK=(mobile?.85:clamp(SW/1400,.8,1.1))/s;inn.style.setProperty('--k',bjK.toFixed(4));
+  // a képernyőn kívül eső helyek jelölője rejtve (keskeny képernyőn a panel listázza őket)
+  $('bjpts').querySelectorAll('.bjpt').forEach(e=>{const x=tx+(+e.dataset.x)*s;e.classList.toggle('off',x<24||x>SW-24)});
+}
+const bjCost=()=>[chip,100,500,1000,5000].find(v=>S&&v<=S.pot);
+function renderBjScene(B,me){
+  const full=B.seats.length>=6,canSit=B.phase==='betting'&&!me&&!full;
+  const pt=(p,cls,inner,extra='')=>`<div class="bjpt ${cls}" data-x="${p.x}" style="left:${p.x}px;top:${p.y}px"${extra}>${inner}</div>`;
+  let h=pt(BJ_SCENE.dealer,'bjdl up',`${B.dealer.length?`<span class="val">${B.dealerValue}${B.phase==='play'?'+':''}</span>`:''}<div class="hand">${cardsHTML('v:dealer',B.dealer)}</div>`);
+  BJ_SCENE.seats.forEach((p,i)=>{
+    const x=B.seats.find(q=>q.seat===i);
+    if(x){
+      const turn=B.phase==='play'&&B.seats[B.turn]===x;
+      const res=x.result?`<span class="res ${x.result}">${RES[x.result]}</span>`:'';
+      h+=pt(p,'st up',`${res}<span class="val">${x.cards.length?x.value:''}</span><div class="hand">${cardsHTML('v:'+x.nick,x.cards)}</div>`);
+      h+=pt(p,'st down',`<div class="glass bjpl${turn?' turn':''}${x.nick===nick?' me':''}"><span class="nk">${esc(x.nick)}</span><small>${fmt(x.stake)}${x.doubled?' ×2':''}</small></div>`);
+    }else if(canSit){
+      const c=bjCost();
+      h+=pt(p,'',`<button type="button" class="bjsit glass" data-seat="${i}" ${c?'':'disabled'} aria-label="Ülj ide (${i+1}. hely)${c?`, tét: ${fmt(Math.min(c,S.pot))}`:''}"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Ülj ide</button>`);
+    }
+  });
+  $('bjpts').innerHTML=h;layoutBjScene();
+}
+$('bjpts').onclick=e=>{const b=e.target.closest('[data-seat]');if(!b||b.disabled)return;if(!nick){showNick();return}
+  const c=bjCost();if(c)send({t:'bj-bet',amount:c,seat:+b.dataset.seat})};
+addEventListener('keydown',e=>{if(e.key==='Escape'&&bjView)setView(false)});
+// az asztal maga is gomb (a mosómedvék rétegében, a háttérrel együtt mozog)
+var bjHit=document.createElement('button');bjHit.type='button';bjHit.className='bjhit';bjHit.setAttribute('aria-label','Blackjack-asztal: ülj le játszani');
+bjHit.onclick=()=>setView(true);
+function placeBjHit(){
+  if(!sceneInfo||!bjHit)return;const {sc,s}=sceneInfo,[x,y,w,h]=BJ_TABLE.box;
+  Object.assign(bjHit.style,{left:(x*sc.k+sc.ox)*s+'px',top:(y*sc.k+sc.oy)*s+'px',width:w*sc.k*s+'px',height:h*sc.k*s+'px',zIndex:999});
+  if(bjHit.parentNode!==crowd)crowd.appendChild(bjHit);
+}
+// a lapok: "10♥" -> szám + szín; "??" a lefordított lap
+const RES={blackjack:'Blackjack!',win:'Nyert',push:'Döntetlen',lose:'Vesztett',bust:'Besokallt'};
+const shown={};   // ki hány lapját láttuk már (az új lap beúszik)
+function cardsHTML(key,cards){
+  const old=shown[key]||0;shown[key]=cards.length;
+  return cards.map((c,i)=>{
+    const anim=i>=old?' deal':'';
+    if(c==='??')return `<span class="pc back${anim}" role="img" aria-label="lefordított lap"></span>`;
+    const r=c.slice(0,-1),su=c.slice(-1),red=su==='♥'||su==='♦';
+    return `<span class="pc${red?' red':''}${anim}" role="img" aria-label="${r} ${su}">${r}<small>${su}</small></span>`;
+  }).join('');
+}
+let bjRound=-1;
+function renderBJ(){
+  if(!S||!S.bj)return;
+  const B=S.bj,me=B.seats.find(x=>x.nick===nick),myTurn=B.phase==='play'&&B.seats[B.turn]&&B.seats[B.turn].nick===nick;
+  if(B.round!==bjRound&&B.phase!=='betting'){bjRound=B.round;for(const k in shown)delete shown[k]}
+  if(B.phase==='betting'&&!B.seats.length)for(const k in shown)delete shown[k];
+  $('bjinfo').textContent=B.phase==='betting'?(B.seats.length?`Tétek: ${B.seats.map(x=>x.nick+' '+fmt(x.stake)).join(', ')}. Bárki leülhet, aztán osztás.`:'Válassz egy szabad helyet az asztalnál („Ülj ide”), aztán kérj osztást.')
+    :B.phase==='play'?(myTurn?'Te jössz!':`${B.seats[B.turn]?B.seats[B.turn].nick:''} jön.`)
+    :'Kör vége. Mindjárt új kör.';
+  $('bjdealer').innerHTML=cardsHTML('dealer',B.dealer);
+  renderBjScene(B,me);
+  $('bjdv').textContent=B.dealer.length?B.dealerValue+(B.phase==='play'?'+':''):'';
+  $('bjseats').innerHTML=B.seats.map((x,i)=>{
+    const res=x.result?`<div class="res ${x.result}">${RES[x.result]}${x.back-x.stake?` (${x.back-x.stake>0?'+':'−'}${fmt(Math.abs(x.back-x.stake))})`:''}</div>`:'';
+    return `<div class="seat${B.phase==='play'&&i===B.turn?' turn':''}${x.nick===nick?' me':''}"><div class="top"><span class="nk">${esc(x.nick)}</span><span>${fmt(x.stake)}${x.doubled?' ×2':''}</span></div>
+      <div class="hand">${cardsHTML('s:'+x.nick,x.cards)}</div>${x.cards.length?`<div class="val">${x.value}</div>`:''}${res}</div>`;
+  }).join('')||'<p class="bjwait">Még senki sem ült le.</p>';
+  // vezérlők
+  let h='';
+  if(!nick)h='<span class="bjwait">Előbb add meg a beceneved.</span>';
+  else if(B.phase==='betting'){
+    const full=!me&&B.seats.length>=6;
+    h=`<div class="bjchips" role="group" aria-label="Tét a blackjackre">${[100,500,1000,5000].map(v=>`<button type="button" data-bj="bet" data-v="${v}" style="background:${chipColor(v)}" ${full||S.pot<v||(me&&me.stake+v>B.max)?'disabled':''}>+${v>=1000?v/1000+'k':v}</button>`).join('')}</div>`;
+    if(me)h+=`<button type="button" class="tool" data-bj="unbet">Tét vissza</button><button type="button" class="go" data-bj="deal">Osztás</button>`;
+    else h+=`<span class="bjwait">${full?'Az asztal megtelt.':'Kattints egy „Ülj ide” helyre, vagy tégy fel tétet.'}</span>`;
+  }else if(myTurn){
+    h=`<button type="button" class="go" data-bj="hit">Lapot kérek</button><button type="button" class="go" data-bj="stand">Megállok</button>`+
+      (me.cards.length===2?`<button type="button" class="tool" data-bj="double" ${S.pot<me.stake?'disabled':''}>Duplázás (+${fmt(me.stake)})</button>`:'');
+  }else h=`<span class="bjwait">${B.phase==='play'?(me?'Várj a sorodra.':'Most megy egy kör, a következőben beszállhatsz.'):'Eredmény, mindjárt új kör.'}</span>`;
+  $('bjctl').innerHTML=h;
+}
+$('bjctl').onclick=e=>{const b=e.target.closest('[data-bj]');if(!b||b.disabled)return;const a=b.dataset.bj;send(a==='bet'?{t:'bj-bet',amount:+b.dataset.v}:{t:'bj-'+a})};
+setInterval(()=>{
+  if(!S||!S.bj)return;const B=S.bj,total=B.phase==='play'?20000:6000;
+  $('bjbar').style.width=(B.endAt?Math.max(0,B.endAt-serverNow())/total*100:0)+'%';
+},100);
 
 /* ---------- golyó: a szerver fizikai szimulációjának visszajátszása ---------- */
 let lastHitT=0,lastRound=-1;

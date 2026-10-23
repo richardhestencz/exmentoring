@@ -13,14 +13,46 @@
       l.href = d ? l.href.replace(/raccoon-(\d)/, 'raccoon-night-$1') : l.href.replace('raccoon-night-', 'raccoon-');
     });
     const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = d ? 'dark' : 'light';
-    document.querySelectorAll('.themebtn').forEach((b) => { b.setAttribute('aria-pressed', d); b.title = d ? 'Világos mód' : 'Sötét mód'; });
+    document.querySelectorAll('.themebtn').forEach((b) => { b.title = 'Menü: világos/sötét mód és profil'; });
     window.dispatchEvent(new Event('themechange'));
   }
   window.isDark = dark;
   window.applyTheme = apply;
   window.setTheme = (t) => { root.dataset.theme = t; try { localStorage.setItem('theme', t); } catch {} apply(); };
+  // a fejlécben a mosómedvére kattintva kis menü nyílik: világos/sötét mód és Profil
+  function menu(btn) {
+    let m = document.getElementById('exm-menu');
+    if (m) { close(); return; }
+    m = document.createElement('div'); m.id = 'exm-menu'; m.setAttribute('role', 'menu');
+    const r = btn.getBoundingClientRect();
+    Object.assign(m.style, { position: 'fixed', left: Math.max(8, r.left) + 'px', top: r.bottom + 8 + 'px', zIndex: 1000, minWidth: '190px',
+      background: '#0a0f16', color: '#fff', border: '1px solid rgba(255,255,255,.18)', borderRadius: '14px', padding: '6px',
+      boxShadow: '0 12px 32px rgba(0,0,0,.45)', fontFamily: 'Figtree,system-ui,sans-serif', fontSize: '.92rem' });
+    const item = (label, fn, href) => {
+      const el = document.createElement(href ? 'a' : 'button'); el.setAttribute('role', 'menuitem'); el.textContent = label;
+      Object.assign(el.style, { display: 'block', width: '100%', textAlign: 'left', padding: '10px 12px', border: '0', borderRadius: '10px',
+        background: 'transparent', color: '#fff', font: 'inherit', fontWeight: '600', cursor: 'pointer', textDecoration: 'none' });
+      el.onmouseenter = el.onfocus = () => { el.style.background = 'rgba(255,255,255,.1)'; };
+      el.onmouseleave = el.onblur = () => { el.style.background = 'transparent'; };
+      if (href) el.href = href; else el.onclick = fn;
+      m.appendChild(el); return el;
+    };
+    const first = item(dark() ? '☀️  Világos mód' : '🌙  Sötét mód', () => { window.setTheme(dark() ? 'light' : 'dark'); close(); });
+    item('🦝  Profil: skin és hely', null, '/profil.html');
+    document.body.appendChild(m); btn.setAttribute('aria-expanded', 'true'); first.focus();
+    setTimeout(() => document.addEventListener('click', outside, true));
+    document.addEventListener('keydown', esc);
+    function outside(e) { if (!m.contains(e.target) && !btn.contains(e.target)) close(); }
+    function esc(e) { if (e.key === 'Escape') { close(); btn.focus(); } }
+    function close() { m.remove(); btn.setAttribute('aria-expanded', 'false'); document.removeEventListener('click', outside, true); document.removeEventListener('keydown', esc); }
+    m.close = close;
+  }
+  function close() { const m = document.getElementById('exm-menu'); if (m && m.close) m.close(); }
   document.addEventListener('DOMContentLoaded', () => {
-    document.querySelectorAll('.themebtn').forEach((b) => b.addEventListener('click', () => window.setTheme(dark() ? 'light' : 'dark')));
+    document.querySelectorAll('.themebtn').forEach((b) => {
+      b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', 'Menü: világos/sötét mód és profil');
+      b.addEventListener('click', (e) => { e.preventDefault(); menu(b); });
+    });
     apply();
   });
 })();

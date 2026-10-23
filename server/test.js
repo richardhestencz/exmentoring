@@ -170,6 +170,81 @@ test('tét-profilok: mentés, felülírás, korlátok, törlés', () => {
   assert.strictEqual(pf.deleteProfile(P, 'Ricsi', 'P2'), null);
   assert.ok(pf.deleteProfile(P, 'Ricsi', 'P2'));
 });
+test('mosómedve-profilok: skin, egyedi hely, helykiosztás (max a helyek száma)', () => {
+  const A = require('./public/avatar.js'), av = require('./avatars');
+  const S = av.empty();
+  assert.strictEqual(av.setAvatar(S, 'Ricsi', { hat: 2, glasses: 1, top: 10, bottom: 0 }, 4), null);
+  assert.deepStrictEqual(S.Ricsi, { hat: 2, glasses: 1, top: 10, bottom: 0, spot: 4 });
+  assert.match(av.setAvatar(S, 'Matyi', { hat: 0, glasses: 0, top: 0, bottom: 0 }, 4), /Ricsi/, 'egy helyet csak egy ember választhat');
+  assert.strictEqual(av.setAvatar(S, 'Matyi', { hat: 0, glasses: 0, top: 0, bottom: 0 }, null), null, 'hely nélkül is menthető');
+  assert.strictEqual(av.setAvatar(S, 'Ricsi', { hat: 2, glasses: 1, top: 10, bottom: 0 }, 4), null, 'a saját helyét újra mentheti');
+  assert.ok(av.setAvatar(S, 'X', { hat: 99, glasses: 0, top: 0, bottom: 0 }, null), 'nem létező kalap');
+  assert.ok(av.setAvatar(S, 'X', { hat: 0, glasses: 0, top: 0, bottom: 0 }, A.MAX), 'nem létező hely');
+  assert.ok(av.setAvatar(S, '', { hat: 0, glasses: 0, top: 0, bottom: 0 }, null), 'becenév kell');
+  // kiosztás: a választott hely, ha szabad; különben az első szabad; legfeljebb 10 fő
+  const here = Array.from({ length: A.MAX + 2 }, (_, i) => ({ nick: 'N' + i }));
+  const out = A.assign(here, { N0: { spot: 4 }, N1: { spot: 4 }, N2: { spot: 0 } });
+  assert.strictEqual(out.length, A.MAX);
+  assert.strictEqual(out[0].spot, 4); assert.strictEqual(out[2].spot, 0);
+  assert.strictEqual(new Set(out.map((o) => o.spot)).size, A.MAX, 'mindenki külön helyen');
+  assert.ok(A.validSkin(A.defaultSkin('Matyi')));
+  assert.deepStrictEqual(A.defaultSkin('Matyi'), A.defaultSkin('Matyi'), 'ugyanaz a becenév mindig ugyanazt a skint kapja');
+  for (const sc of Object.values(A.SCENES)) for (let i = 0; i < A.MAX; i++) {
+    const q = A.spotPos(sc, i);
+    assert.ok(q.x > 0 && q.x < sc.w && q.y > 0 && q.y < sc.h, 'a hely a képen belül van');
+  }
+});
+test('blackjack: lapértékek, osztás, sorrend, kifizetések', () => {
+  const B = require('./blackjack');
+  assert.deepStrictEqual(B.value(['A♠', 'K♥']), { total: 21, soft: true });
+  assert.strictEqual(B.value(['A♠', 'A♥', '9♦']).total, 21);
+  assert.strictEqual(B.value(['K♠', 'Q♥', '5♦']).total, 25);
+  assert.ok(B.isBJ(['A♠', 'J♣']) && !B.isBJ(['7♠', '7♣', '7♦']));
+  assert.strictEqual(B.newShoe().length, 312, '6 pakli');
+  // a pakli végéről húzunk: a sorrend fordított; a 60 lapos tartalék miatt 100 töltelék lap alul
+  const G = B.empty(), fill = Array(100).fill('2♣');
+  const shoe = (cards) => { G.shoe = [...fill, ...cards.slice().reverse()]; };
+  assert.strictEqual(B.bet(G, 'Ricsi', 1000), null);
+  assert.strictEqual(B.bet(G, 'Matyi', 500), null);
+  assert.ok(B.bet(G, 'Ricsi', 9500), 'kézenként max 10 000');
+  // osztás: Ricsi, Matyi, osztó, Ricsi, Matyi, osztó
+  shoe(['10♠', '9♠', '10♥', '7♦', 'A♣', '6♣', /* húzások: */ '5♥', '10♦']);
+  assert.strictEqual(B.deal(G), null);
+  assert.strictEqual(B.view(G).dealer[1], '??', 'az osztó második lapja rejtett');
+  assert.ok(B.hit(G, 'Matyi'), 'nem Matyi jön');
+  assert.strictEqual(B.stand(G, 'Ricsi'), null);           // Ricsi 17
+  assert.strictEqual(B.hit(G, 'Matyi'), null);             // Matyi 9+A+5 = 15
+  assert.strictEqual(B.stand(G, 'Matyi'), null);           // osztó 16 -> húz 10-et -> 26, besokall
+  assert.strictEqual(G.phase, 'result');
+  assert.deepStrictEqual(G.seats.map((x) => [x.result, x.back]), [['win', 2000], ['win', 1000]]);
+  // blackjack 3:2, duplázás, push
+  B.reset(G); B.bet(G, 'Ricsi', 1000); B.bet(G, 'Matyi', 1000); B.bet(G, 'Dani', 1000);
+  shoe(['A♠', '5♠', '10♣', '10♦', 'K♠', '6♥', '6♦', '7♦', /* Matyi duplázik: */ '6♣']);
+  assert.strictEqual(B.deal(G), null);                      // Ricsi BJ, Matyi 11, Dani 16, osztó 17
+  assert.ok(B.double(G, 'Dani'), 'nem Dani jön');
+  assert.strictEqual(B.double(G, 'Matyi'), null);          // Matyi 11+6 = 17, tét 2000
+  assert.strictEqual(B.stand(G, 'Dani'), null);            // osztó 17-nél megáll
+  assert.deepStrictEqual(G.seats.map((x) => [x.result, x.back]), [['blackjack', 2500], ['push', 2000], ['lose', 0]]);
+  // az osztó blackjackje azonnal lezárja a kört
+  B.reset(G); B.bet(G, 'Ricsi', 500);
+  shoe(['10♠', 'A♦', '9♠', 'K♦']);
+  assert.strictEqual(B.deal(G), null);
+  assert.strictEqual(G.phase, 'result');
+  assert.deepStrictEqual([G.seats[0].result, G.seats[0].back], ['lose', 0]);
+  // fogadás visszavonása
+  B.reset(G); B.bet(G, 'Ricsi', 500); B.bet(G, 'Ricsi', 100);
+  assert.strictEqual(B.unbet(G, 'Ricsi'), 600);
+  assert.strictEqual(G.seats.length, 0);
+});
+test('blackjack: helyválasztás az asztalnál', () => {
+  const B = require('./blackjack'), G = B.empty();
+  assert.strictEqual(B.bet(G, 'Ricsi', 100, 3), null);
+  assert.ok(B.bet(G, 'Matyi', 100, 3), 'foglalt hely');
+  assert.ok(B.bet(G, 'Matyi', 100, 6), 'nincs ilyen hely');
+  assert.strictEqual(B.bet(G, 'Matyi', 100), null);          // az első szabad hely: 0
+  assert.strictEqual(B.bet(G, 'Ricsi', 100, 5), null);       // aki már ül, a helye marad
+  assert.deepStrictEqual(B.view(G).seats.map((x) => [x.nick, x.seat, x.stake]), [['Matyi', 0, 100], ['Ricsi', 3, 200]]);
+});
 test('fizikai szimuláció: megáll, érvényes szám, a pálya véges', () => {
   const { simulate, DEFAULT_REST } = require('./physics');
   let rest = DEFAULT_REST;

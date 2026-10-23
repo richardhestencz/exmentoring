@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
+<title>Profil</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324; --ink-2:#45494b; --muted:#696e72; --line:#d5dadd;
+  --peach:#fbe4d7; --sand:#f4f0ed; --apricot:#f8c7a3;
+  --orange:#eb772e; --red:#df312d; --dark:#0a0f16; --green:#11845b;
+  --grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:860px;margin:0 auto;padding:0 16px}
+a{color:#b4471a}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
+.studio svg{width:26px;height:23px}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.hero{background:var(--sand);padding:44px 0 36px}
+h1{margin:0 0 10px;font-size:clamp(1.7rem,4vw,2.5rem);font-weight:800;letter-spacing:-.02em;color:var(--ink);line-height:1.12}
+.lead{margin:0;max-width:62ch;font-size:1.06rem}
+.flow{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin:22px 0 0;padding:0;list-style:none;font-weight:600;font-size:.92rem;color:var(--ink)}
+.flow li{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px}
+.flow .arr{background:none;border:0;padding:0;color:var(--muted)}
+section{padding:36px 0 8px}
+h2{margin:0 0 12px;font-size:1.35rem;font-weight:800;color:var(--ink);letter-spacing:-.01em;display:flex;align-items:center;gap:10px}
+h2 .n{flex:none;width:30px;height:30px;border-radius:50%;background:var(--grad);color:#fff;font-size:.95rem;display:grid;place-items:center}
+p{margin:0 0 12px}
+ul.list{margin:0 0 12px;padding-left:20px}
+ul.list li{margin:4px 0}
+.card{background:var(--peach);border-radius:18px;padding:18px 20px;margin:0 0 14px}
+.card.dl{background:var(--sand);border:1px solid var(--line);margin-bottom:28px}
+.btn{display:inline-block;padding:10px 16px;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;text-decoration:none}
+.btn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.card.note{background:#fff7d6;border:1px solid #efd98a}
+.card.bad{background:#ffe5e2;border:1px solid #f3b1aa}
+.card h3{margin:0 0 6px;font-size:1rem;color:var(--ink)}
+.card p:last-child,.card ul:last-child{margin-bottom:0}
+label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0 6px}
+.field{display:flex;gap:8px;flex-wrap:wrap}
+.field input{flex:1 1 260px;min-width:0;padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.field input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.code{position:relative;margin:10px 0 14px}
+pre{margin:0;background:var(--dark);color:#f3ece7;border-radius:14px;padding:16px 16px 16px 16px;font:500 .86rem/1.55 var(--mono);white-space:pre-wrap;word-break:break-all}
+.copy{position:absolute;top:8px;right:8px;padding:6px 12px;border-radius:9px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.08);color:#fff;font-weight:600;font-size:.82rem;cursor:pointer}
+.copy:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.code pre{padding-right:96px}
+code{font-family:var(--mono);font-size:.88em;background:var(--sand);border-radius:6px;padding:1px 5px}
+table{width:100%;border-collapse:collapse;margin:0 0 14px;font-size:.94rem}
+th,td{text-align:left;vertical-align:top;padding:10px 10px;border-bottom:1px solid var(--line)}
+th{color:var(--ink);font-size:.82rem;text-transform:uppercase;letter-spacing:.04em}
+.ok{color:var(--green);font-weight:700}
+footer{background:var(--dark);color:#cfc6c2;padding:30px 0 26px;margin-top:40px}
+footer p{margin:0;font-size:.92rem}
+footer strong{color:#fff}
+@media (max-width:560px){
+  .top nav a{padding:12px 8px}
+  .code pre{padding-right:16px;padding-top:46px}
+  th:first-child,td:first-child{width:38%}
+}
+.soon{display:inline-block;margin:0 0 14px;padding:5px 12px;border-radius:999px;background:var(--grad);color:#fff;font-weight:800;font-size:.8rem;letter-spacing:.06em;text-transform:uppercase}
+.people{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;margin:0 0 14px;padding:0;list-style:none}
+.people li{background:var(--sand);border:1px dashed var(--line);border-radius:16px;padding:16px;text-align:center;color:var(--muted);font-weight:600}
+.people svg{width:44px;height:40px;display:block;margin:0 auto 8px;opacity:.35}
+.rc{border-radius:50%;object-fit:cover;flex:none;display:inline-block}
+.studio .rc{width:26px;height:26px}
+.me .rc{width:30px;height:30px}
+.modal .rc{width:84px;height:84px;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.steps h3 .rc{width:26px;height:26px;vertical-align:-6px;margin-right:6px}
+.people .rc{width:48px;height:48px;display:block;margin:0 auto 8px;opacity:.45}
+.rc.em{width:1.15em;height:1.15em;vertical-align:-.2em}
+.counter{display:flex;align-items:baseline;gap:10px;margin:18px 0 8px;color:var(--ink)}
+.counter b{font-size:clamp(2.4rem,7vw,3.4rem);font-weight:800;letter-spacing:-.03em;line-height:1}
+.counter span{font-size:1.1rem;font-weight:600;color:var(--muted)}
+.prog{height:10px;border-radius:99px;background:#fff;border:1px solid var(--line);overflow:hidden;max-width:560px}
+.prog i{display:block;height:100%;background:var(--grad);width:0;transition:width .6s}
+.who{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 6px}
+.who button{min-width:44px;height:44px;padding:0 10px;border-radius:12px;border:1px solid var(--line);background:#fff;font-size:1.35rem;cursor:pointer}
+.who button[aria-pressed="true"]{border-color:var(--orange);box-shadow:0 0 0 3px var(--apricot);background:var(--peach)}
+.who button:focus-visible{outline:3px solid var(--orange);outline-offset:2px}
+.me-line{font-weight:600;color:var(--ink);min-height:1.5em}
+.grid{display:grid;grid-template-columns:24px repeat(10,minmax(0,1fr));gap:3px;max-width:640px;user-select:none}
+.grid .h{display:grid;place-items:center;font:600 .72rem/1 var(--mono);color:var(--muted)}
+.c{position:relative;aspect-ratio:1/1;min-width:0;border-radius:8px;border:1px solid var(--line);background:#fff;padding:0;cursor:pointer;
+  display:grid;place-items:center;font-size:clamp(.95rem,3.6vw,1.45rem);line-height:1}
+.c small{position:absolute;left:3px;top:2px;font:600 clamp(.42rem,1.6vw,.6rem)/1 var(--mono);color:var(--muted)}
+.c:hover:not(:disabled){border-color:var(--orange);background:#fff7f1}
+.c:focus-visible{outline:3px solid var(--orange);outline-offset:1px;z-index:1}
+.c.got{background:var(--peach);border-color:var(--apricot);cursor:default}
+.c.got .ok{position:absolute;right:2px;bottom:1px;font-size:.5em}
+.c.mine{background:#ffe0cc;border-color:var(--orange);cursor:pointer;box-shadow:inset 0 0 0 1px var(--orange)}
+.c.x{background:var(--sand);cursor:not-allowed;color:var(--muted)}
+.c.x small{text-decoration:line-through}
+.c.x::after{content:"";position:absolute;inset:50% 12%;height:1px;background:var(--muted);transform:rotate(-35deg)}
+.c.flash{animation:fl 1.2s ease-out}
+@keyframes fl{0%{background:#ffd27a;transform:scale(1.12)}100%{}}
+@media (prefers-reduced-motion:reduce){.c.flash{animation:none}}
+.cols{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:28px}
+@media (max-width:760px){.cols{grid-template-columns:1fr}}
+.rank{list-style:none;margin:0;padding:0}
+.rank li{display:grid;grid-template-columns:34px minmax(0,1fr) auto;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line)}
+.rank .al{font-size:1.3rem;text-align:center}
+.rank .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink);font-weight:600}
+.rank .bar{grid-column:2/4;height:6px;border-radius:9px;background:var(--sand);overflow:hidden;margin-top:-2px}
+.rank .bar i{display:block;height:100%;background:var(--grad)}
+.rank b{font-variant-numeric:tabular-nums;color:var(--ink)}
+.add{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.add input{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;min-width:0}
+.add input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.add #nName{flex:1 1 180px}.add #nAlias{flex:0 0 76px;text-align:center;font-size:1.2rem}
+.add button{padding:10px 16px;border:0;border-radius:10px;background:var(--grad);color:#fff;font-weight:700;cursor:pointer}
+.add button:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.toastg{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toastg.show{opacity:1}
+.conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
+.muted{color:var(--muted);font-size:.9rem}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer;transition:transform .2s}
+.themebtn:hover{transform:rotate(-12deg) scale(1.08)}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+/* sötét mód */
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] main a{color:#f6a77c}
+:root[data-theme="dark"] main a.btn{color:#fff}
+:root[data-theme="dark"] pre{border:1px solid var(--line)}
+:root[data-theme="dark"] .flow li,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .who button,:root[data-theme="dark"] .c,
+:root[data-theme="dark"] .add input,:root[data-theme="dark"] .prog{background:#1d1519;color:var(--ink)}
+:root[data-theme="dark"] .card.note{background:#2b2312;border-color:#5e4c1d}
+:root[data-theme="dark"] .card.bad{background:#341818;border-color:#6d2c2c}
+:root[data-theme="dark"] .card.dl{background:#1c151a}
+:root[data-theme="dark"] .c:hover:not(:disabled){background:#2c1d22}
+:root[data-theme="dark"] .c.got{background:#2f1e1a;border-color:#6b3d2a}
+:root[data-theme="dark"] .c.mine{background:#4a2516}
+:root[data-theme="dark"] .who button[aria-pressed="true"]{background:#3a2117}
+:root[data-theme="dark"] .people li{background:#1c151a}
+.prof{display:grid;grid-template-columns:minmax(220px,320px) minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:720px){.prof{grid-template-columns:1fr}}
+.stagebox{position:relative;background:radial-gradient(70% 60% at 50% 70%,#f8c7a3,#fbe4d7 70%);border:1px solid var(--line);border-radius:20px;padding:10px;text-align:center}
+:root[data-theme="dark"] .stagebox{background:radial-gradient(70% 60% at 50% 70%,#4a2635,#1c151a 70%)}
+.stagebox canvas{display:block;margin:0 auto;width:100%;max-width:300px;height:auto;border-radius:14px}
+.pvname{margin:6px 0 0;font-weight:700;color:var(--ink)}
+.pvname small{display:block;font-weight:500;color:var(--muted)}
+.srow .note{grid-column:2/5;font-size:.8rem;color:var(--muted);margin-top:-4px}
+.navbtn,.rand{padding:8px 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink);font:inherit;font-weight:700;cursor:pointer}
+.rows{display:grid;gap:10px}
+.srow{display:grid;grid-template-columns:96px 44px minmax(0,1fr) 44px;align-items:center;gap:8px}
+.srow b{color:var(--ink)}
+.srow .val{text-align:center;font-weight:700;color:var(--ink);padding:10px;border-radius:12px;background:var(--sand);border:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.navbtn{width:44px;height:44px;padding:0;border-radius:50%;font-size:1.1rem}
+.navbtn:focus-visible,.rand:focus-visible,.spot:focus-visible,.savebtn:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.nickrow{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:0 0 14px}
+.nickrow input{padding:10px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;color:var(--ink);font:inherit;min-width:0;flex:1 1 160px;max-width:260px}
+:root[data-theme="dark"] .nickrow input{background:#1d1519}
+.savebtn{padding:12px 20px;border:0;border-radius:12px;background:var(--grad);color:#fff;font:inherit;font-weight:800;cursor:pointer}
+.savemsg{font-weight:600;color:var(--muted);margin-left:8px}
+.mapbox{position:relative;border-radius:18px;overflow:hidden;border:1px solid var(--line);max-width:1100px}
+.mapin{position:relative;width:100%}
+.mapin img{display:block;width:100%;height:auto}
+.spot{position:absolute;transform:translate(-50%,-100%);min-width:26px;height:26px;padding:0 7px;font-size:.72rem!important;border-radius:999px;border:2px solid #fff;
+  background:rgba(10,15,22,.72);color:#fff;font:inherit;font-weight:800;font-size:.82rem;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.35);white-space:nowrap}
+.spot.mine{background:var(--grad);border-color:#fff;transform:translate(-50%,-100%) scale(1.12)}
+.spot:disabled{background:rgba(120,120,120,.75);cursor:not-allowed;font-weight:600}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:.86rem;color:var(--muted);margin:10px 0 0}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="rc-face" viewBox="0 0 100 90">
+      <path d="M10 38 8 6 36 18z" fill="#8b9096"/><path d="M90 38 92 6 64 18z" fill="#8b9096"/>
+      <path d="M14 30 13 12 28 21z" fill="#2b2f33"/><path d="M86 30 87 12 72 21z" fill="#2b2f33"/>
+      <path d="M50 14c30 0 44 20 42 40S72 86 50 86 10 74 8 54 20 14 50 14z" fill="#aeb3b8"/>
+      <path d="M50 16c-6 12-6 24 0 36 6-12 6-24 0-36z" fill="#6f757b"/>
+      <path d="M14 44c12-8 26-4 36 4 10-8 24-12 36-4 0 16-14 20-26 14-6-2-14-2-20 0-12 6-26 2-26-14z" fill="#2b2f33"/>
+      <ellipse cx="50" cy="68" rx="20" ry="14" fill="#f1f2f3"/>
+      <circle cx="33" cy="48" r="6" fill="#fff"/><circle cx="67" cy="48" r="6" fill="#fff"/>
+      <circle cx="34" cy="49" r="3" fill="#16181a"/><circle cx="66" cy="49" r="3" fill="#16181a"/>
+      <ellipse cx="50" cy="60" rx="7" ry="5" fill="#16181a"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/aknakereso.html">Aknakereső</a><a href="/hodito.html">Hódító</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
+  </div>
+  <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
+</header>
+
+<main>
+<div class="hero"><div class="wrap">
+  <h1>Profil</h1>
+  <p class="lead">Válaszd ki, hova üljön a mosómedvéd a tábortűz körül. Amikor beolvasod az ajtón lévő QR-kódot, ezen a helyen jelensz meg a nyitóoldalon.</p>
+</div></div>
+
+<section><div class="wrap">
+  <div class="nickrow"><label for="nick"><b>Beceneved</b></label><input id="nick" maxlength="16" autocomplete="nickname" placeholder="pl. Ricsi"><button class="navbtn" id="nickok" type="button" style="width:auto;padding:0 14px;border-radius:12px">Ez vagyok</button></div>
+  <p class="muted" style="margin-top:-6px">Ugyanaz legyen, mint amit a QR-kódnál és a rulettnél használsz.</p>
+  <div class="prof">
+    <div class="stagebox">
+      <canvas id="pv" width="256" height="300" aria-label="A mosómedvéd előnézete"></canvas>
+      <p class="pvname" id="pvname" aria-live="polite"></p>
+    </div>
+    <div>
+      <h2>A helyed</h2>
+      <p class="muted">Lent a térképen válassz egy szabad helyet; a bal oldalon látod, hogyan ülsz majd ott.</p>
+    </div>
+  </div>
+</div></section>
+
+<section><div class="wrap">
+  <h2>Hova ülj?</h2>
+  <p class="muted">Kattints egy szabad helyre. Ha nem választasz, az első szabad helyre kerülsz. Egy helyet csak egy ember választhat.</p>
+  <div class="mapbox"><div class="mapin" id="map"><img id="mapimg" alt="A tisztás a helyekkel"></div></div>
+  <div class="legend"><span>🟧 a te helyed</span><span>⬛ szabad</span><span>⬜ foglalt</span><button class="rand" id="auto" type="button">Mindegy, automatikus</button></div>
+  <p style="margin-top:18px"><button class="savebtn" id="save" type="button">Mentés</button><span class="savemsg" id="msg" role="status"></span></p>
+</div></section>
+<div class="toastg" id="toast" role="status"></div>
+</main>
+
+<footer><div class="wrap">
+  <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a> · <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">GitHub</a></p>
+</div></footer>
+
+<script src="/avatar.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
+const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
+let S=null,ws,retry=0,seenBoot=null,nick=safeGet('nick'),skin=null,spot=null,dirty=false,hello=false;
+const PREVIEW=1;   // ha nincs választott hely, ezen a helyen mutatjuk a mosómedvét
+// skin nélküli változat: mindenki a kép eredeti mosómedvéje, csak a hely választható
+skin=Avatar.defaultSkin();
+function connect(){
+  ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
+  ws.onopen=()=>{retry=0;$('conn').style.display='none';if(nick)send({t:'hello',nick})};
+  ws.onclose=()=>{$('conn').style.display='block';hello=false;setTimeout(connect,Math.min(8000,1000*++retry))};
+  ws.onmessage=e=>{const m=JSON.parse(e.data);
+    if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;S=m;if(!dirty)loadMine();renderMap()}
+    else if(m.t==='hello'){hello=true;nick=m.nick;safeSet('nick',nick);$('nick').value=nick;dirty=false;loadMine();renderMap()}
+    else if(m.t==='err'){toast(m.msg);$('msg').textContent=''}};
+}
+const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o));else toast('Nincs kapcsolat a szerverrel.')};
+let tt;function toast(t){const el=$('toast');el.textContent=t;el.classList.add('show');clearTimeout(tt);tt=setTimeout(()=>el.classList.remove('show'),2800)}
+function loadMine(){
+  const a=S&&S.avatars&&nick&&S.avatars[nick];
+  spot=a&&Number.isInteger(a.spot)?a.spot:null;
+  draw();
+}
+// az előnézet: a választott hely mosómedvéje (sötét módban az éjszakai)
+const loadImg=src=>new Promise((r,j)=>{const im=new Image();im.onload=()=>r(im);im.onerror=j;im.src=src});
+let drawSeq=0;
+async function draw(){
+  const i=spot===null?PREVIEW:spot,night=!!(window.isDark&&isDark()),seq=++drawSeq;
+  const sc=night?Avatar.SCENES.night:Avatar.SCENES.wide,q=Avatar.spotPos(sc,i);
+  const [bg,rc]=await Promise.all([loadImg('/'+sc.src),Avatar.draw(document.createElement('canvas'),skin,i,night)]);
+  if(seq!==drawSeq)return;
+  // a mosómedve a saját helyén, a jelenet kivágott részletével mögötte (az asztal, a rönk is látsszon)
+  const pad=Math.round(q.hw*.4),cv=$('pv');cv.width=rc.width+2*pad;cv.height=rc.height+pad;
+  const c=cv.getContext('2d');c.drawImage(bg,q.left-pad,q.top-pad,cv.width,cv.height,0,0,cv.width,cv.height);c.drawImage(rc,pad,pad);
+  $('pvname').innerHTML=Avatar.SPOTS[i].name+(spot===null?'<small>Még nincs választott helyed, így az első szabad helyre kerülsz.</small>':'');
+}
+// a helytérkép: a háttérkép a helyekkel (világosban a nappali, sötétben az éjszakai)
+function renderMap(){
+  const sc=Avatar.SCENES.wide,img=$('mapimg'),src=window.isDark&&isDark()?'img/scene-map-night.jpg':'img/scene-map.jpg';
+  if(img.getAttribute('src')!==src)img.src=src;
+  const taken={};for(const [n,a] of Object.entries((S&&S.avatars)||{}))if(n!==nick&&Number.isInteger(a.spot))taken[a.spot]=n;
+  $('map').querySelectorAll('.spot').forEach(x=>x.remove());
+  Avatar.SPOTS.forEach((p,i)=>{
+    const q=Avatar.spotPos(sc,i),b=document.createElement('button');b.type='button';b.className='spot'+(spot===i?' mine':'');
+    b.style.left=(q.x/sc.w*100)+'%';b.style.top=((q.y-.55*q.hw)/sc.h*100)+'%';   // a jelölő a fej fölött
+    if(taken[i]){b.disabled=true;b.textContent=taken[i];b.title=`${p.name}: ${taken[i]} helye`}
+    else{b.textContent=spot===i?(nick||'Te'):String(i+1);b.title=p.name;b.onclick=()=>{spot=i;dirty=true;$('msg').textContent='';renderMap();draw()}}
+    b.setAttribute('aria-label',b.title);$('map').appendChild(b);
+  });
+}
+$('auto').onclick=()=>{spot=null;dirty=true;renderMap();draw()};
+addEventListener('themechange',()=>{renderMap();draw()});
+$('nickok').onclick=()=>{const n=$('nick').value.trim();if(n.length<2){toast('A becenév legalább 2 karakter.');return}nick=n;send({t:'hello',nick:n})};
+$('nick').onkeydown=e=>{if(e.key==='Enter')$('nickok').click()};
+$('save').onclick=()=>{if(!nick||!hello){toast('Előbb add meg a beceneved, és nyomj az „Ez vagyok” gombra.');$('nick').focus();return}
+  send({t:'avatar-save',skin,spot});dirty=false;$('msg').textContent='Mentve. Ha bent vagy, a nyitóoldalon már itt ülsz.'};
+$('nick').value=nick;draw();renderMap();connect();
+</script>
+</body>
+</html>

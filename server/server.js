@@ -11,6 +11,8 @@ const gyros = require('./gyros');
 const presence = require('./presence');
 const cola = require('./cola');
 const profiles = require('./profiles');
+const avatars = require('./avatars');
+const bj = require('./blackjack');
 const conquest = require('./hodito');
 
 const PORT = process.env.PORT || 3000;
@@ -45,6 +47,11 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
+S.avatars ||= avatars.empty();
+// blackjack: a kör a memóriában él; ha a szerver kör közben újraindul, a feltett tétek visszajárnak a potba
+const BJ = bj.empty();
+if (Array.isArray(S.bjBets)) for (const b of S.bjBets) S.pot += b.stake;
+S.bjBets = [];
 const cleanNick = (s) => String(s || '').replace(/[\u0000-\u001f<>&"]/g, '').trim().slice(0, 16);
 const MINESWEEPER_LEVELS = new Set(['beginner', 'intermediate', 'expert']);
 const emptyMinesweeper = () => ({ scores: { beginner: [], intermediate: [], expert: [] } });
@@ -62,7 +69,37 @@ function normalizeMinesweeper(value) {
   return out;
 }
 S.minesweeper = normalizeMinesweeper(S.minesweeper);
-const LAST = {};   // becenév -> az előző köre tétjei („Ismétlés” gombhoz)
+const LAST = {};
+// ---- blackjack időzítés és elszámolás ----
+let bjTimer = null, bjEndAt = 0;
+const BJ_TURN_MS = 20000, BJ_RESULT_MS = 6000;
+function bjSettle() {
+  for (const st of BJ.seats) { S.pot += st.back; const r = stat(st.nick); r.net += st.back - st.stake; r.rounds++; }
+  const dv = bj.value(BJ.dealer).total;
+  const words = { blackjack: 'blackjack!', win: 'nyert', push: 'döntetlen', lose: 'vesztett', bust: 'besokallt' };
+  say(`🃏 Blackjack: az osztó ${dv > 21 ? 'besokallt' : dv + '-et húzott'}. ` + BJ.seats.map((x) => `${x.nick} ${words[x.result]} (${x.back - x.stake > 0 ? '+' : ''}${fmt(x.back - x.stake)})`).join(', ') + '.');
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] blackjack ${BJ.round} | osztó: ${BJ.dealer.join(' ')} (${dv}) | ${BJ.seats.map((x) => `${x.nick}: ${x.cards.join(' ')} tét ${x.stake} -> ${x.back}`).join(' | ')} | pot: ${S.pot}`);
+}
+function bjSchedule() {
+  clearTimeout(bjTimer); bjEndAt = 0;
+  if (BJ.phase === 'play') {
+    const t = BJ.turn, r = BJ.round; bjEndAt = Date.now() + BJ_TURN_MS;
+    bjTimer = setTimeout(() => {
+      if (BJ.phase !== 'play' || BJ.turn !== t || BJ.round !== r) return;
+      const n = BJ.seats[t].nick; bj.stand(BJ, n); say(`🃏 ${n} nem döntött időben, megállt.`); bjAfter();
+    }, BJ_TURN_MS);
+  } else if (BJ.phase === 'result') {
+    bjEndAt = Date.now() + BJ_RESULT_MS;
+    bjTimer = setTimeout(() => { bj.reset(BJ); S.bjBets = []; save(); broadcast(); }, BJ_RESULT_MS);
+  }
+}
+function bjAfter() {
+  if (BJ.phase === 'result' && !BJ.settled) { bjSettle(); BJ.settled = true; }
+  if (BJ.phase !== 'result') BJ.settled = false;
+  bjSchedule();
+  S.bjBets = BJ.phase === 'result' ? [] : BJ.seats.map((x) => ({ nick: x.nick, stake: x.stake }));
+  save(); broadcast();
+}   // becenév -> az előző köre tétjei („Ismétlés” gombhoz)
 let saveTimer;
 function save() {
   clearTimeout(saveTimer);
@@ -227,7 +264,8 @@ function snapshot(withTrack) {
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
-    profiles: S.profiles, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
+    profiles: S.profiles, avatars: S.avatars,
+    bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper,
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
@@ -325,6 +363,32 @@ wss.on('connection', (ws) => {
       say(`${ws.nick} megpörgette a kereket.`);
       R.spinner = ws.nick;
       return startSpin();
+    }
+    if (m.t && m.t.startsWith('bj-')) {
+      let e = null;
+      if (m.t === 'bj-bet') {
+        const amt = m.amount;
+        if (!game.CHIPS.includes(amt)) e = 'Ismeretlen zseton.';
+        else if (S.pot < amt) e = 'Nincs elég mosómedve a közös potban.';
+        else if (!(e = bj.bet(BJ, ws.nick, amt, Number.isInteger(m.seat) ? m.seat : undefined))) S.pot -= amt;
+      } else if (m.t === 'bj-unbet') S.pot += bj.unbet(BJ, ws.nick);
+      else if (m.t === 'bj-deal') { if (!BJ.seats.some((x) => x.nick === ws.nick)) e = 'Osztást az kérhet, aki ült le tétet tenni.'; else if (!(e = bj.deal(BJ))) say(`🃏 ${ws.nick} osztást kért a blackjack-asztalnál.`); }
+      else if (m.t === 'bj-hit') e = bj.hit(BJ, ws.nick);
+      else if (m.t === 'bj-stand') e = bj.stand(BJ, ws.nick);
+      else if (m.t === 'bj-double') {
+        e = bj.canDouble(BJ, ws.nick);
+        const st = !e && BJ.seats[BJ.turn].stake;
+        if (!e && S.pot < st) e = 'Nincs elég mosómedve a potban a duplázáshoz.';
+        if (!e) { S.pot -= st; e = bj.double(BJ, ws.nick); }
+      } else e = 'Ismeretlen blackjack-lépés.';
+      if (e) return err(e);
+      bjAfter();
+      return;
+    }
+    if (m.t === 'avatar-save') {
+      const e = avatars.setAvatar(S.avatars, ws.nick, m.skin, m.spot);
+      if (e) return err(e);
+      save(); broadcast(); return;
     }
     if (m.t === 'profile-save') {
       const e = profiles.saveProfile(S.profiles, ws.nick, m.name, R.bets.filter((b) => b.nick === ws.nick));
