@@ -51,6 +51,8 @@ ul{list-style:none;margin:0;padding:0}
 /* helyválasztás közben a felső panelek ne takarják a helyeket */
 .tl,.tr{transition:opacity .35s}
 .stage.picking .tl,.stage.picking .tr{opacity:.12;pointer-events:none}
+.stage.view-bj.picking .tl,.stage.view-bj.picking .tr{opacity:1;pointer-events:auto}
+@media (max-width:760px){.stage.view-bj .tr ul#board{max-height:56px}.stage.view-bj .door{display:none}}
 .crowd{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none}
 .crowd .rcw{position:absolute}
 .crowd .rcw img{position:absolute;left:0;top:0;width:100%;height:100%;user-select:none}
@@ -71,9 +73,9 @@ ul{list-style:none;margin:0;padding:0}
   border-radius:999px;padding:.1em .55em;line-height:1.3;text-shadow:0 1px 2px rgba(0,0,0,.5)}
 .stage{perspective:1100px}
 .world{position:absolute;inset:0;transform-origin:50% 50%;transition:transform 1.25s cubic-bezier(.55,0,.25,1);will-change:transform}
-.torl{position:absolute;z-index:8;left:16px;top:16px;padding:10px 16px;font:inherit;font-weight:800;font-size:.95rem;cursor:pointer;color:#fff;
-  opacity:0;pointer-events:none;transform:translateY(-6px);transition:opacity .3s,transform .3s}
-.stage.view-bj .torl{opacity:1;pointer-events:auto;transform:none;transition:opacity .4s .5s,transform .4s .5s}
+.torl{position:absolute;z-index:8;left:50%;top:16px;padding:10px 16px;font:inherit;font-weight:800;font-size:.95rem;cursor:pointer;color:#fff;
+  opacity:0;pointer-events:none;transform:translate(-50%,-6px);transition:opacity .3s,transform .3s}
+.stage.view-bj .torl{opacity:1;pointer-events:auto;transform:translate(-50%,0);transition:opacity .4s .5s,transform .4s .5s}
 .torl:hover{background:rgba(10,15,22,.7)}
 .torl:focus-visible{outline:3px solid #fff;outline-offset:2px}
 /* a blackjack-nézet: saját kép (az asztalnál ülsz, szemben az osztó); a helyek a kép képpontjaiban, ugyanabban a tárolóban, mint a kép */
@@ -106,7 +108,8 @@ ul{list-style:none;margin:0;padding:0}
 .bjpt .res{font-weight:800;font-size:.86rem;text-shadow:0 1px 3px rgba(0,0,0,.7)}
 .bjdl .hand .pc{width:52px;height:74px;font-size:1.25rem}
 .bjdl .val{font-size:1.3rem}
-.stage.view-bj .tl,.stage.view-bj .tr{opacity:0;pointer-events:none;transition:opacity .4s}
+/* a blackjacknél is látszik a saját panel, az üzenetek és a ranglista (a kép fölött) */
+.stage.view-bj .tl,.stage.view-bj .tr{z-index:7}
 .tl,.tr{transition:opacity .4s}
 .stage.view-bj .dock,.stage.view-bj .banner,.stage.view-bj .logo{opacity:0;pointer-events:none;transition:opacity .5s}
 .dock{transition:opacity .5s}
@@ -131,6 +134,31 @@ ul{list-style:none;margin:0;padding:0}
 .bjhead b{font-size:1.15rem}
 .bjhead span{color:#f3e6de;font-size:.9rem}
 .bjhead .bar{grid-column:1/3;margin-top:2px}
+/* pot, egyenleg, asztalon lévő tét */
+.bjstats{grid-column:1/3;display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.bjstats span{display:inline-flex;align-items:center;gap:5px;padding:3px 10px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);font-size:.84rem;color:#f3e6de}
+.bjstats b{font-size:.92rem;color:#fff;font-variant-numeric:tabular-nums}
+.bjstats .tok{width:18px;height:18px}
+/* a posztó részletei (a kép képpontjaiban): szabályok az íven, gyűrű a soron lévőn, zsetonok a tétkörön */
+.bjfelt{position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none}
+.bjfelt .rule{fill:#f6ecd2;opacity:.82;font:800 12.5px Figtree,sans-serif;letter-spacing:.14em}
+.bjfelt .rule2{fill:#f6ecd2;opacity:.6;font:700 10px Figtree,sans-serif;letter-spacing:.12em}
+.bjfelt .ring{fill:none;stroke:#ffd166;stroke-width:4;filter:drop-shadow(0 0 6px #ffd166)}
+.bjfelt .ring.turn{animation:ringp 1.1s ease-in-out infinite}
+.bjfelt .ring.me{stroke:#eb772e;filter:drop-shadow(0 0 5px #eb772e);stroke-width:3}
+@keyframes ringp{50%{stroke-width:7;opacity:.6}}
+@media (prefers-reduced-motion:reduce){.bjfelt .ring.turn{animation:none}}
+.bjchipst{position:absolute;transform:translate(-50%,-50%) scale(var(--k,1));display:flex;flex-direction:column-reverse;align-items:center;pointer-events:none}
+.bjchipst i{display:block;width:30px;height:9px;margin-top:-5px;border-radius:50%;background:var(--cc);border:2px solid #fff;box-shadow:0 2px 2px rgba(0,0,0,.45)}
+.bjchipst b{position:absolute;top:100%;margin-top:2px;font-size:.72rem;font-weight:800;color:#fff;text-shadow:0 1px 3px #000;white-space:nowrap}
+.bjshoe{position:absolute;transform:translate(-50%,-50%) scale(var(--k,1));padding:2px 8px;border-radius:999px;background:rgba(10,15,22,.6);color:#f3e6de;font-size:.72rem;font-weight:700;white-space:nowrap;pointer-events:none}
+.bjv{display:inline-block;padding:2px 10px;border-radius:999px;background:rgba(10,15,22,.62);border:1px solid rgba(255,255,255,.2);color:#fff;font-weight:800;font-size:.9rem;white-space:nowrap}
+.bjv.bust{background:rgba(223,49,45,.85)}
+.bjres{display:inline-block;padding:3px 10px;border-radius:999px;font-weight:800;font-size:.86rem;color:#fff;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,.4);animation:resin .4s cubic-bezier(.2,.8,.2,1)}
+.bjres.win,.bjres.blackjack{background:#11845b}.bjres.blackjack{background:linear-gradient(90deg,#c9921a,#f5c542);color:#2a1a00}
+.bjres.lose,.bjres.bust{background:#b8322b}.bjres.push{background:#5d6670}
+@keyframes resin{from{transform:scale(.6);opacity:0}}
+@media (prefers-reduced-motion:reduce){.bjres{animation:none}}
 .bjdealer{display:flex;align-items:center;gap:12px;margin:10px 0}
 .bjdealer .lbl{font-weight:700;color:var(--apricot);min-width:52px}
 .hand{display:flex;gap:6px;min-height:58px}
@@ -416,10 +444,14 @@ footer strong{color:#fff}
     <canvas id="cv" aria-label="3D rulettkerék"></canvas>
   </div>
   <!-- a blackjack-nézet: az asztalra kattintva nyílik -->
-  <div class="bjscene" id="bjscene" aria-hidden="true"><img class="bjback" id="bjback" alt="" hidden><div class="bjin" id="bjin"><img id="bjimg" alt=""><div id="bjpts"></div></div></div>
+  <div class="bjscene" id="bjscene" aria-hidden="true"><img class="bjback" id="bjback" alt="" hidden><div class="bjin" id="bjin"><img id="bjimg" alt=""><svg class="bjfelt" viewBox="0 0 1376 768" aria-hidden="true">
+    <defs><path id="bjarc" d="M 470 474 Q 688 525 906 474"/><path id="bjarc2" d="M 452 500 Q 688 556 924 500"/></defs>
+    <text class="rule" dominant-baseline="middle"><textPath href="#bjarc" startOffset="50%" text-anchor="middle">A BLACKJACK 3:2-T FIZET · AZ OSZTÓ 17-NÉL MEGÁLL</textPath></text>
+    <text class="rule2" dominant-baseline="middle"><textPath href="#bjarc2" startOffset="50%" text-anchor="middle">TÉT 100 – 10 000 · DUPLÁZÁS AZ ELSŐ KÉT LAPRA</textPath></text>
+    <g id="bjrings"></g></svg><div id="bjpts"></div></div></div>
   <button type="button" class="torl glass" id="toRL">◀ Vissza a rulettehez</button>
   <section class="bjpanel glass" id="bjpanel" aria-label="Blackjack" aria-hidden="true">
-    <div class="bjhead"><b>Blackjack</b><span id="bjinfo">Ülj le: tegyél fel tétet</span><div class="bar"><i id="bjbar"></i></div></div>
+    <div class="bjhead"><b>Blackjack</b><span id="bjinfo">Ülj le: tegyél fel tétet</span><div class="bjstats" id="bjstats"></div><div class="bar"><i id="bjbar"></i></div></div>
     <div class="bjdealer"><span class="lbl">Osztó</span><div class="hand" id="bjdealer"></div><span class="val" id="bjdv"></span></div>
     <div class="bjseats" id="bjseats"></div>
     <div class="bjctl" id="bjctl"></div>
@@ -495,7 +527,7 @@ footer strong{color:#fff}
     <h2 class="sec">Hogyan működik</h2>
     <p class="lead">Virtuális játék, nem valódi pénz. Mosómedvékben játszunk, és a pot csak a szobáé.</p>
     <ol class="steps">
-      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először bejelentkezik (helyben vagy home office-ból), +10 000 mosómedvét hoz a közösnek. Utána a képen a + jelekkel ülhetsz le a tábortűz körül.</div></li>
+      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először bejelentkezik, hoz a közösnek: helyben +10 000, home office-ból +5 000 mosómedvét (egy becenév naponta egyszer). Utána a képen a + jelekkel ülhetsz le a tábortűz körül.</div></li>
       <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Valódi fizika</h3>A golyó fizikai szimulációval forog, pattog és áll meg. A nyerő szám abból jön, hol marad a golyó.</div></li>
       <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Ajtó és Pörgetés</h3>Ha kinyílik az ajtó, az ajtó is feltesz 1000 mosómedvét, és amikor becsukódik, pörög a kerék. Pörgetni a Pörgetés gombbal is lehet, a saját tétjeid után. Az ajtót az irodai MacBook figyeli: <a href="/ajto.html">így kell beállítani</a>.</div></li>
     </ol>
@@ -515,7 +547,7 @@ footer strong{color:#fff}
 // felt: a posztó alsó széle (alatta az asztal pereme és a pad, ezt takarhatja a panel)
 const BJ_SCENE={src:'img/bj-view.jpg',srcNight:'img/bj-view-night.jpg',w:1376,h:768,
   dealer:{x:688,y:488},felt:600,
-  seats:[{x:370,y:501},{x:470,y:540},{x:611,y:564},{x:765,y:564},{x:906,y:540},{x:1006,y:501}]};
+  seats:[{x:370,y:501},{x:470,y:540},{x:611,y:564},{x:765,y:564},{x:906,y:540},{x:1006,y:501}],shoe:{x:427,y:436}};
 const ORDER=[0,32,15,19,4,21,2,25,17,34,6,27,13,36,11,30,8,23,10,5,24,16,33,1,20,14,31,9,22,18,29,7,28,12,35,3,26];
 const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const colorOf=n=>n===0?'green':RED.has(n)?'red':'black';
@@ -1016,20 +1048,28 @@ const bjCost=()=>[chip,100,500,1000,5000].find(v=>S&&v<=S.pot);
 function renderBjScene(B,me){
   const full=B.seats.length>=6,canSit=B.phase==='betting'&&!me&&!full;
   const pt=(p,cls,inner,extra='')=>`<div class="bjpt ${cls}" data-x="${p.x}" style="left:${p.x}px;top:${p.y}px"${extra}>${inner}</div>`;
-  let h=pt(BJ_SCENE.dealer,'bjdl up',`${B.dealer.length?`<span class="val">${B.dealerValue}${B.phase==='play'?'+':''}</span>`:''}<div class="hand">${cardsHTML('v:dealer',B.dealer)}</div>`);
+  const dv=B.dealer.length?(B.phase!=='play'&&B.dealerValue>21?`<span class="bjv bust">Osztó besokallt (${B.dealerValue})</span>`:`<span class="bjv">Osztó · ${B.dealerValue}${B.phase==='play'?' + ?':''}</span>`):'<span class="bjv">Osztó</span>';
+  let h=pt(BJ_SCENE.dealer,'bjdl up',`${dv}<div class="hand">${cardsHTML('v:dealer',B.dealer)}</div>`);
+  // a pakli a kártyaadagolón
+  h+=`<div class="bjshoe" style="left:${BJ_SCENE.shoe.x}px;top:${BJ_SCENE.shoe.y}px">🂠 ${B.shoe||0} lap</div>`;
+  let rings='';
   BJ_SCENE.seats.forEach((p,i)=>{
     const x=B.seats.find(q=>q.seat===i);
     if(x){
       const turn=B.phase==='play'&&B.seats[B.turn]===x;
-      const res=x.result?`<span class="res ${x.result}">${RES[x.result]}</span>`:'';
-      h+=pt(p,'st up',`${res}<span class="val">${x.cards.length?x.value:''}</span><div class="hand">${cardsHTML('v:'+x.nick,x.cards)}</div>`);
+      const net=x.back-x.stake,res=x.result?`<span class="bjres ${x.result}">${RES[x.result]}${net?` ${net>0?'+':'−'}${fmt(Math.abs(net))}`:''}</span>`:'';
+      // zsetonkupac a tétkörön (a tét összege), gyűrű a soron lévőn és a saját helyen
+      const n=Math.min(6,Math.max(1,Math.round(Math.log10(Math.max(100,x.stake))*2-3)));
+      h+=`<div class="bjchipst" style="left:${p.x-58}px;top:${p.y+4}px">${'<i style="--cc:'+chipColor(x.stake)+'"></i>'.repeat(n)}<b>${fmt(x.stake)}${x.doubled?' ×2':''}</b></div>`;
+      if(turn||x.nick===nick)rings+=`<ellipse class="ring${turn?' turn':''}${x.nick===nick&&!turn?' me':''}" cx="${p.x}" cy="${p.y}" rx="52" ry="27"/>`;
+      h+=pt(p,'st up',`${res}${x.cards.length?`<span class="bjv">${x.value}</span>`:''}<div class="hand">${cardsHTML('v:'+x.nick,x.cards)}</div>`);
       h+=pt(p,'st down',`<div class="glass bjpl${turn?' turn':''}${x.nick===nick?' me':''}"><span class="nk">${esc(x.nick)}</span><small>${fmt(x.stake)}${x.doubled?' ×2':''}</small></div>`);
     }else if(canSit){
       const c=bjCost();
       h+=pt(p,'',`<button type="button" class="bjsit glass" data-seat="${i}" ${c?'':'disabled'} aria-label="Ülj ide (${i+1}. hely)${c?`, tét: ${fmt(Math.min(c,S.pot))}`:''}"><svg viewBox="0 0 100 90" aria-hidden="true"><use href="#rc-face"/></svg>Ülj ide</button>`);
     }
   });
-  $('bjpts').innerHTML=h;layoutBjScene();
+  $('bjpts').innerHTML=h;$('bjrings').innerHTML=rings;layoutBjScene();
 }
 $('bjpts').onclick=e=>{const b=e.target.closest('[data-seat]');if(!b||b.disabled)return;if(!nick){showNick();return}
   const c=bjCost();if(c)send({t:'bj-bet',amount:c,seat:+b.dataset.seat})};
@@ -1064,6 +1104,10 @@ function renderBJ(){
     :B.phase==='play'?(myTurn?'Te jössz!':`${B.seats[B.turn]?B.seats[B.turn].nick:''} jön.`)
     :'Kör vége. Mindjárt új kör.';
   $('bjdealer').innerHTML=cardsHTML('dealer',B.dealer);
+  const mine=S.board.find(b=>b.nick===nick),onTable=B.seats.reduce((a,x)=>a+x.stake,0);
+  $('bjstats').innerHTML=`<span>Közös pot <img class="tok" src="img/token-96.png" alt=""><b>${fmt(S.pot)}</b></span>`+
+    (nick?`<span>Egyenleged <b class="${mine&&mine.net<0?'neg':'pos'}">${mine?(mine.net>0?'+':'')+fmt(mine.net):'0'}</b></span>`:'')+
+    `<span>Az asztalon <b>${fmt(onTable)}</b>${B.seats.length?` · ${B.seats.length}/6 hely`:''}</span>`+(me?`<span>A téted <b>${fmt(me.stake)}${me.doubled?' ×2':''}</b></span>`:'');
   renderBjScene(B,me);
   $('bjdv').textContent=B.dealer.length?B.dealerValue+(B.phase==='play'?'+':''):'';
   $('bjseats').innerHTML=B.seats.map((x,i)=>{

@@ -22,7 +22,7 @@ if (!process.env.INGEST_TOKEN) console.log(`INGEST_TOKEN nincs megadva, ideiglen
 
 const BOOT_ID = crypto.randomBytes(4).toString('hex'); // új indulásnál a kliensek újratöltenek
 const START_POT = 100000;
-const DAILY_CREDIT = 10000;
+const DAILY_CREDIT = 10000, HO_CREDIT = 5000;   // aznapi első belépés: helyben 10 000, home office-ból 5 000 a potba
 const T_RESULT = 5000, T_DOOR_DELAY = 3000;
 const MAX_PER_ROUND = 20000, MAX_BETS = 80;  // játékosonként egy körben
 const DOOR = 'ajtó';
@@ -395,9 +395,10 @@ wss.on('connection', (ws) => {
           : m.t === 'stand' ? seats.stand(S.seats, ws.nick, today()) : seats.leave(S.seats, ws.nick, today());
       if (e) return err(e);
       if (m.t === 'leave') say(`👋 ${ws.nick} kilépett.`);
-      // aznapi első bejelentkezés: +10 000 a közös potba (fejenként naponta egyszer, ugyanaz a szabály, mint az ajtós érkezésnél)
+      // aznapi első bejelentkezés: helyben +10 000, home office-ból +5 000 a közös potba (egy becenév naponta egyszer kaphat)
       if (m.t === 'where' && !had) {
-        const bonus = credit(ws.nick) ? `, +${fmt(DAILY_CREDIT)} a potba` : '';
+        const amount = m.mode === 'ho' ? HO_CREDIT : DAILY_CREDIT;
+        const bonus = credit(ws.nick, amount) ? `, +${fmt(amount)} a potba` : '';
         say(m.mode === 'ho' ? `🏠 ${ws.nick} home office-ból csatlakozott${bonus}.` : `🦝 ${ws.nick} bent van${bonus}.`);
       }
       save(); broadcast(); return;
@@ -449,12 +450,12 @@ app.post('/api/door', ingest, (req, res) => {
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' });
-// aznapi első érkezés: +10 000 a közös potba (fejenként naponta egyszer)
-function credit(n) {
+// aznapi első érkezés: +10 000 (home office-ból +5 000) a közös potba; egy becenév naponta csak egyszer kaphat
+function credit(n, amount = DAILY_CREDIT) {
   if (S.credited.date !== today()) S.credited = { date: today(), names: [] };
   S.bent[n] = Date.now();
   if (S.credited.names.includes(n)) return false;
-  S.credited.names.push(n); S.pot += DAILY_CREDIT;
+  S.credited.names.push(n); S.pot += amount;
   return true;
 }
 app.post('/api/presence', ingest, (req, res) => {
