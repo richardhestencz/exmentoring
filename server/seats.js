@@ -3,21 +3,21 @@
 // Minden reggel tiszta lap: a tegnapi bejelentkezések és helyek lejárnak.
 const A = require('./public/avatar.js');
 
-const empty = () => ({});            // becenév -> { mode: 'ho' | 'bent', spot: szám vagy null, day }
+const empty = () => ({});            // becenév -> { mode: 'ho' | 'bent', spot: szám vagy null, day, since: az aznapi belépés ideje }
 const MODES = ['ho', 'bent'];
 
 function prune(S, day) {
   for (const [n, v] of Object.entries(S)) if (v.day !== day) delete S[n];
 }
 
-function where(S, nick, mode, day) {
+function where(S, nick, mode, day, now = Date.now()) {
   if (!nick) return 'Előbb add meg a beceneved.';
   if (!MODES.includes(mode)) return 'Válaszd ki, hogy home office-ból vagy helyben vagy.';
   prune(S, day);
   if (!S[nick] && Object.keys(S).length >= 200) return 'Túl sokan vannak bent.';
   const was = S[nick];
-  // ha másik módra vált, a helye felszabadul (HO-ból nem ülhet az irodai helyen, és fordítva)
-  S[nick] = { mode, spot: was && was.mode === mode ? was.spot : null, day };
+  // ha másik módra vált, a helye felszabadul (HO-ból nem ülhet az irodai helyen, és fordítva); a belépés ideje marad
+  S[nick] = { mode, spot: was && was.mode === mode ? was.spot : null, day, since: was ? was.since : now };
   return null;
 }
 
@@ -40,10 +40,18 @@ function stand(S, nick, day) {
   return null;
 }
 
+// kilépés: aki végzett, eltűnik a tisztásról és a „Ki van bent?” listából (ha aznap visszajön, új belépés)
+function leave(S, nick, day) {
+  prune(S, day);
+  if (!S[nick]) return 'Most nem vagy bejelentkezve.';
+  delete S[nick];
+  return null;
+}
+
 // a nyilvános nézet: csak a mai bejelentkezések
 function view(S, day) {
   prune(S, day);
-  return Object.fromEntries(Object.entries(S).map(([n, v]) => [n, { mode: v.mode, spot: v.spot }]));
+  return Object.fromEntries(Object.entries(S).map(([n, v]) => [n, { mode: v.mode, spot: v.spot, since: v.since || 0 }]));
 }
 
-module.exports = { empty, where, sit, stand, view };
+module.exports = { empty, where, sit, stand, leave, view };

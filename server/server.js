@@ -48,6 +48,7 @@ S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
 S.seats ||= seats.empty();
+for (const v of Object.values(S.seats)) v.since ||= Date.now();   // a belépés ideje (a korábbi bejegyzésekben még nem volt)
 delete S.avatars;   // a régi skin-profilok (skin már nincs)
 // blackjack: a kör a memóriában él; ha a szerver kör közben újraindul, a feltett tétek visszajárnak a potba
 const BJ = bj.empty();
@@ -387,11 +388,13 @@ wss.on('connection', (ws) => {
       return;
     }
     // ki ül hol: HO vagy helyben (belépéskor), aztán leülés egy szabad helyre, felállás
-    if (m.t === 'where' || m.t === 'seat' || m.t === 'stand') {
+    if (m.t === 'where' || m.t === 'seat' || m.t === 'stand' || m.t === 'leave') {
       const had = S.seats[ws.nick] && S.seats[ws.nick].day === today();
       const e = m.t === 'where' ? seats.where(S.seats, ws.nick, m.mode, today())
-        : m.t === 'seat' ? seats.sit(S.seats, ws.nick, m.spot, today()) : seats.stand(S.seats, ws.nick, today());
+        : m.t === 'seat' ? seats.sit(S.seats, ws.nick, m.spot, today())
+          : m.t === 'stand' ? seats.stand(S.seats, ws.nick, today()) : seats.leave(S.seats, ws.nick, today());
       if (e) return err(e);
+      if (m.t === 'leave') say(`👋 ${ws.nick} kilépett.`);
       // aznapi első bejelentkezés: +10 000 a közös potba (fejenként naponta egyszer, ugyanaz a szabály, mint az ajtós érkezésnél)
       if (m.t === 'where' && !had) {
         const bonus = credit(ws.nick) ? `, +${fmt(DAILY_CREDIT)} a potba` : '';

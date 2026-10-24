@@ -177,6 +177,7 @@ ul{list-style:none;margin:0;padding:0}
 .me{display:flex;align-items:center;gap:10px;padding:8px 12px}
 .me svg{width:28px;height:25px;flex:none}
 .me b{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me button+button{margin-left:0}
 .me button{margin-left:auto;background:none;border:0;color:var(--apricot);font-weight:600;font-size:.82rem;cursor:pointer;text-decoration:underline;padding:2px}
 .feed{padding:8px 12px;font-size:.84rem}
 .feed li{padding:3px 0;color:#f3e6de}
@@ -430,7 +431,7 @@ footer strong{color:#fff}
   </div>
 
   <div class="tl">
-    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button></div>
+    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
   </div>
 
@@ -543,26 +544,32 @@ const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
 const serverNow=()=>Date.now()+offset;
 // belépés: becenév + hol vagy ma (helyben vagy home office); minden nap újra megkérdezzük (a helyek éjfélkor lejárnak)
 let pendingMode=null,renaming=false;
+// aki ma kilépett, annak nem ugrik fel újra a kérdés (a nevénél a „Belépek” gombbal jöhet vissza)
+const dayStr=()=>new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Budapest'});
+let left=safeGet('left')===dayStr();
 const mySeat=()=>S&&S.seats&&nick&&S.seats[nick];
 function showNick(){
   const demo=/[?&]demo/.test(location.search);   // ?demo: bemutató, nincs becenév-kérés
-  const need=!demo&&(renaming||!nick||(S&&!mySeat()));
+  const need=!demo&&(renaming||!nick||(S&&!mySeat()&&!left));
   const was=$('nickmodal').hidden;
   $('nickmodal').hidden=!need;stage.classList.toggle('nonick',need);
   $('mename').textContent=nick||'Vendég';
   $('mtitle').textContent=!nick||renaming?'Mi a beceneved?':`Szia, ${nick}! Hol vagy ma?`;
   $('nick').hidden=!!nick&&!renaming;
+  $('leave').hidden=!mySeat();$('enter').hidden=!(nick&&S&&!mySeat()&&left);
   if(need&&was)setTimeout(()=>(nick&&!renaming?document.querySelector('.where .btn'):$('nick')).focus(),50);
 }
 document.querySelector('.where').onclick=e=>{
   const b=e.target.closest('[data-mode]');if(!b)return;
   const n=$('nick').value.trim()||nick;
   if(!n){$('err').textContent='Előbb írd be a beceneved.';$('nick').focus();return}
-  renaming=false;
+  renaming=false;left=false;safeSet('left','');
   if(n!==nick){pendingMode=b.dataset.mode;send({t:'hello',nick:n})}
   else send({t:'where',mode:b.dataset.mode});
 };
 $('nickform').onsubmit=e=>{e.preventDefault();$('err').textContent='Válaszd ki, hogy helyben vagy home office-ból vagy.'};
+$('leave').onclick=()=>{if(!confirm('Kilépsz mára? Eltűnsz a tisztásról és a Ki van bent? listából.'))return;left=true;safeSet('left',dayStr());send({t:'leave'})};
+$('enter').onclick=()=>{left=false;safeSet('left','');showNick()};
 $('rename').onclick=()=>{renaming=true;$('nick').value=nick;$('err').textContent='';showNick();$('nick').focus();$('nick').select()};
 $('nick').value=nick;
 let toastT;

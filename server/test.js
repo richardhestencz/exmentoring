@@ -184,13 +184,23 @@ test('tisztás: HO vagy helyben, leülés a megengedett szabad helyre, felállá
   assert.strictEqual(st.where(S, 'Matyi', 'bent', day), null);
   assert.match(st.sit(S, 'Matyi', 3, day), /Ricsi/, 'egy helyen csak egy ember ül');
   assert.ok(st.sit(S, 'Matyi', A.MAX, day), 'nem létező hely');
-  assert.deepStrictEqual(st.view(S, day).Ricsi, { mode: 'bent', spot: 3 });
+  assert.deepStrictEqual(st.view(S, day).Ricsi, { mode: 'bent', spot: 3, since: st.view(S, day).Ricsi.since });
+  const t0 = st.view(S, day).Ricsi.since;
   assert.strictEqual(st.stand(S, 'Ricsi', day), null);
   assert.strictEqual(st.view(S, day).Ricsi.spot, null, 'felállás után nincs helye');
   assert.ok(st.stand(S, 'Ricsi', day), 'kétszer nem állhat fel');
   assert.strictEqual(st.sit(S, 'Matyi', 3, day), null, 'a felszabadult hely foglalható');
   assert.strictEqual(st.where(S, 'Gabó', 'bent', day), null);
   assert.strictEqual(st.view(S, day).Gabó.spot, null, 'módváltáskor a hely felszabadul');
+  assert.strictEqual(st.sit(S, 'Ricsi', 5, day), null);
+  assert.strictEqual(st.view(S, day).Ricsi.since, t0, 'átüléskor nem lesz új időpont');
+  assert.strictEqual(st.where(S, 'Ricsi', 'ho', day, t0 + 5000), null);
+  assert.strictEqual(st.view(S, day).Ricsi.since, t0, 'módváltáskor sem');
+  assert.strictEqual(st.leave(S, 'Ricsi', day), null);
+  assert.strictEqual(st.view(S, day).Ricsi, undefined, 'kilépés után nincs a listában');
+  assert.ok(st.leave(S, 'Ricsi', day), 'kétszer nem léphet ki');
+  assert.strictEqual(st.where(S, 'Ricsi', 'bent', day, t0 + 9000), null);
+  assert.strictEqual(st.view(S, day).Ricsi.since, t0 + 9000, 'visszajövetelkor új belépés');
   assert.deepStrictEqual(st.view(S, '2026-10-25'), {}, 'másnap tiszta lap');
   assert.strictEqual(A.HO.length + A.SPOTS.filter((p, i) => A.allowed('bent', i)).length, A.MAX);
   for (const sc of Object.values(A.SCENES)) for (let i = 0; i < A.MAX; i++) {

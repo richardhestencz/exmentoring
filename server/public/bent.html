@@ -158,43 +158,26 @@ details.admin summary{cursor:pointer;font-weight:800;color:var(--ink)}
 <main>
 <div class="hero"><div class="wrap">
   <h1>Ki van bent?</h1>
-  <p class="lead">Reggel beolvasod az ajtón lévő QR-kódot, és megjelensz itt. Aki aznap beér, +10 000 mosómedvét hoz a közös potba.</p>
+  <p class="lead">A nyitóoldalon belépéskor mindenki megmondja, hogy helyben vagy home office-ból van, és leül a tábortűz körül. Itt látszik, ki van ma bent, és mióta.</p>
   <div class="livecount" aria-live="polite"><b id="cnt">0</b><span id="cntl">ember van bent</span></div>
 </div></div>
 
 <section><div class="wrap">
-  <h2>Most bent</h2>
-  <ul class="people" id="here" aria-label="Kik vannak bent"></ul>
-  <h2 style="margin-top:22px">Nincs bent</h2>
-  <ul class="people" id="away" aria-label="Kik nincsenek bent"></ul>
+  <h2>Helyben</h2>
+  <ul class="people" id="here" aria-label="Kik vannak helyben"></ul>
+  <h2 style="margin-top:22px">Home office</h2>
+  <ul class="people" id="ho" aria-label="Kik vannak home office-ból"></ul>
+  <p style="margin-top:18px"><button type="button" class="mini" id="leave" hidden>Kilépek mára</button> <span class="muted" id="msg" role="status"></span></p>
 </div></section>
 
 <section><div class="wrap">
   <h2>Hogyan működik</h2>
   <ol class="steps2">
-    <li><strong>Reggel:</strong> az iroda ajtaján lévő QR-kódot beolvasod a telefonod kamerájával, és rákoppintasz a megjelenő linkre.</li>
-    <li><strong>Első alkalommal</strong> az oldal megkérdezi a beceneved (pl. Ricsi). Ez ehhez a telefonhoz kötődik, utána már nem kérdezi.</li>
-    <li><strong>Kész:</strong> megjelensz a „Most bent” részben, és ha ma te érsz be elsőként a nevedben, +10 000 mosómedvét hozol a közös potba.</li>
-    <li><strong>Elmenőben</strong> beolvashatod még egyszer, és az „Elmegyek” gombbal kijelentkezel. Ha elfelejted, éjfélkor magától lejár.</li>
+    <li><strong>Belépés:</strong> a nyitóoldalon megadod a beceneved, és kiválasztod: „Helyben” vagy „Home office”. Aki aznap elsőként lép be a nevében, +10 000 mosómedvét hoz a közös potba.</li>
+    <li><strong>Leülés:</strong> a képen a + jelekkel választasz helyet (home office-ból a tó mellett: horgász vagy kenu). Átülhetsz máshova, az érkezésed ideje marad.</li>
+    <li><strong>Kilépés:</strong> ha végeztél, a nyitóoldalon a neved mellett vagy itt a „Kilépek mára” gombbal. Ha elfelejted, éjfélkor magától lejár.</li>
   </ol>
-  <p class="muted">A rulett ezen a telefonon magától a QR-kódnál választott becenevet használja. Gépen ugyanúgy játszhatsz bármilyen becenévvel, a kettő nem zavarja egymást.</p>
-  <div class="card note">
-    <h3>Biztonság és adatvédelem</h3>
-    <ul class="list">
-      <li><strong>A céges hálózathoz nem nyúlunk:</strong> nincs pásztázás, nincs új eszköz a hálózaton, nincs nyitott port. A telefon csak megnyit egy weboldalt, mobilneten is működik.</li>
-      <li>Az oldalra csak a becenév és az érkezés ideje kerül. A telefont egy véletlen azonosító ismeri fel, ebből is csak egy lenyomatot tárolunk.</li>
-      <li>Önkéntes: aki nem olvassa be a kódot, az egyszerűen nem jelenik meg.</li>
-    </ul>
-  </div>
-</div></section>
-
-<section><div class="wrap">
-  <details class="admin" id="admin">
-    <summary>Gazdának: becenév felszabadítása</summary>
-    <p class="muted">Ha valaki telefont cserél vagy törölte a sütiket, itt felszabadítod a becenevét, és a következő beolvasáskor újra kiválaszthatja. 30 nap használat nélkül magától is felszabadul. Ehhez a mester token kell (a Mac minin: <code>grep INGEST_TOKEN ~/Exmentoring/.env</code>), ez a böngésző csak itt jegyzi meg.</p>
-    <div class="row"><input id="mtok" type="password" autocomplete="off" placeholder="Mester token" aria-label="Mester token"></div>
-    <ul class="plist" id="plist"></ul>
-  </details>
+  <p class="muted">Az oldalra csak a becenév, a hely és a belépés ideje kerül. A céges hálózathoz nem nyúlunk.</p>
 </div></section>
 </main>
 
@@ -202,6 +185,7 @@ details.admin summary{cursor:pointer;font-weight:800;color:var(--ink)}
   <p><strong>Exmentoring</strong> · <a href="/" style="color:#f8c7a3">vissza a játékhoz</a> · <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">GitHub</a></p>
 </div></footer>
 
+<script src="/avatar.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
@@ -209,29 +193,29 @@ const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
 const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 const hm=t=>new Date(t).toLocaleTimeString('hu-HU',{hour:'2-digit',minute:'2-digit'});
 const av=()=>`<img class="rc" src="/img/raccoon-${window.isDark&&isDark()?'night-':''}64.png" alt="">`;
-let P={people:[],here:[]},ws,retry=0,seenBoot=null;
+const nick=safeGet('nick');
+let seats={},ws,retry=0,seenBoot=null;
 function connect(){
   ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
-  ws.onopen=()=>{retry=0;$('conn').style.display='none'};
+  ws.onopen=()=>{retry=0;$('conn').style.display='none';if(nick)ws.send(JSON.stringify({t:'hello',nick}))};
   ws.onclose=()=>{$('conn').style.display='block';setTimeout(connect,Math.min(8000,1000*++retry))};
-  ws.onmessage=e=>{const m=JSON.parse(e.data);if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;if(m.presence){P=m.presence;render()}}};
+  ws.onmessage=e=>{const m=JSON.parse(e.data);
+    if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;seats=m.seats||{};render()}
+    else if(m.t==='err')$('msg').textContent=m.msg};
 }
+// a mai belépések az érkezés sorrendjében; mellette a hely (ha leült)
 function render(){
-  const inSet=new Set(P.here.map(h=>h.nick));
-  $('cnt').textContent=P.here.length;$('cntl').textContent=P.here.length===1?'ember van bent':'ember van bent';
-  $('here').innerHTML=P.here.map(h=>`<li class="in">${av()}<b>${esc(h.nick)}</b><span class="t">${hm(h.since)} óta</span></li>`).join('')||'<li>Most senki.</li>';
-  const away=P.people.filter(n=>!inSet.has(n));
-  $('away').innerHTML=away.map(n=>`<li>${av()}<b>${esc(n)}</b></li>`).join('')||(P.people.length?'<li>Mindenki bent van.</li>':'<li>Még senki nem olvasta be a QR-kódot.</li>');
-  $('plist').innerHTML=P.people.map(n=>`<li><span>${esc(n)}${inSet.has(n)?' · bent':''}${(P.free||[]).includes(n)?' · szabad':''}</span><button type="button" class="mini" data-del="${esc(n)}">Felszabadítás</button></li>`).join('');
+  const all=Object.entries(seats).map(([n,v])=>({nick:n,...v})).sort((a,b)=>a.since-b.since);
+  const row=p=>`<li class="in">${av()}<b>${esc(p.nick)}</b><span class="t">${hm(p.since)} óta${p.spot!==null&&Avatar.SPOTS[p.spot]?' · '+esc(Avatar.SPOTS[p.spot].name.replace(/^Home office: /,'')):''}</span></li>`;
+  const inO=all.filter(p=>p.mode==='bent'),inH=all.filter(p=>p.mode==='ho');
+  $('cnt').textContent=all.length;$('cntl').textContent=`ember lépett be ma (${inO.length} helyben, ${inH.length} home office)`;
+  $('here').innerHTML=inO.map(row).join('')||'<li>Most senki.</li>';
+  $('ho').innerHTML=inH.map(row).join('')||'<li>Most senki.</li>';
+  $('leave').hidden=!(nick&&seats[nick]);
 }
+$('leave').onclick=()=>{if(!confirm('Kilépsz mára? Eltűnsz a tisztásról és ebből a listából.'))return;
+  safeSet('left',new Date().toLocaleDateString('sv-SE',{timeZone:'Europe/Budapest'}));ws.send(JSON.stringify({t:'leave'}));$('msg').textContent='Kiléptél. Szép estét!'};
 addEventListener('themechange',render);
-// gazda
-$('mtok').value=safeGet('exm-master');
-$('mtok').onchange=()=>safeSet('exm-master',$('mtok').value.trim());
-const api=async(method,url,body)=>{const r=await fetch(url,{method,headers:{'Authorization':'Bearer '+$('mtok').value.trim(),'Content-Type':'application/json'},body:body?JSON.stringify(body):undefined});const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||('HTTP '+r.status));return j};
-$('plist').onclick=async e=>{const b=e.target.closest('[data-del]');if(!b)return;const n=b.dataset.del;
-  if(!confirm(`Felszabadítod ${n} becenevét? A következő beolvasáskor bármelyik telefon újra kiválaszthatja.`))return;
-  try{await api('DELETE','/api/presence/people/'+encodeURIComponent(n))}catch(err){alert(err.message)}};
 connect();
 </script>
 </body>
