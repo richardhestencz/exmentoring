@@ -392,7 +392,11 @@ wss.on('connection', (ws) => {
       const e = m.t === 'where' ? seats.where(S.seats, ws.nick, m.mode, today())
         : m.t === 'seat' ? seats.sit(S.seats, ws.nick, m.spot, today()) : seats.stand(S.seats, ws.nick, today());
       if (e) return err(e);
-      if (m.t === 'where' && !had) say(m.mode === 'ho' ? `🏠 ${ws.nick} home office-ból csatlakozott.` : `🦝 ${ws.nick} bent van.`);
+      // aznapi első bejelentkezés: +10 000 a közös potba (fejenként naponta egyszer, ugyanaz a szabály, mint az ajtós érkezésnél)
+      if (m.t === 'where' && !had) {
+        const bonus = credit(ws.nick) ? `, +${fmt(DAILY_CREDIT)} a potba` : '';
+        say(m.mode === 'ho' ? `🏠 ${ws.nick} home office-ból csatlakozott${bonus}.` : `🦝 ${ws.nick} bent van${bonus}.`);
+      }
       save(); broadcast(); return;
     }
     if (m.t === 'profile-save') {
