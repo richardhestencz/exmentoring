@@ -22,7 +22,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | `server/public/ajto.html` | Útmutató az ajtófigyelő beállításához (az oldalon: Ajtó beállítása) |
 | `server/public/exmentoring-ajto-claude.md` | Ugyanez Claude-nak: ha odaadod neki az irodai MacBookon, elvégzi a beállítást |
 | `server/public/bent.html`, `server/public/itt.html`, `server/presence.js` | „Ki van bent?”: QR-kódos bejelentkezés az ajtónál (`/itt?k=<ajtókód>`), a becenév a telefonhoz kötve |
-| `server/public/avatar.js`, `server/avatars.js`, `server/public/profil.html`, `server/public/img/spots/` | A tisztás helyei: aki bent van (QR), a jóváhagyott Gemini-kép (scene-v7) saját helyén jelenik meg (max 16 fő, 16 fix hely: blackjack, póker, rönkök, függőágy, sárkányrepülő, HO-horgászok, kenu). Minden hely mosómedvéje a v7-ből van kivágva (`img/spots/spot-N.png`, éjjel `-n`), a háttér ugyanaz a kép mosómedvék nélkül, így a nyitóoldal pixelre a v7. A helyet a Profil oldalon lehet választani (a fejléc mosómedvéje → menü → Profil). A kép-előállítás szkriptjei csak a Mac minin: `art/gen/pipeline/` |
+| `server/public/avatar.js`, `server/seats.js`, `server/public/img/spots/` | A tisztás helyei: belépéskor mindenki megmondja, hogy helyben vagy home office-ból (HO) van, aztán a képen a „+” jelekkel leül egy szabad helyre (16 fix hely; HO-ból csak a 4 horgász és a kenu, helyben a többi). A saját neve mellett (egérrel ráállva, telefonon mindig) a ✕-szel feláll, és máshova ülhet. Éjfélkor minden hely felszabadul, másnap újra kérdez. Minden hely mosómedvéje a jóváhagyott Gemini-képből (scene-v7) van kivágva (`img/spots/spot-N.png`, éjjel `-n`). A kép-előállítás szkriptjei csak a Mac minin: `art/gen/pipeline/` |
 | `server/profiles.js` | Tét-profilok a becenevekhez: a mostani tétek mentése névvel, felrakás egy kattintással, „minden körben” automatikus felrakás (amíg nyitva az oldal), és „Ismétlés” (az előző kör tétjei) |
 | `server/public/cola.html`, `server/cola.js` | Kólakódok: bárki feltehet egy nem használt kódot, aki felhasználta, megjelöli (10 percig visszavonható, 30 nap után eltűnik) |
 | `server/public/gyros.html`, `server/gyros.js` | Gyros Központ: a számozott gyrosnyugták gyűjtése és automatikus számolása (a Confluence-táblázat helyett) |
@@ -107,10 +107,10 @@ Az oldal: https://hestencz-mac-mini.tail018e03.ts.net/gyros.html
 
 A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a Mac minin van: `~/Exmentoring/data/gyros-seed.json` (a `data/` mappa nincs a gitben). A szerver első induláskor ebből tölti be, utána minden a `data/state.json`-ban él. Újraimportálás: állítsd le a szervert, töröld a `gyros` kulcsot a `state.json`-ból, és indítsd újra.
 
-## Tisztás és blackjack (skin nélküli változat)
+## Tisztás és blackjack
 
-- **Tisztás:** a jóváhagyott kép (`img/scene-wide.jpg`, éjjel `scene-night-wide.jpg`, mobilon `scene-tall.jpg`). Aki bent van, a saját helyén ül: a kép eredeti mosómedvéje (`img/spots/spot-N.png`, éjjel `-n`), fölötte a neve. Kalap, szemüveg és ruhaszín ebben a változatban nincs.
-- **Hely:** a Profil oldalon csak a hely választható (16 hely). Ha valaki nem választ, az első szabad helyre kerül.
+- **Tisztás:** a jóváhagyott kép (`img/scene-wide.jpg`, éjjel `scene-night-wide.jpg`, mobilon `scene-tall.jpg`), mindig teljes szélességében; ha nem fér ki a magasságba, kicsinyítve (legfeljebb 72%-ig), a széle elhalványul. Aki leült, a saját helyén ül: a kép eredeti mosómedvéje (`img/spots/spot-N.png`, éjjel `-n`), fölötte a neve. Skin (kalap, szemüveg, ruha) nincs.
+- **Belépés és hely:** becenév, aztán „Helyben” vagy „Home office” (minden nap újra). Utána a képen „+” jelek mutatják a szabad helyeket (HO: 4 horgász és a kenu; helyben a többi 11); helyválasztás közben a felső panelek elhalványulnak. A saját neved melletti ✕-szel felállsz. Szerver: `seats.js` (`where`, `seat`, `stand` üzenetek), éjfélkor lejár. QR-kód ehhez nem kell.
 - **Blackjack:** csak az asztalra kattintva nyílik (a képen a piknikasztal). Saját kép jön be: szemben a mosómedve osztó, előtted az asztal 6 tétkörrel (`img/bj-view.jpg`, éjjel `bj-view-night.jpg`, 1376x768). A pontok helye a kép képpontjaiban az `index.html` elején, a `BJ_SCENE` objektumban (osztó lapjai, 6 hely, a posztó alja). Egy szabad helyre kattintva („Ülj ide”) leülsz a kiválasztott zsetonnal; a lapok a tétkör fölött, a név és a tét alatta. Vissza: „Vissza a rulettehez” gomb vagy Esc. Keskeny képernyőn a szélső helyek a panel listájában látszanak.
 - **Kapcsoló:** `?demo`: mind a 16 hely benépesítve, becenév-kérés nélkül (bemutatóhoz).
 

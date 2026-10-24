@@ -11,7 +11,7 @@ const gyros = require('./gyros');
 const presence = require('./presence');
 const cola = require('./cola');
 const profiles = require('./profiles');
-const avatars = require('./avatars');
+const seats = require('./seats');
 const bj = require('./blackjack');
 const conquest = require('./hodito');
 
@@ -47,7 +47,8 @@ try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch 
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
-S.avatars ||= avatars.empty();
+S.seats ||= seats.empty();
+delete S.avatars;   // a régi skin-profilok (skin már nincs)
 // blackjack: a kör a memóriában él; ha a szerver kör közben újraindul, a feltett tétek visszajárnak a potba
 const BJ = bj.empty();
 if (Array.isArray(S.bjBets)) for (const b of S.bjBets) S.pot += b.stake;
@@ -264,7 +265,7 @@ function snapshot(withTrack) {
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
-    profiles: S.profiles, avatars: S.avatars,
+    profiles: S.profiles, seats: seats.view(S.seats, today()),
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper,
   };
@@ -385,9 +386,13 @@ wss.on('connection', (ws) => {
       bjAfter();
       return;
     }
-    if (m.t === 'avatar-save') {
-      const e = avatars.setAvatar(S.avatars, ws.nick, m.skin, m.spot);
+    // ki ül hol: HO vagy helyben (belépéskor), aztán leülés egy szabad helyre, felállás
+    if (m.t === 'where' || m.t === 'seat' || m.t === 'stand') {
+      const had = S.seats[ws.nick] && S.seats[ws.nick].day === today();
+      const e = m.t === 'where' ? seats.where(S.seats, ws.nick, m.mode, today())
+        : m.t === 'seat' ? seats.sit(S.seats, ws.nick, m.spot, today()) : seats.stand(S.seats, ws.nick, today());
       if (e) return err(e);
+      if (m.t === 'where' && !had) say(m.mode === 'ho' ? `🏠 ${ws.nick} home office-ból csatlakozott.` : `🦝 ${ws.nick} bent van.`);
       save(); broadcast(); return;
     }
     if (m.t === 'profile-save') {

@@ -46,9 +46,27 @@ ul{list-style:none;margin:0;padding:0}
 /* a generált jelenet: méretét és helyét a JS állítja, hogy a kőkör pont a kerék alá essen */
 .land{position:absolute;left:0;top:0;max-width:none;z-index:1;transform-origin:0 0;will-change:transform,filter;user-select:none;pointer-events:none;
   -webkit-mask-image:linear-gradient(180deg,#000 88%,transparent);mask-image:linear-gradient(180deg,#000 88%,transparent)}
+.land.narrow{-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);
+  -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);mask-composite:intersect}
+/* helyválasztás közben a felső panelek ne takarják a helyeket */
+.tl,.tr{transition:opacity .35s}
+.stage.picking .tl,.stage.picking .tr{opacity:.12;pointer-events:none}
 .crowd{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none}
 .crowd .rcw{position:absolute}
-.crowd canvas{position:absolute;left:0;top:0;width:100%;height:100%}
+.crowd .rcw img{position:absolute;left:0;top:0;width:100%;height:100%;user-select:none}
+/* a saját név mellett: felállás (egérrel ráállva; érintőképernyőn mindig látszik) */
+.crowd .rcn.mine{pointer-events:auto;background:rgba(235,119,46,.9);display:inline-flex;align-items:center;gap:.3em}
+.crowd .rcn .up{display:none;border:0;padding:0 .35em;border-radius:999px;background:rgba(10,15,22,.6);color:#fff;font:inherit;font-weight:800;cursor:pointer;line-height:1.3}
+.crowd .rcn.mine:hover .up,.crowd .rcn.mine:focus-within .up{display:inline-block}
+.crowd .rcn .up:focus-visible{outline:2px solid #fff;outline-offset:1px}
+@media (hover:none){.crowd .rcn.mine .up{display:inline-block}}
+/* ide lehet ülni: + a szabad helyeken */
+.crowd .plus{position:absolute;transform:translate(-50%,-50%);width:var(--pz,34px);height:var(--pz,34px);border-radius:50%;border:2px solid #fff;padding:0;
+  background:rgba(235,119,46,.88);color:#fff;font:inherit;font-weight:800;font-size:calc(var(--pz,34px)*.62);line-height:1;cursor:pointer;pointer-events:auto;z-index:1000;
+  box-shadow:0 2px 10px rgba(0,0,0,.45);display:grid;place-items:center;animation:plus 1.6s ease-in-out infinite}
+.crowd .plus:hover,.crowd .plus:focus-visible{background:#df312d;outline:none;transform:translate(-50%,-50%) scale(1.15)}
+@keyframes plus{50%{box-shadow:0 0 0 6px rgba(255,255,255,.25),0 2px 10px rgba(0,0,0,.45)}}
+@media (prefers-reduced-motion:reduce){.crowd .plus{animation:none}}
 .crowd .rcn{position:absolute;transform:translate(-50%,-100%);z-index:2;white-space:nowrap;font-weight:700;color:#fff;background:rgba(10,15,22,.55);
   border-radius:999px;padding:.1em .55em;line-height:1.3;text-shadow:0 1px 2px rgba(0,0,0,.5)}
 .stage{perspective:1100px}
@@ -163,9 +181,11 @@ ul{list-style:none;margin:0;padding:0}
 .feed{padding:8px 12px;font-size:.84rem}
 .feed li{padding:3px 0;color:#f3e6de}
 .feed li:first-child{color:#fff}
-.tr{position:absolute;z-index:5;right:16px;top:16px;width:min(270px,28vw);padding:12px 14px}
+.tr{position:absolute;z-index:5;right:16px;top:16px;width:min(250px,26vw);padding:12px 14px}
+/* a ranglista alapból a dobogó (hogy ne takarja a tavat), ráállva kinyílik */
+.tr:hover ul#board,.tr:focus-within ul#board{max-height:min(46vh,420px)}
 .tr h2{margin:0 0 6px;font-size:.92rem;font-weight:700;color:#fff}
-.tr ul#board{max-height:min(46vh,420px);overflow-y:auto;scrollbar-width:thin;margin:0 -6px;padding:0 6px}
+.tr ul#board{max-height:70px;transition:max-height .3s;overflow-y:auto;scrollbar-width:thin;margin:0 -6px;padding:0 6px}
 .tr li{display:grid;grid-template-columns:20px minmax(0,1fr) auto;align-items:center;gap:6px;padding:2px 6px;margin:1px -6px;font-size:.8rem;line-height:1.35;border-radius:7px}
 .tr li .rk{text-align:center;font-size:.72rem;color:#cdbfb8;font-variant-numeric:tabular-nums}
 .tr li .nk{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
@@ -282,7 +302,11 @@ ul{list-style:none;margin:0;padding:0}
 .modal h1{margin:8px 0 6px;font-size:clamp(1.6rem,4vw,2.2rem);font-weight:800;letter-spacing:-.02em;color:#fff;line-height:1.15}
 .modal p{margin:0 0 18px;color:#f3e6de}
 .nick{display:flex;gap:8px}
-.nick input{flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.95);color:var(--ink);font-size:1.05rem}
+.nick input{flex:1;min-width:0;padding:13px 14px;border-radius:12px;border:1px solid rgba(255,255,255,.3);background:rgba(255,255,255,.95);color:#202324;font-size:1.05rem}
+.nick input::placeholder{color:#7a7f83}
+.where{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.where .btn{padding:13px 10px}
+.where .btn.alt{background:#1f6f8b}
 .btn{padding:13px 20px;border-radius:12px;border:0;background:var(--grad);color:#fff;font-weight:800;cursor:pointer}
 .err{color:var(--bad);font-size:.92rem;min-height:1.4em;margin:10px 0 0}
 .stage.nonick .dock,.stage.nonick .tl{opacity:.5;filter:blur(1.5px);pointer-events:none}
@@ -451,12 +475,15 @@ footer strong{color:#fff}
   <div class="modal" id="nickmodal">
     <div class="glass card">
       <img class="rc" src="/img/raccoon-128.png" alt="" aria-hidden="true">
-      <h1>Mi a beceneved?</h1>
-      <p>Ezzel a névvel kerülsz a ranglistára. A téteket a szoba közös potjából teszed fel.</p>
+      <h1 id="mtitle">Mi a beceneved?</h1>
+      <p id="mlead">Ezzel a névvel kerülsz a ranglistára, és ezzel ülsz le a tábortűz körül. Hol vagy ma?</p>
       <form class="nick" id="nickform">
         <input id="nick" maxlength="16" placeholder="Pl. Matyi" autocomplete="off" aria-label="Becenév">
-        <button class="btn" type="submit">Belépek</button>
       </form>
+      <div class="where" role="group" aria-label="Hol vagy ma?">
+        <button class="btn" type="button" data-mode="bent">🦝 Helyben</button>
+        <button class="btn alt" type="button" data-mode="ho">🏠 Home office</button>
+      </div>
       <p class="err" id="err" role="alert"></p>
     </div>
   </div>
@@ -509,19 +536,34 @@ function connect(){
     const m=JSON.parse(e.data);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render()}
     else if(m.t==='err'){if(!$('nickmodal').hidden)$('err').textContent=m.msg;else toast(m.msg)}
-    else if(m.t==='hello'){$('err').textContent='';nick=m.nick;safeSet('nick',nick);showNick();if(S)render()}
+    else if(m.t==='hello'){$('err').textContent='';nick=m.nick;safeSet('nick',nick);if(pendingMode){send({t:'where',mode:pendingMode});pendingMode=null}showNick();if(S)render()}
   };
 }
 const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
 const serverNow=()=>Date.now()+offset;
+// belépés: becenév + hol vagy ma (helyben vagy home office); minden nap újra megkérdezzük (a helyek éjfélkor lejárnak)
+let pendingMode=null,renaming=false;
+const mySeat=()=>S&&S.seats&&nick&&S.seats[nick];
 function showNick(){
-  const has=!!nick||/[?&]demo/.test(location.search);   // ?demo: bemutató, nincs becenév-kérés
-  $('nickmodal').hidden=has;stage.classList.toggle('nonick',!has);
-  $('mename').textContent=has?nick:'Vendég';
-  if(!has)setTimeout(()=>$('nick').focus(),50);
+  const demo=/[?&]demo/.test(location.search);   // ?demo: bemutató, nincs becenév-kérés
+  const need=!demo&&(renaming||!nick||(S&&!mySeat()));
+  const was=$('nickmodal').hidden;
+  $('nickmodal').hidden=!need;stage.classList.toggle('nonick',need);
+  $('mename').textContent=nick||'Vendég';
+  $('mtitle').textContent=!nick||renaming?'Mi a beceneved?':`Szia, ${nick}! Hol vagy ma?`;
+  $('nick').hidden=!!nick&&!renaming;
+  if(need&&was)setTimeout(()=>(nick&&!renaming?document.querySelector('.where .btn'):$('nick')).focus(),50);
 }
-$('nickform').onsubmit=e=>{e.preventDefault();send({t:'hello',nick:$('nick').value.trim()})};
-$('rename').onclick=()=>{$('nick').value=nick;$('err').textContent='';$('nickmodal').hidden=false;stage.classList.add('nonick');$('nick').focus();$('nick').select()};
+document.querySelector('.where').onclick=e=>{
+  const b=e.target.closest('[data-mode]');if(!b)return;
+  const n=$('nick').value.trim()||nick;
+  if(!n){$('err').textContent='Előbb írd be a beceneved.';$('nick').focus();return}
+  renaming=false;
+  if(n!==nick){pendingMode=b.dataset.mode;send({t:'hello',nick:n})}
+  else send({t:'where',mode:b.dataset.mode});
+};
+$('nickform').onsubmit=e=>{e.preventDefault();$('err').textContent='Válaszd ki, hogy helyben vagy home office-ból vagy.'};
+$('rename').onclick=()=>{renaming=true;$('nick').value=nick;$('err').textContent='';showNick();$('nick').focus();$('nick').select()};
 $('nick').value=nick;
 let toastT;
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
@@ -715,7 +757,7 @@ function render(){
     const rk={p1:'🥇',p2:'🥈',p3:'🥉',clown:'🤡'}[cls]||(i+1);
     return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk">${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
   }).join(''):'<li><span></span><span class="nk">Még nincs lejátszott kör.</span></li>';
-  drawCrowd();placeBjHit();renderBJ();
+  showNick();drawCrowd();placeBjHit();renderBJ();
   $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }
 setInterval(()=>{
@@ -828,8 +870,12 @@ function layoutBg(){
   nightFilter=dark&&sc===SCENES.tall?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs éjszakai: besötétítjük
   const dockTop=$('dock').getBoundingClientRect().top-stage.getBoundingClientRect().top;
   const ringY=Math.min(dockTop-(mobile?36:44),SH*.56);           // a kerék közepe a tétasztal fölé
-  const sCover=SW/sc.w, sHead=(ringY-(mobile?200:150))/(sc.cy-sc.head);         // a mosómedvék feje ne lógjon ki felül
-  const s=Math.max(sCover,Math.min(sCover*sc.zoom,sHead));
+  // a legfelső hely (a neve is) és a kerék is férjen be: ha a kép a szélességhez igazítva túl magas, kicsinyítünk (legfeljebb 72%-ig),
+  // a kép két széle ilyenkor elhalványul a háttérbe
+  const topY=Math.min(...Avatar.SPOTS.map((p,i)=>{const q=Avatar.spotPos(sc,i);return q.y-1.25*q.hw}));
+  const sCover=SW/sc.w, sFit=(ringY-(mobile?96:56))/(sc.cy-topY);
+  const s=Math.min(sCover,Math.max(sCover*.72,sFit));
+  bg.classList.toggle('narrow',s<sCover-.001);
   const top=ringY-sc.cy*s, left=(SW-sc.w*s)/2;
   Object.assign(bg.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
   Object.assign(crowd.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
@@ -874,32 +920,46 @@ function updateCamera(T,dt){
   crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
 }
 
-/* ---------- a tisztás: aki bent van, a jóváhagyott kép saját helyén ül (skin nélkül: a kép eredeti mosómedvéje) ---------- */
-const rcCache=new Map();
-// ?demo: mind a 16 hely benépesítve (bemutatóhoz, helyben), változatos kinézettel
+/* ---------- a tisztás: aki leült, a jóváhagyott kép saját mosómedvéjeként ül a helyén; a szabad helyeken + ---------- */
+// ?demo: mind a 16 hely benépesítve (bemutatóhoz, helyben)
 var DEMO=/[?&]demo/.test(location.search);   // var: a háttér elrendezése ennél korábban is lefuthat
 var DEMO_NICKS=['Mókus','Bandi','Csipke','Pötty','Bors','Málna','Zizi','Kópé','Tücsi','Szundi','Repkény','Pecás','Horog','Csali','Úszó','Evező'];
 function drawCrowd(){
-  if(!sceneInfo||(!DEMO&&(!S||!S.presence)))return;
-  const here=DEMO?[]:S.presence.here||[], av=DEMO?{}:S.avatars||{};
-  const list=(DEMO?DEMO_NICKS.map((nick,i)=>({nick,spot:i})):Avatar.assign(here,av)).map(o=>({...o,skin:Avatar.defaultSkin()}));
-  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,list]);
+  if(!sceneInfo||(!DEMO&&(!S||!S.seats)))return;
+  const seated=DEMO?DEMO_NICKS.map((nick,i)=>({nick,spot:i})):Object.entries(S.seats).filter(([,v])=>v.spot!==null).map(([n,v])=>({nick:n,spot:v.spot}));
+  const me=!DEMO&&nick&&S.seats[nick];
+  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,seated,nick,me]);
   if(key===crowdKey)return;crowdKey=key;
   const {sc,s}=sceneInfo,night=!!sc.night,frag=[];
   // a hátrébb lévők előbb (a kép rétegrendje: a fej magassága szerint)
-  list.map(o=>({...o,pos:Avatar.spotPos(sc,o.spot)})).sort((a,b)=>a.pos.y-b.pos.y).forEach((o,z)=>{
-    const q=o.pos,sz=Avatar.size(o.spot),F=q.k*s;                 // alap-képpont -> képernyő
+  seated.map(o=>({...o,pos:Avatar.spotPos(sc,o.spot)})).sort((a,b)=>a.pos.y-b.pos.y).forEach((o,z)=>{
+    const q=o.pos;                                                     // a kép képpontjai -> képernyő: * s
     const el=document.createElement('div');el.className='rcw';
-    Object.assign(el.style,{left:q.left*s+'px',top:q.top*s+'px',width:sz.w*F+'px',height:sz.h*F+'px',zIndex:z+1});
-    const ck=JSON.stringify([o.skin,o.spot,night]);
-    if(!rcCache.has(ck))rcCache.set(ck,Avatar.draw(document.createElement('canvas'),o.skin,o.spot,night));
-    const cv=document.createElement('canvas');cv.width=sz.w;cv.height=sz.h;
-    rcCache.get(ck).then(src=>cv.getContext('2d').drawImage(src,0,0)).catch(()=>{});
+    Object.assign(el.style,{left:q.left*s+'px',top:q.top*s+'px',width:q.w*s+'px',height:q.h*s+'px',zIndex:z+1});
+    const im=document.createElement('img');im.src=`img/spots/spot-${o.spot}${night?'-n':''}.png`;im.alt='';im.draggable=false;
     const nm=document.createElement('span');nm.className='rcn';nm.textContent=o.nick;
     nm.style.fontSize=Math.max(9,Math.min(15,Math.round(.2*q.hw*s)))+'px';
     nm.style.left=(q.x-q.left)*s+'px';nm.style.top=(q.y-q.top-.62*q.hw)*s+'px';   // a név a fül fölött
-    el.append(cv,nm);frag.push(el);
+    if(o.nick===nick&&!DEMO){
+      nm.classList.add('mine');
+      const up=document.createElement('button');up.type='button';up.className='up';up.textContent='✕';
+      up.title='Felállok: innen máshova ülhetek';up.setAttribute('aria-label','Felállok erről a helyről');
+      up.onclick=e=>{e.stopPropagation();send({t:'stand'})};nm.append(up);
+    }
+    el.append(im,nm);frag.push(el);
   });
+  // ide ülhetek: ha ma már megmondtam, hol vagyok, és még nem ülök sehol
+  stage.classList.toggle('picking',!!(me&&me.spot===null));
+  if(me&&me.spot===null){
+    const taken=new Set(seated.map(o=>o.spot));
+    for(let i=0;i<Avatar.MAX;i++){
+      if(taken.has(i)||!Avatar.allowed(me.mode,i))continue;
+      const q=Avatar.spotPos(sc,i),b=document.createElement('button');b.type='button';b.className='plus';b.textContent='+';
+      b.title=`Ide ülök: ${Avatar.SPOTS[i].name}`;b.setAttribute('aria-label',b.title);
+      Object.assign(b.style,{left:q.x*s+'px',top:(q.y+.1*q.hw)*s+'px','--pz':Math.round(Math.max(mobile?18:24,Math.min(40,.77*q.hw*s)))+'px'});
+      b.onclick=e=>{e.stopPropagation();send({t:'seat',spot:i})};frag.push(b);
+    }
+  }
   crowd.replaceChildren(...frag);
   if(bjHit)crowd.appendChild(bjHit);
 }

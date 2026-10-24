@@ -170,25 +170,29 @@ test('tét-profilok: mentés, felülírás, korlátok, törlés', () => {
   assert.strictEqual(pf.deleteProfile(P, 'Ricsi', 'P2'), null);
   assert.ok(pf.deleteProfile(P, 'Ricsi', 'P2'));
 });
-test('mosómedve-profilok: skin, egyedi hely, helykiosztás (max a helyek száma)', () => {
-  const A = require('./public/avatar.js'), av = require('./avatars');
-  const S = av.empty();
-  assert.strictEqual(av.setAvatar(S, 'Ricsi', { hat: 2, glasses: 1, top: 10, bottom: 0 }, 4), null);
-  assert.deepStrictEqual(S.Ricsi, { hat: 2, glasses: 1, top: 10, bottom: 0, spot: 4 });
-  assert.match(av.setAvatar(S, 'Matyi', { hat: 0, glasses: 0, top: 0, bottom: 0 }, 4), /Ricsi/, 'egy helyet csak egy ember választhat');
-  assert.strictEqual(av.setAvatar(S, 'Matyi', { hat: 0, glasses: 0, top: 0, bottom: 0 }, null), null, 'hely nélkül is menthető');
-  assert.strictEqual(av.setAvatar(S, 'Ricsi', { hat: 2, glasses: 1, top: 10, bottom: 0 }, 4), null, 'a saját helyét újra mentheti');
-  assert.ok(av.setAvatar(S, 'X', { hat: 99, glasses: 0, top: 0, bottom: 0 }, null), 'nem létező kalap');
-  assert.ok(av.setAvatar(S, 'X', { hat: 0, glasses: 0, top: 0, bottom: 0 }, A.MAX), 'nem létező hely');
-  assert.ok(av.setAvatar(S, '', { hat: 0, glasses: 0, top: 0, bottom: 0 }, null), 'becenév kell');
-  // kiosztás: a választott hely, ha szabad; különben az első szabad; legfeljebb 10 fő
-  const here = Array.from({ length: A.MAX + 2 }, (_, i) => ({ nick: 'N' + i }));
-  const out = A.assign(here, { N0: { spot: 4 }, N1: { spot: 4 }, N2: { spot: 0 } });
-  assert.strictEqual(out.length, A.MAX);
-  assert.strictEqual(out[0].spot, 4); assert.strictEqual(out[2].spot, 0);
-  assert.strictEqual(new Set(out.map((o) => o.spot)).size, A.MAX, 'mindenki külön helyen');
-  assert.ok(A.validSkin(A.defaultSkin('Matyi')));
-  assert.deepStrictEqual(A.defaultSkin('Matyi'), A.defaultSkin('Matyi'), 'ugyanaz a becenév mindig ugyanazt a skint kapja');
+test('tisztás: HO vagy helyben, leülés a megengedett szabad helyre, felállás, napi lejárat', () => {
+  const A = require('./public/avatar.js'), st = require('./seats');
+  const S = st.empty(), day = '2026-10-24';
+  assert.match(st.sit(S, 'Ricsi', 3, day), /home office/, 'előbb meg kell mondani, hol van');
+  assert.match(st.where(S, 'Ricsi', 'iroda', day), /Válaszd ki/);
+  assert.strictEqual(st.where(S, 'Ricsi', 'bent', day), null);
+  assert.strictEqual(st.where(S, 'Gabó', 'ho', day), null);
+  assert.match(st.sit(S, 'Gabó', 3, day), /tó mellett/, 'HO-ból csak horgász vagy kenu');
+  assert.match(st.sit(S, 'Ricsi', A.HO[0], day), /home office-osoké/, 'helyben nem ülhet a HO-helyre');
+  assert.strictEqual(st.sit(S, 'Gabó', A.HO[4], day), null, 'HO: kenu');
+  assert.strictEqual(st.sit(S, 'Ricsi', 3, day), null);
+  assert.strictEqual(st.where(S, 'Matyi', 'bent', day), null);
+  assert.match(st.sit(S, 'Matyi', 3, day), /Ricsi/, 'egy helyen csak egy ember ül');
+  assert.ok(st.sit(S, 'Matyi', A.MAX, day), 'nem létező hely');
+  assert.deepStrictEqual(st.view(S, day).Ricsi, { mode: 'bent', spot: 3 });
+  assert.strictEqual(st.stand(S, 'Ricsi', day), null);
+  assert.strictEqual(st.view(S, day).Ricsi.spot, null, 'felállás után nincs helye');
+  assert.ok(st.stand(S, 'Ricsi', day), 'kétszer nem állhat fel');
+  assert.strictEqual(st.sit(S, 'Matyi', 3, day), null, 'a felszabadult hely foglalható');
+  assert.strictEqual(st.where(S, 'Gabó', 'bent', day), null);
+  assert.strictEqual(st.view(S, day).Gabó.spot, null, 'módváltáskor a hely felszabadul');
+  assert.deepStrictEqual(st.view(S, '2026-10-25'), {}, 'másnap tiszta lap');
+  assert.strictEqual(A.HO.length + A.SPOTS.filter((p, i) => A.allowed('bent', i)).length, A.MAX);
   for (const sc of Object.values(A.SCENES)) for (let i = 0; i < A.MAX; i++) {
     const q = A.spotPos(sc, i);
     assert.ok(q.x > 0 && q.x < sc.w && q.y > 0 && q.y < sc.h, 'a hely a képen belül van');

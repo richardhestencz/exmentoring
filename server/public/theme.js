@@ -13,13 +13,13 @@
       l.href = d ? l.href.replace(/raccoon-(\d)/, 'raccoon-night-$1') : l.href.replace('raccoon-night-', 'raccoon-');
     });
     const cs = document.querySelector('meta[name="color-scheme"]'); if (cs) cs.content = d ? 'dark' : 'light';
-    document.querySelectorAll('.themebtn').forEach((b) => { b.title = 'Menü: világos/sötét mód és profil'; });
+    document.querySelectorAll('.themebtn').forEach((b) => { b.title = 'Menü: világos/sötét mód'; });
     window.dispatchEvent(new Event('themechange'));
   }
   window.isDark = dark;
   window.applyTheme = apply;
   window.setTheme = (t) => { root.dataset.theme = t; try { localStorage.setItem('theme', t); } catch {} apply(); };
-  // a fejlécben a mosómedvére kattintva kis menü nyílik: világos/sötét mód és Profil
+  // a fejlécben a mosómedvére kattintva kis menü nyílik: világos/sötét mód
   function menu(btn) {
     let m = document.getElementById('exm-menu');
     if (m) { close(); return; }
@@ -38,7 +38,6 @@
       m.appendChild(el); return el;
     };
     const first = item(dark() ? '☀️  Világos mód' : '🌙  Sötét mód', () => { window.setTheme(dark() ? 'light' : 'dark'); close(); });
-    item('🦝  Profil: skin és hely', null, '/profil.html');
     document.body.appendChild(m); btn.setAttribute('aria-expanded', 'true'); first.focus();
     setTimeout(() => document.addEventListener('click', outside, true));
     document.addEventListener('keydown', esc);
@@ -50,7 +49,7 @@
   function close() { const m = document.getElementById('exm-menu'); if (m && m.close) m.close(); }
   document.addEventListener('DOMContentLoaded', () => {
     document.querySelectorAll('.themebtn').forEach((b) => {
-      b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', 'Menü: világos/sötét mód és profil');
+      b.setAttribute('aria-haspopup', 'menu'); b.setAttribute('aria-expanded', 'false'); b.setAttribute('aria-label', 'Menü: világos/sötét mód');
       b.addEventListener('click', (e) => { e.preventDefault(); menu(b); });
     });
     apply();
