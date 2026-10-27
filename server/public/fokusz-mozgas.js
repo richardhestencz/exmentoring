@@ -2,7 +2,8 @@
 // lebegnek, a csillagok és szentjánosbogarak pislognak (WebGL); fölötte néhány hulló levél, a lantból szálló hangjegyek, a levegőben
 // lebegő fénypöttyök (2D vászon). Ingyenes, a 8K-s kép élessége megmarad: a vászon pontosan a képernyő pixeleire méretezett képet rajzol.
 // A maszkok (img/focus-{day,night}-m1/m2.png, tools/focus_masks.py) a fekvő kép 1920x1080-as koordinátáiban vannak:
-// m1: R folyó, G lomb, B köd; m2: R égbolt, G festett hangjegyek, B a folyás iránya. Az álló kép ennek a középső 2430/7680-as sávja.
+// m1: R folyó, G lomb, B köd; m2: R égbolt, G festett hangjegyek, B a folyás iránya; m3: R a többi fa (a csúcsuk felé erősebb).
+// Az álló kép ennek a középső 2430/7680-as sávja.
 (() => {
   const root = document.documentElement, view = document.getElementById('focusview'), bg = view && view.querySelector('.fbg');
   if (!bg) return;
@@ -20,7 +21,7 @@
 in vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }`;
   const FS = `#version 300 es
 precision highp float;
-uniform sampler2D uImg, uM1, uM2;
+uniform sampler2D uImg, uM1, uM2, uM3;
 uniform vec2 uRes, uOff, uSize, uCrop;
 uniform float uT, uNight;
 out vec4 o;
@@ -45,26 +46,30 @@ void main(){
   vec2 mu = vec2(uCrop.x + uv.x*uCrop.y, uv.y), p = mu*vec2(1920., 1080.);
   vec2 k = vec2(1./(1920.*uCrop.y), 1./1080.);   // egy 1920-as képpont uv-ben
   vec3 m1 = texture(uM1, mu).rgb, m2 = texture(uM2, mu).rgb;
-  float river = m1.r, canopy = m1.g, mist = m1.b, sky = m2.r, notes = m2.g, t = uT;
+  float river = m1.r, canopy = m1.g, mist = m1.b, sky = m2.r, notes = m2.g, trees = texture(uM3, mu).r, t = uT;
   vec2 d = vec2(0.);
   if (canopy > .002) {   // a lomb: lassú ringás, széllökésekkel, fent erősebben
     float gust = .45 + .55*fbm(p*.0022 + vec2(t*.06, 0.));
     float hf = 1. - .45*smoothstep(120., 460., p.y);
-    d += canopy*hf*gust*vec2(3.6*sin(t*.9 + p.y*.016 + p.x*.004) + 1.4*sin(t*1.9 + p.x*.03), 1.6*sin(t*.7 + p.x*.019));
+    d += canopy*hf*gust*vec2(5.5*sin(t*1.1 + p.y*.016 + p.x*.004) + 2.2*sin(t*2.3 + p.x*.03), 2.6*sin(t*.9 + p.x*.019));
   }
-  if (notes > .002) d += notes*vec2(2.5*sin(t*.8 + p.y*.04), 5.*sin(t*1.2 + p.x*.05));
-  if (mist > .002) d += mist*(vec2(fbm(p*.004 + vec2(t*.07, t*.02)), fbm(p*.004 + vec2(5.2, 1.3) - vec2(t*.04, 0.))) - .5)*vec2(22., 8.);
-  if (sky > .002) d += sky*(vec2(fbm(p*.003 + vec2(t*.05, 0.)), fbm(p*.003 + vec2(3., t*.03))) - .5)*vec2(18., 6.);
+  if (trees > .002) {    // a többi fa: szellő, ami balról jobbra végigfut az erdőn; a csúcs ring, a tő áll
+    float br = .5 + .5*fbm(vec2(p.x*.003 - t*.25, t*.05));
+    d += trees*br*vec2(4.*sin(t*1.3 - p.x*.008) + 1.4*sin(t*2.9 + p.x*.05 + p.y*.02), .5*sin(t*1.7 + p.x*.03));
+  }
+  if (notes > .002) d += notes*vec2(1.2*sin(t*.7 + p.y*.04), 2.5*sin(t*1.1 + p.x*.05));
+  if (mist > .002) d += mist*(vec2(fbm(p*.004 + vec2(t*.17, t*.04)), fbm(p*.004 + vec2(5.2, 1.3) - vec2(t*.1, 0.))) - .5)*vec2(62., 18.);
+  if (sky > .002) d += sky*(vec2(fbm(p*.003 + vec2(t*.13, 0.)), fbm(p*.003 + vec2(3., t*.07))) - .5)*vec2(52., 14.);
   vec2 uvd = uv + d*k;
   vec3 c = dot(d, d) > 1e-6 ? cr(uvd) : img(uv);
   if (river > .002) {    // a folyó: két, fél ciklussal eltolt mintavétel a folyás irányában (flowmap), és halvány csillanások
     float a = m2.b*6.2831853 - 1.5707963; vec2 dir = vec2(cos(a), sin(a));
-    float ph0 = fract(t*.22), ph1 = fract(t*.22 + .5);
-    vec3 fl = mix(cr(uvd - dir*ph0*18.*k), cr(uvd - dir*ph1*18.*k), abs(1. - 2.*ph0));
-    float g = pow(noise(p*.12 - dir*t*1.2)*noise(p*.21 + dir*t*.8 + 3.1), 3.)*2.;
-    c = mix(c, fl + g*.4*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
+    float ph0 = fract(t*.36), ph1 = fract(t*.36 + .5);
+    vec3 fl = mix(cr(uvd - dir*ph0*38.*k), cr(uvd - dir*ph1*38.*k), abs(1. - 2.*ph0));
+    float g = pow(noise(p*.12 - dir*t*1.5)*noise(p*.21 + dir*t*1. + 3.1), 3.)*2.;
+    c = mix(c, fl + g*.85*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
   }
-  if (mist > .002) c += mist*smoothstep(.42, .8, fbm(p*.0035 + vec2(-t*.06, t*.015)))*.16*mix(vec3(1., .86, .66), vec3(.62, .72, .92), uNight);
+  if (mist > .002) c += mist*smoothstep(.38, .8, fbm(p*.0035 + vec2(-t*.15, t*.035)))*.3*mix(vec3(1., .86, .66), vec3(.62, .72, .92), uNight);
   // pislogás: a környezetüknél jóval világosabb pöttyök (csillagok, fénypöttyök, éjjel a szentjánosbogarak)
   float tw = smoothstep(.07, .25, lum(c) - lum(textureLod(uImg, uvd, 3.).rgb))*(1. - min(canopy*2., 1.))*max(sky, uNight*.8*(1. - river));
   c *= 1. + tw*(noise(p*.35 + vec2(t*.9, -t*.6))*1.2 - .6);
@@ -79,10 +84,10 @@ void main(){
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
-  for (const n of ['uImg', 'uM1', 'uM2', 'uRes', 'uOff', 'uSize', 'uCrop', 'uT', 'uNight']) U[n] = gl.getUniformLocation(prog, n);
-  gl.uniform1i(U.uImg, 0); gl.uniform1i(U.uM1, 1); gl.uniform1i(U.uM2, 2);
+  for (const n of ['uImg', 'uM1', 'uM2', 'uM3', 'uRes', 'uOff', 'uSize', 'uCrop', 'uT', 'uNight']) U[n] = gl.getUniformLocation(prog, n);
+  gl.uniform1i(U.uImg, 0); gl.uniform1i(U.uM1, 1); gl.uniform1i(U.uM2, 2); gl.uniform1i(U.uM3, 3);
   MAXTEX = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-  texs = [gl.createTexture(), gl.createTexture(), gl.createTexture()];
+  texs = [gl.createTexture(), gl.createTexture(), gl.createTexture(), gl.createTexture()];
   } catch (e) { glErr = String(e && e.message || e).slice(0, 300); gl = null; }
   if (!gl) { console.warn('fokusz-mozgas: WebGL nélkül megy:', glErr); cv.remove(); }
   function upload(unit, src, mip) {
@@ -95,7 +100,9 @@ void main(){
     if (mip) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
     else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
-  const load = (src) => new Promise((ok, bad) => { const i = new Image(); i.decoding = 'async'; i.onload = () => ok(i); i.onerror = bad; i.src = src; });
+  const load = (src) => new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error('nem töltődik: ' + src.replace(location.origin, ''))); i.src = src; });
+  // ha a webp nem jön be (régebbi Safari, memória), a 1920-as JPEG is jó alap
+  const loadImg = (src) => load(src).catch((e) => { lastErr = e.message; return load(src.replace(/-(wide|tall)(-\d+)?\.webp$/, '-$1.jpg')); });
 
   // a jelenet: a CSS által épp választott kép (nappal/éjjel, fekvő/álló, a képernyőhöz illő méret) és a hozzá tartozó maszkok
   const S = { key: '', img: null, night: 0, crop: [0, 1], leafPts: [], ready: false };
@@ -113,16 +120,16 @@ void main(){
     if (loading && loading.key === key) return loading.p;
     const p = (async () => {
       const n = c.night ? 'night' : 'day';
-      const [img, m1, m2] = await Promise.all([load(key), load(`/img/focus-${n}-m1.png`), load(`/img/focus-${n}-m2.png`)]);
+      const [img, m1, m2, m3] = await Promise.all([loadImg(key), load(`/img/focus-${n}-m1.png?v=5`), load(`/img/focus-${n}-m2.png?v=5`), load(`/img/focus-${n}-m3.png?v=5`)]);
       const tall = /-tall/.test(key);
       Object.assign(S, { key, img, night: c.night ? 1 : 0, crop: tall ? [2625 / 7680, 2430 / 7680] : [0, 1], ready: false });
-      upload(1, m1, false); upload(2, m2, false);
+      upload(1, m1, false); upload(2, m2, false); upload(3, m3, false);
       // a levelek a lomb (m1 zöld) erős pontjaiból indulnak
       const t = document.createElement('canvas'); t.width = 240; t.height = 135; const x = t.getContext('2d'); x.drawImage(m1, 0, 0, 240, 135);
       const d = x.getImageData(0, 0, 240, 135).data; S.leafPts = [];
       for (let i = 0; i < 240 * 135; i++) if (d[i * 4 + 1] > 200) S.leafPts.push([(i % 240) * 8 + 4, Math.floor(i / 240) * 8 + 4]);
       L = null; S.ready = true; return true;
-    })().catch((e) => { lastErr = String(e && (e.message || e.type) || e).slice(0, 200); console.warn('fokusz-mozgas:', e); return false; }).finally(() => { loading = null; });
+    })().catch((e) => { lastErr = String(e && (e.message || e.type) || e).slice(0, 200) + ' | fd=' + String(getComputedStyle(bg).getPropertyValue('--fd')).slice(0, 120); console.warn('fokusz-mozgas:', e); return false; }).finally(() => { loading = null; });
     loading = { key, p }; return p;
   }
   function layout() {
@@ -153,16 +160,23 @@ void main(){
   let leaves = [], notes = [], motes = [], nextLeaf = 0, nextNote = 0;
   const GLYPH = ['♪', '♫', '♩', '♬'];
   function spawn(t) {
-    if (t > nextLeaf && leaves.length < 8 && S.leafPts.length) {
-      const [X, Y] = S.leafPts[Math.floor(Math.random() * S.leafPts.length)];
-      leaves.push({ X, Y, t0: t, vy: rnd(14, 24), dr: rnd(-6, 14), A: rnd(14, 30), w: rnd(.6, 1.1), ph: rnd(0, 6.3), fw: rnd(1.2, 2.4), r0: rnd(0, 6.3), len: rnd(7, 10), hue: rnd(36, 48) });
-      nextLeaf = t + rnd(1.2, 3.5);
+    if (t > nextLeaf && leaves.length < 24 && S.leafPts.length) {
+      // három mélység: apró távoli, közepes a lombból, és néha egy-egy nagy, életlen levél közvetlenül a kamera előtt
+      const near = leaves.filter((f) => f.near).length, r = Math.random();
+      if (r < .1 && near < 2) {
+        const x0 = S.crop[0] * 1920, x1 = x0 + S.crop[1] * 1920;
+        leaves.push({ near: 1, X: rnd(x0, x1), Y: -80, t0: t, vy: rnd(70, 100), dr: rnd(-10, 30), A: rnd(60, 120), w: rnd(.5, .9), ph: rnd(0, 6.3), fw: rnd(.8, 1.6), r0: rnd(0, 6.3), len: rnd(34, 58), hue: rnd(34, 46), soft: rnd(4, 8), op: .85 });
+      } else {
+        const far = r < .55, [X, Y] = S.leafPts[Math.floor(Math.random() * S.leafPts.length)];
+        leaves.push({ X, Y, t0: t, vy: far ? rnd(13, 22) : rnd(22, 36), dr: rnd(-8, 20), A: far ? rnd(10, 22) : rnd(18, 40), w: rnd(.6, 1.1), ph: rnd(0, 6.3), fw: rnd(1.2, 2.4), r0: rnd(0, 6.3), len: far ? rnd(4.5, 7.5) : rnd(9, 14), hue: rnd(36, 48), soft: 0, op: far ? .7 : .9 });
+      }
+      nextLeaf = t + rnd(.3, .9);
     }
-    if (t > nextNote && notes.length < 8) {
-      notes.push({ X: 1064 + rnd(-8, 8), Y: 812 + rnd(-6, 6), t0: t, life: rnd(6.5, 8.5), vx: rnd(4, 10), vy: rnd(-20, -14), A: rnd(6, 12), w: rnd(.8, 1.4), ph: rnd(0, 6.3), g: GLYPH[Math.floor(Math.random() * 4)], sz: rnd(24, 32), rot: rnd(-.25, .25) });
-      nextNote = t + rnd(1.1, 2.2);
+    if (t > nextNote && notes.length < 7) {
+      notes.push({ X: 1064 + rnd(-8, 8), Y: 812 + rnd(-6, 6), t0: t, life: rnd(7, 9), vx: rnd(4, 10), vy: rnd(-20, -13), A: rnd(6, 12), w: rnd(.8, 1.4), ph: rnd(0, 6.3), g: GLYPH[Math.floor(Math.random() * 4)], sz: rnd(26, 34), rot: rnd(-.2, .2) });
+      nextNote = t + rnd(1.2, 2.2);
     }
-    const want = S.night ? 18 : 12;
+    const want = S.night ? 34 : 24;
     while (motes.length < want) motes.push({ X: rnd(0, 1920), Y: S.night ? rnd(560, 1040) : rnd(250, 700), vx: rnd(-4, 4), vy: rnd(-3, 3), w: rnd(.5, 1.3), ph: rnd(0, 6.3), r: rnd(1.2, 2.2) });
   }
   function particles(t, dt) {
@@ -182,13 +196,14 @@ void main(){
     // levelek: ingázva, forogva hullanak
     leaves = leaves.filter((f) => {
       const age = t - f.t0, Y = f.Y + f.vy * age;
-      if (Y > 1090 || age > 40) return false;
+      if (Y > 1150 || age > 40) return false;
       const X = f.X + f.dr * age + f.A * Math.sin(f.w * age + f.ph);
-      const a = Math.min(1, age / 1.5) * Math.min(1, (1080 - Y) / 120) * .9;
+      const a = Math.min(1, age / 1.5) * Math.min(1, (1080 - Y) / 120) * f.op;
       const x = toX(X), y = toY(Y), l = f.len * u;
       ctx.save(); ctx.translate(x, y); ctx.rotate(f.r0 + .9 * Math.sin(f.w * age + f.ph + 1.2)); ctx.scale(Math.cos(age * f.fw), 1);
       ctx.globalAlpha = a;
-      if (S.night) { ctx.shadowColor = 'rgba(255,200,90,.8)'; ctx.shadowBlur = 5 * u; }
+      if (f.soft) { ctx.shadowColor = `hsla(${f.hue},80%,45%,.9)`; ctx.shadowBlur = f.soft * u; }   // közel: életlen, mint a mélységélesség
+      else if (S.night) { ctx.shadowColor = 'rgba(255,200,90,.8)'; ctx.shadowBlur = 5 * u; }
       ctx.fillStyle = `hsl(${f.hue},${S.night ? 95 : 82}%,${S.night ? 62 : 52}%)`;
       ctx.beginPath(); ctx.moveTo(-l, 0); ctx.quadraticCurveTo(0, -l * .55, l, 0); ctx.quadraticCurveTo(0, l * .55, -l, 0); ctx.fill();
       ctx.shadowBlur = 0; ctx.strokeStyle = `hsla(${f.hue - 8},70%,28%,.55)`; ctx.lineWidth = Math.max(.6, .35 * u);
@@ -245,7 +260,7 @@ void main(){
   addEventListener('resize', () => { if (!running) return; const c = current(); if (c && c.url !== S.key) { S.ready = false; motes = []; } sync(); });
   cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); glErr = 'context lost'; gl = null; cv.remove(); });
   // visszajelzés a szervernek (a szerver naplójába), hogy egy-egy gépen miért nem mozog: böngésző, WebGL, hiba, lefutott képkockák
-  const diag = (when) => { try { if (typeof send === 'function') send({ t: 'fmodiag', d: JSON.stringify({ v: 3, when, ua: navigator.userAgent, gl: !!gl, glErr, lastErr, focus: root.classList.contains('focus'), running, frames, live: view.classList.contains('fmoon'), dpr: devicePixelRatio, vw: view.clientWidth, vh: view.clientHeight, img: S.key.split('/').pop(), hidden: document.hidden }) }); } catch {} };
+  const diag = (when) => { try { if (typeof send === 'function') send({ t: 'fmodiag', d: JSON.stringify({ v: 5, when, ua: navigator.userAgent, gl: !!gl, glErr, lastErr, focus: root.classList.contains('focus'), running, frames, live: view.classList.contains('fmoon'), dpr: devicePixelRatio, vw: view.clientWidth, vh: view.clientHeight, img: S.key.split('/').pop(), hidden: document.hidden }) }); } catch {} };
   setTimeout(() => diag('8s'), 8000); setTimeout(() => diag('30s'), 30000);
   sync();
 })();
