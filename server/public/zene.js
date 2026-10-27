@@ -96,30 +96,41 @@
     try { s.paused ? M.player.pauseVideo() : (M.player.getPlayerState() === 2 ? M.player.playVideo() : 0); } catch {}
     applyVolume(); paintPlay();
   }
-  // Pontos igazítás a közös időhöz. Kis eltérést (0,04 s fölött) rövid gyorsítással / lassítással hozunk be (a YouTube megtartja
-  // a hangmagasságot), nagyot tekeréssel. A tekerés után a lejátszó a géptől és a hálózattól függően később szólal meg újra:
-  // ezt a ráhagyást (lead) minden gép magának méri ki és megjegyzi, így a tekerés pontosan a közös helyre visz.
-  const SEEK_OVER = 0.6, NUDGE_OVER = 0.04;
-  let rateUntil = 0, seekAt = 0, rates = null;
+  // Igazítás a közös időhöz. Akadozás ellen (Richard, 2026-10-27: „nagyon akadozik a zene össze vissza ugrál”):
+  // - 0,15 s alatti eltérés: semmi (ennyit a fül nem hall, a YouTube órája is ennyit ingadozik);
+  // - kis eltérés (látható lapon): egyetlen rövid gyorsítás / lassítás, setTimeout-tal pontosan visszaállítva;
+  //   háttérben lévő lapon a böngésző lassítja az időzítőket (akár percekig), ott soha nem gyorsítunk;
+  // - nagy eltérés: tekerés, de csak ha három egymás utáni mérés is mutatja (egy kiugró mérés nem ugrat);
+  // - a tekerés utáni késést (lead) minden gép kiméri, kis lépésekben tanulja, és megjegyzi.
+  const DEAD = 0.15, SEEK_OVER = 1.2, SEEK_HIDDEN = 2.5, LEAD_STEP = 0.2;
+  let rateUntil = 0, rateT = 0, seekAt = 0, rates = null, far = 0;
+  M.stats = { seeks: 0, nudges: 0 };
   function setRate(r) { try { if (M.player.getPlaybackRate() !== r) M.player.setPlaybackRate(r); } catch {} }
+  function stopNudge() { clearTimeout(rateT); rateT = 0; rateUntil = 0; setRate(1); }
+  function seek(now) { stopNudge(); far = 0; try { M.player.seekTo(expected() + M.lead, true); } catch {} seekAt = now; M.stats.seeks++; }
   function align() {
     if (!M.ready || !M.joined || !M.st || M.st.paused || !cur()) return;
     let st, t; try { st = M.player.getPlayerState(); t = M.player.getCurrentTime(); } catch { return; }
     if (st !== 1) return;                                     // puffer, hirdetés, szünet alatt nem mérünk
-    const now = Date.now(), diff = t - expected();          // + előrébb jár, - lemaradt
-    if (seekAt && now - seekAt > 1200) {                      // a legutóbbi tekerés hová vitt: a ráhagyás tanul belőle
-      M.lead = Math.min(3, Math.max(0, M.lead - diff * 0.8)); safeSet('mlead', M.lead.toFixed(3)); seekAt = 0;
-    } else if (seekAt) return;
-    if (Math.abs(diff) > SEEK_OVER) { setRate(1); rateUntil = 0; try { M.player.seekTo(expected() + M.lead, true); } catch {} seekAt = now; return; }
+    try { if (M.player.getVideoData().isLive) return; } catch {}   // élő adást nem lehet közös időre igazítani
+    const now = Date.now(), diff = t - expected(), ad = Math.abs(diff), hidden = document.visibilityState !== 'visible';
+    if (seekAt) {                                             // a legutóbbi tekerés hová vitt: a ráhagyás ebből tanul
+      if (now - seekAt < 1500) return;
+      if (ad < SEEK_OVER) { M.lead = Math.min(3, Math.max(0, M.lead - Math.max(-LEAD_STEP, Math.min(LEAD_STEP, diff * 0.6)))); safeSet('mlead', M.lead.toFixed(3)); }
+      seekAt = 0;
+    }
+    if (rateUntil) return;                                    // épp gyorsít / lassít: megvárjuk a végét
+    if (ad > (hidden ? SEEK_HIDDEN : SEEK_OVER)) { if (++far >= 3) seek(now); return; }
+    far = 0;
+    if (ad <= DEAD || hidden) return;
     if (!rates) { try { rates = M.player.getAvailablePlaybackRates() || [1]; } catch { rates = [1]; } }
-    const up = rates.includes(1.25) ? 1.25 : rates.includes(1.5) ? 1.5 : 0, down = rates.includes(0.75) ? 0.75 : rates.includes(0.5) ? 0.5 : 0;
-    if (Math.abs(diff) > NUDGE_OVER && (diff < 0 ? up : down)) {
-      const r = diff < 0 ? up : down;                         // lemaradt: gyorsít; előrébb jár: lassít
-      setRate(r); rateUntil = now + Math.abs(diff) / Math.abs(r - 1) * 1000;
-    } else if (Math.abs(diff) > SEEK_OVER / 3 && !(diff < 0 ? up : down)) { try { M.player.seekTo(expected() + M.lead, true); } catch {} seekAt = now; }
-    else if (now >= rateUntil) setRate(1);
+    const r = diff < 0 ? (rates.includes(1.25) ? 1.25 : 0) : (rates.includes(0.75) ? 0.75 : 0);   // lemaradt: gyorsít; előrébb jár: lassít
+    if (!r) return;
+    const ms = Math.min(4000, ad / 0.25 * 1000);
+    setRate(r); rateUntil = now + ms; M.stats.nudges++;
+    rateT = setTimeout(stopNudge, ms);
   }
-  setInterval(() => { if (rateUntil && Date.now() >= rateUntil) { setRate(1); rateUntil = 0; } }, 50);   // a gyorsítás pontosan addig tart, amíg kell
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' && rateUntil) stopNudge(); });
   setInterval(() => { if (M.joined && cur()) align(); }, 1000);
   const seekIfOff = () => align();
 
@@ -131,7 +142,8 @@
     const now = Date.now(), rtt = now - m.c; if (rtt < 0 || rtt > 5000) return;
     pings.push({ rtt, off: m.s - (m.c + rtt / 2) }); if (pings.length > 10) pings.shift();
     const best = pings.reduce((a, b) => (b.rtt < a.rtt ? b : a));
-    M.off = best.off; M.clock = true;
+    if (!M.clock || Math.abs(best.off - M.off) > 40) M.off = best.off;
+    M.clock = true;
   }
   let pingN = 0; setInterval(() => { if (pingN < 6 || pingN % 15 === 0) ping(); pingN++; }, 1000);   // indításkor sűrűn, aztán 15 s-onként
   window.MusicHook = (m) => {
@@ -140,7 +152,7 @@
     const mu = m.t === 'state' || m.t === 'music' ? m.music : null;
     if (!mu || !Array.isArray(mu.items)) return;
     const changed = !M.st || M.st.rev !== mu.rev || M.st.fetchedAt !== mu.fetchedAt || M.st.link !== mu.link;
-    if (!M.clock) M.off = mu.now - Date.now();   // amíg nincs pontos mérés, az üzenet ideje szerint
+    if (!M.clock && !M.roughOff) { M.off = mu.now - Date.now(); M.roughOff = true; }   // amíg nincs pontos mérés: egyszer, az első üzenet szerint
     M.st = mu;
     const playing = !!(mu.items.length && !mu.paused);
     if (playing !== M.playingEv) { M.playingEv = playing; document.dispatchEvent(new CustomEvent('music:playing', { detail: playing })); }
@@ -217,7 +229,7 @@
     send({ t: 'music-list', input: v }); $('murl').value = ''; changing = false;
     note('A lista bekötése…', 3000);
   };
-  window.MusicDebug = (seek) => (seek != null && M.player && M.player.seekTo(seek, true), { t: M.player && M.ready ? M.player.getCurrentTime() : -1, exp: expected(), vol: M.player && M.ready ? M.player.getVolume() : -1, level: M.level, rev: M.st && M.st.rev, cur: M.st && M.st.cur, state: M.player && M.ready ? M.player.getPlayerState() : -1, joined: M.joined, lead: M.lead, rate: M.player && M.ready ? M.player.getPlaybackRate() : -1, dur: M.player && M.ready ? M.player.getDuration() : -1 });   // csak ellenőrzéshez
+  window.MusicDebug = (sk) => (sk != null && M.player && M.player.seekTo(sk, true), { stats: M.stats, hidden: document.visibilityState, t: M.player && M.ready ? M.player.getCurrentTime() : -1, exp: expected(), vol: M.player && M.ready ? M.player.getVolume() : -1, level: M.level, rev: M.st && M.st.rev, cur: M.st && M.st.cur, state: M.player && M.ready ? M.player.getPlayerState() : -1, joined: M.joined, lead: M.lead, rate: M.player && M.ready ? M.player.getPlaybackRate() : -1, dur: M.player && M.ready ? M.player.getDuration() : -1 });   // csak ellenőrzéshez
   paint();
   if (document.readyState === 'complete') loadApi(); else addEventListener('load', loadApi);
 })();

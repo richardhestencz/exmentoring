@@ -31,7 +31,7 @@ Az **Exmentoring** a Mentoring szoba közös rulettje: egy naplementés tisztás
 | `iroda-macbook/start-ajto.command` | Az ajtófigyelőt indítja egy Terminál-ablakban (bejelentkezéskor magától) |
 | `mac-mini/install.sh` | A szerver telepítője a Mac minire: függőségek, `.env`, automatikus indulás |
 | `mac-mini/run-server.sh` | A szervert indítja (a háttérben futó launchd hívja) |
-| `mac-mini/update.sh` | Frissítés a GitHubról: naponta 04:00-kor, és a weboldal gombjával is |
+| `mac-mini/update.sh` | Frissítés a GitHubról: naponta 04:00-kor (az oldalon már nincs frissítés-gomb; a `/api/update` végpont megmaradt) |
 | `.env.example` | Minta a szerver titkos beállításaihoz. A valódi `.env` soha nem kerül fel a GitHubra |
 
 A repó nyilvános, ezért titok ne kerüljön bele: a token csak a Mac mini `.env` fájljában és az irodai MacBook `ajto.env` fájljában van.
@@ -134,7 +134,7 @@ Egy **YouTube-lejátszási lista van bekötve** (lehetőleg közös szerkesztés
 
 | Teendő | Hogyan |
 |---|---|
-| Kód módosítása | GitHubon szerkeszted vagy pusholsz. A Mac mini 04:00-kor, vagy az oldal alján lévő „Frissítés a GitHubról” gombra frissít (10 percenként max. egyszer). Az irodai MacBook minden indulásnál frissít |
+| Kód módosítása | GitHubon szerkeszted vagy pusholsz. A Mac mini 04:00-kor frissít (az oldal alján lévő gomb 2026-10-27-én kikerült; a `/api/update` végpont megmaradt) (10 percenként max. egyszer). Az irodai MacBook minden indulásnál frissít |
 | Naplók (Mac mini) | `~/Exmentoring/logs/server.log`, `update.log` |
 | Szerver újraindítása | `launchctl kickstart -k gui/$(id -u)/hu.exmentoring.server` |
 | Ajtófigyelő újraindítása (MacBook) | Zárd be az ablakát, majd `open ~/exmentoring-ajto/iroda-macbook/start-ajto.command` |
@@ -153,6 +153,38 @@ Egy **YouTube-lejátszási lista van bekötve** (lehetőleg közös szerkesztés
 
 - **„Ki van bent?”:** QR-kód az ajtón. Első beolvasáskor becenév (a telefonhoz kötve, HttpOnly süti, 400 nap), utána minden beolvasás bejelentkezés; az aznapi első +10 000 a potba; második beolvasás: „Elmegyek”; éjfélkor lejár. A céges hálózathoz nem nyúl (NIS2). A gazda a mester tokennel szabadít fel becenevet; 30 nap használat nélkül magától felszabadul.
 - **Mosómedve-animáció:** ha a három figura külön, átlátszó hátterű PNG-ben is meglesz, megmozdíthatók.
+
+## „Csak zene” nézet (fókusz)
+
+- A fejléc **🎧 Csak zene** gombja (`server/public/fokusz.js`): eltűnik a tisztás, a kerék és minden más. Egy nagy kép látszik: a hatalmas világfa (Yggdrasil) tövében egy pici, lantozó mosómedve, epikus, Elden Ring-szerű tájjal. Gemini rajzolta 2026-10-27-én.
+  - Képek: `img/focus-day-wide.jpg` és `focus-day-tall.jpg` (álló, telefonra).
+  - Éjszakai változat: ugyanez helyben sötétítve, holdfénnyel, a lomb aranyfényét megtartva (`focus-night-*.jpg`). A világos/sötét mód szerint vált.
+- A képen a zene vezérlői vannak (a 🎵 panel gombjainak tükre; a lejátszó a panelben marad), és ha van, a napi ebéd kártyája.
+- A beállítást megjegyzi (`localStorage` `focus`), és a `/#zene` címmel is nyílik. Ebben a nézetben a 3D kerék egyáltalán nem rajzolódik.
+- **A többiek a tisztáson** látják, ki koncentrál.
+  - A szerver tudja (WS `focus` {on}, a `state` üzenet `focus` listája), és a mosómedve neve mellé 🎧 kerül.
+  - A név fölött három Gemini-ikon jelenik meg: fejhallgató-jelvény, hangjegy, holdas „ne zavarj” jelvény (`img/focus-headphones.png`, `focus-notes.png`, `focus-moon.png`). A mosómedve halvány arany fényt kap.
+
+## Telefon, takarékosság
+
+- A 3D kerék csak akkor rajzolódik újra, ha valami mozdul (pörgés, kameramozgás, átméretezés); állóképnél 2 s-onként egyszer.
+  - Mérve asztali Chrome-ban: tétlenül 240 képkockából 2 rajzolás, pörgés közben 240/240.
+  - Telefonon legfeljebb 30 képkocka/s, 1,25-ös felbontás, kisebb árnyéktérkép, és pörgéskor nincs elmosás.
+- Telefonon a fejlécből a BÉTA, a Gyros és a Kóla a „…” menübe kerül.
+- A „Hogyan működik” rész és a lábléc (a „Frissítés a GitHubról” gombbal) kikerült.
+
+## Zene: akadozás elleni igazítás (2026-10-27)
+
+Richard: „nagyon akadozik a zene össze vissza ugrál”. Az ok: háttérben lévő lapon a böngésző lassítja az időzítőket, ezért a rövid gyorsítás / lassítás (1,25× / 0,75×) a tervezett tized másodperc helyett másodpercekig tartott. A szám így elcsúszott, és tekerni kellett.
+
+Most (`zene.js` `align`):
+- 0,15 s alatt semmi.
+- Kis eltérésnél egyetlen rövid igazítás, `setTimeout`-tal pontosan visszaállítva, és csak látható lapon.
+- Tekerés csak 3 egymás utáni rossz mérés után: látható lapon 1,2 s, háttérben 2,5 s fölött.
+- A tekerés utáni ráhagyás (lead) kis lépésekben tanul.
+- Élő adásnál nincs igazítás.
+- Az óraeltolás csak érdemi (40 ms fölötti) javulásnál vált.
+- Mérve: másfél perc háttérben 0 tekerés, 0 igazítás, az eltérés 0,02 s. `MusicDebug().stats` mutatja a számlálókat.
 
 ## Szavazások: lejárat, sárga szám, napi ebéd
 

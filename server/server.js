@@ -297,7 +297,7 @@ function snapshot(withTrack) {
     cola: (cola.prune(S.cola), S.cola.codes),
     profiles: S.profiles, seats: seats.view(S.seats, today()), chapter: chapter.view(S.chapter),
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
-    minesweeper: S.minesweeper, music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
+    minesweeper: S.minesweeper, focus: focusNicks(), music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -305,6 +305,8 @@ function snapshot(withTrack) {
   }
   return snap;
 }
+// „Csak zene” (fókusz) nézetben lévők: a tisztáson a mosómedvéjük mellett fejhallgató és hangjegyek jelennek meg
+const focusNicks = () => [...new Set([...wss.clients].filter((c) => c.readyState === 1 && c.focus && c.nick).map((c) => c.nick))].sort();
 function publicSpin(spin) {
   if (!spin) return null;
   return {
@@ -432,6 +434,7 @@ wss.on('connection', (ws) => {
   const refill = setInterval(() => { ws.budget = 10; }, 1000);
   ws.on('close', () => {
     clearInterval(refill);
+    if (ws.focus) setImmediate(() => broadcast());
     // a tisztásról akkor lép ki, ha ezzel a becenévvel már senki nincs bent (más lapon sem)
     if (ws.inWorld && ![...wss.clients].some((c) => c !== ws && c.inWorld && c.nick === ws.nick)) { world.leave(S.world, ws.nick); save(); broadcastWorld(); }
   });
@@ -474,6 +477,7 @@ wss.on('connection', (ws) => {
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
+    if (m.t === 'focus') { if (ws.focus !== !!m.on) { ws.focus = !!m.on; broadcast(); } return; }
     if (m.t.startsWith('music-')) {
       const now = Date.now();
       let e = null;

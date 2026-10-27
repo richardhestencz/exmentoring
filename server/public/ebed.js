@@ -10,16 +10,15 @@
 
   // a bal oldali kártya: a mai eredmény (csak válasz után)
   function card() {
-    const box = $('lunchcard');
-    if (!L || !answered(L.polls[0])) { box.hidden = true; return; }
+    const boxes = document.querySelectorAll('.lunchcard');   // a tisztáson és a „Csak zene” nézetben is
+    if (!L || !answered(L.polls[0])) { boxes.forEach((b) => { b.hidden = true; }); return; }
     const [b, t] = L.polls, who = (arr) => (arr.length ? arr.join(', ') : '');
     const times = t.options.map((o, i) => [o, t.counts[i], t.votersByOption[i]]).filter((x) => x[1] > 0);
-    box.innerHTML = `<div class="lch"><b>🍱 Ebéd ma</b><small>lejár ${hm(L.closesAt)}</small></div>`
+    const html = `<div class="lch"><b>🍱 Ebéd ma</b><small>lejár ${hm(L.closesAt)}</small></div>`
       + `<div class="lcr"><span title="${esc(who(b.votersByOption[0]))}">Hozott: <b>${b.counts[0]}</b></span> · <span title="${esc(who(b.votersByOption[1]))}">Nem hozott: <b>${b.counts[1]}</b></span></div>`
       + `<div class="lcr">${times.length ? 'Indulás: ' + times.map(([o, c, v]) => `<span title="${esc(who(v))}">${o === 'Ma nem jövök' ? 'nem jön' : esc(o)}${o === 'Ma nem jövök' ? ': ' : ' '}<b>${o === 'Ma nem jövök' ? c : '(' + c + ')'}</b></span>`).join(' · ') : 'Indulás: még senki nem jelölte'}</div>`
-      + `<button type="button" class="lcedit" id="lcedit">Módosítom</button>`;
-    box.hidden = false;
-    $('lcedit').onclick = () => open(true);
+      + `<button type="button" class="lcedit">Módosítom</button>`;
+    boxes.forEach((b) => { b.innerHTML = html; b.hidden = false; b.querySelector('.lcedit').onclick = () => open(true); });
   }
 
   // a nagy ablak

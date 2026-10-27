@@ -304,8 +304,8 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 @media (max-width:760px){.mbtn .ml{display:none}.mbtn{padding:4px 9px;margin-left:6px}.chdue .s{display:none}.chdue{padding:4px 9px;margin-left:6px}.beta{margin-left:8px}}
 @media (max-width:420px){.studio>a[href="#jatek"]{display:none}}
 .nav-dropdown a.nav-m{display:none}
-/* telefonon is látsszon a Szavazás (és a sárga száma) meg a „…” menü: a Gyros és a Kóla oda kerül */
-@media (max-width:480px){.beta .cta-s,.beta i{display:none}.beta{padding:4px 8px 4px 5px}.top nav a{padding:12px 7px}.nav-primary a:not([href="/szavazas.html"]){display:none}.nav-dropdown a.nav-m{display:block}}
+/* telefonon is látsszon a Szavazás (és a sárga száma) meg a „…” menü: a BÉTA, a Gyros és a Kóla oda kerül */
+@media (max-width:480px){.top .beta{display:none}.top nav a{padding:12px 7px}.nav-primary a:not([href="/szavazas.html"]){display:none}.nav-dropdown a.nav-m{display:block}}
 .mdrawer{visibility:hidden;transition:transform .3s ease,visibility 0s .3s;position:fixed;top:44px;right:0;bottom:0;width:min(400px,100vw);z-index:95;background:#1c1119;color:#f4e8e2;box-shadow:-12px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column;transform:translateX(105%);font-size:.88rem}
 .mdrawer.open{transform:none;visibility:visible;transition:transform .3s ease}
 .mdrawer .mh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -445,6 +445,35 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .num:hover,.num:focus-visible{filter:brightness(1.18);outline:2px solid #fff;outline-offset:1px}
 .c-red{background:var(--red)}.c-black{background:#05080c;outline:1px solid rgba(255,255,255,.3)}.c-green{background:var(--green)}
 .fxbtn[aria-pressed="false"]{opacity:.45}
+/* „Csak zene” nézet (fokusz.js): a világfa tövében lantozó mosómedve (Gemini), a zene vezérlői, az ebéd; a kerék nem rajzolódik */
+.fbtn[aria-pressed="true"]{background:#eb772e;border-color:#eb772e}
+.focusview{display:none}
+html.focus main,html.focus .beta,html.focus .chdue,html.focus .oldv{display:none!important}
+html.focus .focusview{display:block;position:relative;height:calc(100svh - 44px);min-height:420px;overflow:hidden;background:#120c08}
+.fbg{position:absolute;inset:0;background:#120c08 url(img/focus-day-wide.jpg) 50% 100%/cover no-repeat}
+:root[data-theme="dark"] .fbg{background-image:url(img/focus-night-wide.jpg)}
+@media (orientation:portrait){.fbg{background-image:url(img/focus-day-tall.jpg)}:root[data-theme="dark"] .fbg{background-image:url(img/focus-night-tall.jpg)}}
+.fpanel{position:absolute;right:24px;bottom:24px;width:min(380px,calc(100% - 32px));padding:16px 18px}
+.fk{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:#ffd9a8;font-weight:800}
+.fnow{margin-top:6px;font-weight:800;font-size:1.05rem;line-height:1.3;color:#fff}
+.fby{font-size:.76rem;color:#e9b9a3;min-height:1em}
+.fctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:12px}
+.fc{border:0;border-radius:10px;background:rgba(255,255,255,.14);color:#fff;font:inherit;font-weight:700;cursor:pointer;padding:9px 12px}
+.fc:hover:not(:disabled){background:rgba(255,255,255,.24)}.fc:disabled{opacity:.4;cursor:default}
+.fc.fjoin{flex:1 1 100%;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553)}.fc.fjoin.on{background:rgba(255,255,255,.14)}
+#fvol{flex:1;min-width:60px;accent-color:#eb772e}
+.frow{display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+.flink{border:0;background:none;color:#ffd2a1;font:inherit;font-size:.82rem;text-decoration:underline;cursor:pointer;padding:0}
+.flunch{position:absolute;left:16px;top:16px;width:min(300px,calc(100% - 32px))}
+.fc:focus-visible,.flink:focus-visible{outline:3px solid #fff;outline-offset:2px}
+/* telefonon a kártyák felül, egymás alatt: lent látsszon a fa tövében lantozó mosómedve */
+@media (max-width:640px){html.focus .focusview{display:flex;flex-direction:column;gap:10px;padding:12px}
+  .fpanel,.flunch{position:relative;left:auto;right:auto;top:auto;bottom:auto;width:auto}.fpanel{padding:12px 14px}.fnow{font-size:.95rem}}
+/* a tisztáson: aki „Csak zene” nézetben van, annak a mosómedvéje mellett fejhallgató, hangjegy és „ne zavarj” jelvény (Gemini-ikonok) */
+.crowd .rcw.focusing img.spot{filter:drop-shadow(0 0 6px rgba(255,214,120,.85))}
+.crowd .rcw .ficons{position:absolute;pointer-events:none;z-index:2}
+.crowd .rcw .ficons img{position:absolute;width:100%;height:auto;filter:drop-shadow(0 2px 3px rgba(0,0,0,.45))}
+.rcn .fz{margin-left:4px}
 /* napi ebédszavazás (ebed.js): nagy ablak 10:00 után, eredmény-kártya bal oldalt az üzenetek alatt */
 .lunchcard{padding:9px 12px;font-size:.84rem;color:#f3e6de}
 .lunchcard .lch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}
@@ -566,9 +595,6 @@ h2.sec{margin:0 0 6px;font-size:clamp(1.6rem,3.5vw,2.3rem);font-weight:800;lette
 footer{background:var(--dark);color:#cfc6c2;padding:36px 0 28px}
 footer p{margin:0;max-width:56ch;font-size:.92rem}
 footer strong{color:#fff}
-.upd{padding:8px 14px;border-radius:10px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-weight:600;cursor:pointer}
-.upd:focus-visible{outline:3px solid #fff;outline-offset:2px}
-#updmsg{font-size:.88rem;margin-left:8px}
 .rc{border-radius:50%;object-fit:cover;flex:none;display:inline-block}
 .studio .rc{width:26px;height:26px}
 .me .rc{width:30px;height:30px}
@@ -616,8 +642,8 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="Közös zene: lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> Zene</span></button></span>
-    <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a class="nav-m" href="/gyros.html">Gyros</a><a class="nav-m" href="/cola.html">Kóla</a><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="Közös zene: lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> Zene</span></button><button type="button" class="mbtn fbtn" id="focusbtn" aria-pressed="false" aria-controls="focusview">🎧<span class="ml"> Csak zene</span></button></span>
+    <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a class="nav-m" href="/beta.html">BÉTA: 3D tisztás</a><a class="nav-m" href="/gyros.html">Gyros</a><a class="nav-m" href="/cola.html">Kóla</a><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
 </header>
@@ -720,22 +746,19 @@ footer strong{color:#fff}
   </div>
 </div>
 
-<section id="szabalyok">
-  <div class="wrap">
-    <h2 class="sec">Hogyan működik</h2>
-    <p class="lead">Virtuális játék, nem valódi pénz. Mosómedvékben játszunk, és a pot csak a szobáé.</p>
-    <ol class="steps">
-      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Közös pot</h3>Induláskor 100 000 mosómedve van a potban. Aki aznap először bejelentkezik, hoz a közösnek: helyben +10 000, home office-ból +5 000 mosómedvét (egy becenév naponta egyszer). Utána a képen a + jelekkel ülhetsz le a tábortűz körül.</div></li>
-      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Valódi fizika</h3>A golyó fizikai szimulációval forog, pattog és áll meg. A nyerő szám abból jön, hol marad a golyó.</div></li>
-      <li><div class="card"><h3><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true">Ajtó és Pörgetés</h3>Ha kinyílik az ajtó, az ajtó is feltesz 1000 mosómedvét, és amikor becsukódik, pörög a kerék. Pörgetni a Pörgetés gombbal is lehet, a saját tétjeid után. Az ajtót az irodai MacBook figyeli: <a href="/ajto.html">így kell beállítani</a>.</div></li>
-    </ol>
+</main>
+<section class="focusview" id="focusview" aria-label="Csak zene" aria-hidden="true">
+  <div class="fbg" aria-hidden="true"></div>
+  <div class="glass lunchcard flunch" hidden aria-live="polite"></div>
+  <div class="fpanel glass">
+    <div class="fk">🎧 Csak zene</div>
+    <div class="fnow" id="fnow"></div><div class="fby" id="fby"></div>
+    <div class="fctl"><button type="button" class="fc fjoin" id="fjoin">▶ Zene bekapcsolása</button>
+      <button type="button" class="fc" id="fprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="fc" id="fpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="fc" id="fnext" title="Következő (mindenkinek)">⏭</button>
+      <input type="range" id="fvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
+    <div class="frow"><button type="button" class="flink" id="fopen">Lista, szám betétele</button><button type="button" class="flink" id="fexit">← Vissza a tisztásra</button></div>
   </div>
 </section>
-</main>
-<footer><div class="wrap">
-  <p><strong>Exmentoring</strong><br>A Mentoring szoba közös rulettje. Virtuális játék, valódi pénz nincs benne.<br>A kód: <a href="https://github.com/richardhestencz/exmentoring" rel="noopener" style="color:#f8c7a3">github.com/richardhestencz/exmentoring</a></p>
-  <p style="margin-top:14px"><button class="upd" id="upd" type="button">Frissítés a GitHubról</button> <span id="updmsg" role="status"></span></p>
-</div></footer>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script src="/avatar.js"></script>
@@ -783,6 +806,7 @@ function connect(){
     const m=JSON.parse(e.data);
     if(window.MusicHook)MusicHook(m);
     if(window.LunchHook)LunchHook(m);
+    if(window.FocusHook)FocusHook(m);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render();$('chdue').hidden=!m.chapter||!!(nick&&m.chapter.votes[nick])}
     else if(m.t==='roulette-user-history')renderUserHistory(m)
     else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
@@ -1035,7 +1059,8 @@ setInterval(()=>{
 /* ---------- 3D kerék ---------- */
 const cv=$('cv');
 const renderer=new THREE.WebGLRenderer({canvas:cv,antialias:true,alpha:true});
-renderer.setPixelRatio(Math.min(devicePixelRatio,1.75));
+const LOWPOWER=matchMedia('(max-width:760px)').matches;
+renderer.setPixelRatio(Math.min(devicePixelRatio,LOWPOWER?1.25:1.75));   // telefonon kisebb felbontás: kevesebb munka a grafikus chipnek
 renderer.outputEncoding=THREE.sRGBEncoding;
 renderer.toneMapping=THREE.NoToneMapping;
 renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;
@@ -1047,7 +1072,7 @@ const clamp=(v,a,b)=>Math.min(b,Math.max(a,v)), smooth=t=>t*t*(3-2*t), TAU=Math.
 scene.add(new THREE.HemisphereLight(0xffd9bf,0x6a2a3a,.5));
 const fill=new THREE.DirectionalLight(0xffe2cc,.28);fill.position.set(.5,2.5,4);scene.add(fill);
 const dl=new THREE.DirectionalLight(0xffc596,.5);dl.position.set(-1.6,3.6,-2.4);dl.castShadow=true;
-dl.shadow.mapSize.set(1024,1024);Object.assign(dl.shadow.camera,{left:-1.8,right:1.8,top:1.8,bottom:-1.8,near:1,far:9});dl.shadow.bias=-.0005;scene.add(dl);
+dl.shadow.mapSize.set(LOWPOWER?512:1024,LOWPOWER?512:1024);Object.assign(dl.shadow.camera,{left:-1.8,right:1.8,top:1.8,bottom:-1.8,near:1,far:9});dl.shadow.bias=-.0005;scene.add(dl);
 
 // ugyanazok a méretek, mint a szerveroldali fizikában (physics.js)
 const STEP=TAU/37, R_IN=.58, R_OUT=.95, BALL_R=.048;
@@ -1216,7 +1241,7 @@ new ResizeObserver(fit).observe(stage);fit();
 setInterval(updateBackgroundClock,15000);
 addEventListener('themechange',()=>{layoutBg();if(S)render();postW3d({t:'night',on:isDark()})});
 const WHEEL_IDLE=.8;                                  // várakozáskor a kerék a kőkör 80%-a
-let zoomK=0;
+let zoomK=0,lastCamStyle='';
 function updateCamera(T,dt){
   const target=S&&S.phase!=='betting'?1:0;
   camT+=(target-camT)*(1-Math.exp(-dt*1.3));
@@ -1240,14 +1265,20 @@ function updateCamera(T,dt){
   const zWheel=(2.72*SH/viewH)/(ring.w*WHEEL_IDLE), z=Math.pow(zWheel,.85);
   const tx=(SW/2+xo)-ring.x, ty=frac*SH-ring.y;
   const ox=ring.x-bgBox.left, oy=ring.y-bgBox.top;
-  bg.style.transform=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;
+  const bgT=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;
   const blur=Math.max(0,(k-.35)/.65);
-  const cameraFilter=(blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'');
+  // telefonon nincs elmosás (drága), csak sötétítés
+  const cameraFilter=(blur>0?`${mobile?'':`blur(${(blur*6).toFixed(1)}px) `}brightness(${(1-blur*.35).toFixed(2)})`:'');
+  const camKey=bgT+cameraFilter+nightFilter;
+  if(camKey!==lastCamStyle){
+  lastCamStyle=camKey;
+  bg.style.transform=bgT;
   bg.style.filter=cameraFilter.trim()||'none';
   bgNight.style.transform=bg.style.transform;
   bgNight.style.filter=(cameraFilter+' '+nightFilter).trim()||'none';
   crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
   if(window.FxCam)FxCam(bg.style.transform,bg.style.filter);
+  }
   // BÉTA: a 3D tisztás kamerája pontosan a kerékkamerát követi (ugyanaz a billenés és közelítés), nem síkban nagyítunk
   if(BETA&&!playing3d){
     const m={t:'cam',p:camera.position.toArray().map(v=>+v.toFixed(4)),fov:camera.fov,ox:+(-xo).toFixed(2),oy:+((.5-frac)*SH).toFixed(2),w:SW,h:SH},k=JSON.stringify(m);
@@ -1264,7 +1295,8 @@ function drawCrowd(){
   if(!sceneInfo||(!DEMO&&(!S||!S.seats)))return;
   const seated=DEMO?DEMO_NICKS.map((nick,i)=>({nick,spot:i})):Object.entries(S.seats).filter(([,v])=>v.spot!==null).map(([n,v])=>({nick:n,spot:v.spot}));
   const me=!DEMO&&nick&&S.seats[nick];
-  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,sceneInfo.night,seated,nick,me]);
+  const focusing=new Set(!DEMO&&S.focus||[]);
+  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,sceneInfo.night,seated,nick,me,[...focusing]]);
   if(key===crowdKey)return;crowdKey=key;
   const {sc,s,night}=sceneInfo,frag=[];
   // a hátrébb lévők előbb (a kép rétegrendje: a fej magassága szerint)
@@ -1272,7 +1304,7 @@ function drawCrowd(){
     const q=o.pos;                                                     // a kép képpontjai -> képernyő: * s
     const el=document.createElement('div');el.className='rcw';
     Object.assign(el.style,{left:q.left*s+'px',top:q.top*s+'px',width:q.w*s+'px',height:q.h*s+'px',zIndex:z+1});
-    const im=document.createElement('img');im.src=`img/spots/spot-${o.spot}${night?'-n':''}.png`;im.alt='';im.draggable=false;
+    const im=document.createElement('img');im.src=`img/spots/spot-${o.spot}${night?'-n':''}.png`;im.alt='';im.draggable=false;im.className='spot';
     const nm=document.createElement('span');nm.className='rcn';nm.textContent=o.nick;
     nm.style.fontSize=Math.max(9,Math.min(15,Math.round(.2*q.hw*s)))+'px';
     nm.style.left=(q.x-q.left)*s+'px';nm.style.top=(q.y-q.top-.62*q.hw)*s+'px';   // a név a fül fölött
@@ -1282,7 +1314,17 @@ function drawCrowd(){
       up.title='Felállok: innen máshova ülhetek';up.setAttribute('aria-label','Felállok erről a helyről');
       up.onclick=e=>{e.stopPropagation();send({t:'stand'})};nm.append(up);
     }
-    el.append(im,nm);frag.push(el);
+    el.append(im,nm);
+    if(focusing.has(o.nick)){   // „Csak zene” nézetben van: koncentrál, ne zavarjuk
+      el.classList.add('focusing');el.title=`${o.nick} most koncentrál (csak zene)`;
+      const fz=document.createElement('span');fz.className='fz';fz.textContent='🎧';nm.insertBefore(fz,nm.firstChild.nextSibling);
+      const ic=document.createElement('span');ic.className='ficons';const u=Math.max(mobile?20:28,Math.min(52,.75*q.hw*s));
+      Object.assign(ic.style,{left:(q.x-q.left)*s+'px',top:(q.y-q.top-.62*q.hw)*s+'px',width:'0',height:'0'});
+      [['headphones',-1.45,-1.85,1],['notes',-.35,-2.15,.8],['moon',.55,-1.8,.8]].forEach(([n,dx,dy,k])=>{const i=document.createElement('img');i.src=`img/focus-${n}.png`;i.alt='';
+        Object.assign(i.style,{width:u*k+'px',left:dx*u+'px',top:dy*u+'px'});ic.append(i)});
+      el.append(ic);
+    }
+    frag.push(el);
   });
   // ide ülhetek: ha ma már megmondtam, hol vagyok, és még nem ülök sehol
   stage.classList.toggle('picking',!!(me&&me.spot===null));
@@ -1463,22 +1505,26 @@ function click(v){
 $('snd').onclick=e=>{soundOn=!soundOn;e.currentTarget.setAttribute('aria-pressed',soundOn);e.currentTarget.textContent=soundOn?'🔊':'🔇';e.currentTarget.title=soundOn?'Hang kikapcsolása':'Hang bekapcsolása';if(soundOn)click(.5)};
 $('snd').title='Hang bekapcsolása';
 
-let lastF=performance.now();
+// Takarékos rajzolás: a 3D kerék csak akkor rajzolódik újra, ha valami mozdult (pörgés, kameramozgás, átméretezés),
+// különben áll; telefonon pörgés közben is legfeljebb 30 képkocka/s. „Csak zene” nézetben semmi nem rajzolódik.
+let lastF=performance.now(),lastKey='',lastDraw=0;
+window.wheelDirty=()=>{lastKey=''};
 function frame(now){
+  requestAnimationFrame(frame);
+  if(document.documentElement.classList.contains('focus'))return;
+  if(mobile&&now-lastDraw<31)return;
   const dt=Math.min(.1,(now-lastF)/1000);lastF=now;
   const T=serverNow(),p=pose(T);
   updateCamera(T,dt);
+  const key=[camT.toFixed(4),zoomK.toFixed(4),p.alpha.toFixed(4),p.a.toFixed(4),p.r.toFixed(4),p.y.toFixed(4),SW,SH].join();
+  if(key===lastKey&&now-lastDraw<2000)return;   // állókép: legfeljebb 2 s-onként egy biztonsági rajzolás
+  lastKey=key;lastDraw=now;
   wheel.rotation.y=p.alpha;
   ball.position.set(Math.cos(p.a)*p.r,p.y,Math.sin(p.a)*p.r);
   renderer.render(scene,camera);
-  requestAnimationFrame(frame);
 }
 requestAnimationFrame(frame);
-$('upd').onclick=async()=>{
-  const m=$('updmsg');m.textContent='Frissítés kérése…';
-  try{const r=await fetch('/api/update',{method:'POST'});const j=await r.json();m.textContent=j.ok?'Elindult. Ha volt új verzió, az oldal pár másodperc múlva újratölt.':j.error}
-  catch{m.textContent='Nem sikerült elérni a szervert.'}
-};
+addEventListener('themechange',()=>window.wheelDirty());
 // új verzió után a szerver újraindul: ilyenkor egyszer újratöltjük az oldalt
 let seenBoot=null;
 connect();
@@ -1514,7 +1560,7 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
     <div class="lfoot"><button type="button" class="llater" id="lunchlater">Most nem</button><button type="button" class="go ldone" id="lunchdone" disabled>Kész</button></div>
   </div>
 </div>
-<script src="/zene.js"></script><script src="/ebed.js"></script>
+<script src="/zene.js"></script><script src="/ebed.js"></script><script src="/fokusz.js"></script>
 <script src="/fx.js"></script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>
