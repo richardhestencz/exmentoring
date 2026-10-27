@@ -34,8 +34,10 @@ test('rulett tét-napló: azonos hely zsetonjai egy tétként jelennek meg', () 
 test('rulett history migráció: a régi azonos helyű tétek összevonódnak', () => {
   const history = rh.migrateHistory([{
     id: '20261027002',
+    spinner: 'Ricsi',
     bets: [1, 2, 3, 4].map(() => ({ nick: 'Ricsi', kind: 'red', stake: 5000, payout: 10000, net: 5000, won: true })),
   }]);
+  assert.strictEqual(history[0].spinner, 'Ricsi');
   assert.strictEqual(history[0].bets.length, 1);
   assert.strictEqual(history[0].bets[0].stake, 20000);
   assert.strictEqual(history[0].bets[0].payout, 40000);

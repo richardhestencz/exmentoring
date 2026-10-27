@@ -242,6 +242,7 @@ function startResult() {
     id: spinId,
     round: R.id,
     at: spinAt,
+    spinner: R.spinner,
     number: n,
     color: n === 0 ? 'green' : game.RED.has(n) ? 'red' : 'black',
     bets: settledBets,
@@ -274,7 +275,7 @@ const wss = new WebSocketServer({ server, maxPayload: 1024 });
 function snapshot(withTrack) {
   const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net, bets: s.bets, wins: s.wins, winRate: rouletteHistory.winRate(s) })).sort((a, b) => b.net - a.net).slice(0, 60);
   const spinHistory = S.rouletteHistory.slice(0, 20).map((spin) => ({
-    id: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color,
+    id: spin.id, round: spin.round, at: spin.at, spinner: spin.spinner, number: spin.number, color: spin.color,
     bets: Array.isArray(spin.bets) ? spin.bets.length : 0, totalStake: spin.totalStake, totalPayout: spin.totalPayout, net: spin.net,
   }));
   const snap = {
@@ -300,7 +301,7 @@ function snapshot(withTrack) {
 function publicSpin(spin) {
   if (!spin) return null;
   return {
-    id: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color,
+    id: spin.id, round: spin.round, at: spin.at, spinner: spin.spinner, number: spin.number, color: spin.color,
     bets: Array.isArray(spin.bets) ? spin.bets : [],
     totalStake: spin.totalStake, totalPayout: spin.totalPayout, net: spin.net,
   };
@@ -311,7 +312,7 @@ function sendUserHistory(ws, rawNick) {
   for (const spin of S.rouletteHistory) {
     for (const bet of Array.isArray(spin.bets) ? spin.bets : []) {
       if (bet.nick !== target) continue;
-      records.push({ spinId: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color, ...bet });
+      records.push({ spinId: spin.id, round: spin.round, at: spin.at, spinner: spin.spinner, number: spin.number, color: spin.color, ...bet });
     }
   }
   ws.send(JSON.stringify({ t: 'roulette-user-history', nick: target, history: records }));
