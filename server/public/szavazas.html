@@ -269,6 +269,11 @@ footer p{margin:0;font-size:.92rem}
     };
     list.querySelectorAll('.edit-remove').forEach((button) => { button.onclick = () => { if (list.children.length > 2) { button.closest('.edit-option').remove(); renumber(); } }; });
     $('editAddOption').onclick = () => addRow();
+    $('copyEditLink').onclick = async () => {
+      const input = $('editPollLink');
+      try { await navigator.clipboard.writeText(input.value); toast('A link a vágólapra került.'); }
+      catch { input.select(); document.execCommand('copy'); toast('A link kimásolva.'); }
+    };
     $('editForm').onsubmit = (event) => {
       event.preventDefault(); $('pollError').textContent = '';
       const options = [...list.querySelectorAll('.edit-option-value')].map((input) => input.value.trim()).filter(Boolean);
@@ -288,7 +293,8 @@ footer p{margin:0;font-size:.92rem}
       return `<label class="poll-option"><input type="${inputType}" name="poll-choice" value="${index}"${choices.has(index) ? ' checked' : ''}${nick ? '' : ' disabled'}><span class="option-copy"><span class="option-label">${esc(option)}</span><span class="result-bar"><i style="width:${percentage}%"></i></span></span><b class="option-count">${count}</b></label>`;
     }).join('');
     const editOptions = poll.options.map((option) => `<div class="edit-option"><span class="edit-option-number"></span><input class="edit-option-value" maxlength="160" value="${esc(option)}" aria-label="Opció"><button class="edit-remove" type="button" aria-label="Opció törlése">×</button></div>`).join('');
-    const editHtml = canEdit ? `<details class="edit-box" open><summary>Szavazás szerkesztése</summary><form class="edit-form" id="editForm"><div class="field"><label for="editTitle">Cím</label><input id="editTitle" maxlength="120" value="${esc(poll.title)}" required></div><label>Opciók</label><div class="edit-option-list" id="editOptionList">${editOptions}</div><button class="secondary" id="editAddOption" type="button">+ Opció hozzáadása</button><div class="form-actions"><button class="btn" type="submit">Módosítások mentése</button></div></form></details>` : '';
+    const shareUrl = new URL(`/szavazas.html?id=${encodeURIComponent(poll.id)}`, location.href).href;
+    const editHtml = canEdit ? `<details class="edit-box" open><summary>Szavazás szerkesztése</summary><form class="edit-form" id="editForm"><div class="field"><label for="editTitle">Cím</label><input id="editTitle" maxlength="120" value="${esc(poll.title)}" required></div><label>Opciók</label><div class="edit-option-list" id="editOptionList">${editOptions}</div><button class="secondary" id="editAddOption" type="button">+ Opció hozzáadása</button><div class="created edit-share"><h3>Publikus link</h3><p class="hint">Ezt küldheted el a többieknek:</p><div class="link-row"><input class="link-input" id="editPollLink" value="${esc(shareUrl)}" readonly aria-label="Publikus szavazási link"><button class="copy" id="copyEditLink" type="button">Másolás</button></div></div><div class="form-actions"><button class="btn" type="submit">Módosítások mentése</button></div></form></details>` : '';
     $('pollContent').innerHTML = `${editHtml}<div class="poll-head"><div><h2>${esc(poll.title)}</h2><span class="poll-type">${poll.multiple ? 'Több válasz választható' : 'Egy válasz választható'}</span></div><span class="poll-meta">Létrehozta: ${esc(poll.creator || '–')}</span></div><form id="voteForm"><div class="poll-options">${optionHtml}</div><div class="poll-footer"><span class="poll-status"><strong>${total}</strong> válaszadó · az eredmények mindenki számára láthatók</span><button class="btn" type="submit">${choices.size ? 'Válasz módosítása' : 'Szavazok'}</button></div><p class="error" id="pollError" role="alert"></p></form>`;
     if (canEdit) setupEditForm(poll);
     $('voteForm').onsubmit = (event) => {
