@@ -1,11 +1,11 @@
-// „Csak zene” zen módban a kép finoman él: a lomb ring a szélben, a folyó folyik, a köd és a felhők sodródnak, a festett hangjegyek
+// „Csak zene” nézetben a kép él: a lomb ring a szélben, a folyó folyik, a köd és a felhők sodródnak, a festett hangjegyek
 // lebegnek, a csillagok és szentjánosbogarak pislognak (WebGL); fölötte néhány hulló levél, a lantból szálló hangjegyek, a levegőben
 // lebegő fénypöttyök (2D vászon). Ingyenes, a 8K-s kép élessége megmarad: a vászon pontosan a képernyő pixeleire méretezett képet rajzol.
 // A maszkok (img/focus-{day,night}-m1/m2.png, tools/focus_masks.py) a fekvő kép 1920x1080-as koordinátáiban vannak:
 // m1: R folyó, G lomb, B köd; m2: R égbolt, G festett hangjegyek, B a folyás iránya. Az álló kép ennek a középső 2430/7680-as sávja.
 (() => {
   const root = document.documentElement, view = document.getElementById('focusview'), bg = view && view.querySelector('.fbg');
-  if (!bg || matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  if (!bg) return;
   const cv = document.createElement('canvas'), pc = document.createElement('canvas');
   cv.className = pc.className = 'fmo'; cv.setAttribute('aria-hidden', 'true'); pc.setAttribute('aria-hidden', 'true');
   bg.after(cv, pc);
@@ -47,21 +47,21 @@ void main(){
   if (canopy > .002) {   // a lomb: lassú ringás, széllökésekkel, fent erősebben
     float gust = .45 + .55*fbm(p*.0022 + vec2(t*.06, 0.));
     float hf = 1. - .45*smoothstep(120., 460., p.y);
-    d += canopy*hf*gust*vec2(1.7*sin(t*.8 + p.y*.016 + p.x*.004) + .6*sin(t*1.7 + p.x*.03), .8*sin(t*.65 + p.x*.019));
+    d += canopy*hf*gust*vec2(3.6*sin(t*.9 + p.y*.016 + p.x*.004) + 1.4*sin(t*1.9 + p.x*.03), 1.6*sin(t*.7 + p.x*.019));
   }
-  if (notes > .002) d += notes*vec2(1.2*sin(t*.8 + p.y*.04), 2.4*sin(t*1.2 + p.x*.05));
-  if (mist > .002) d += mist*(vec2(fbm(p*.004 + vec2(t*.035, t*.01)), fbm(p*.004 + vec2(5.2, 1.3) - vec2(t*.02, 0.))) - .5)*vec2(10., 4.);
-  if (sky > .002) d += sky*(vec2(fbm(p*.003 + vec2(t*.02, 0.)), fbm(p*.003 + vec2(3., t*.015))) - .5)*vec2(8., 3.);
+  if (notes > .002) d += notes*vec2(2.5*sin(t*.8 + p.y*.04), 5.*sin(t*1.2 + p.x*.05));
+  if (mist > .002) d += mist*(vec2(fbm(p*.004 + vec2(t*.07, t*.02)), fbm(p*.004 + vec2(5.2, 1.3) - vec2(t*.04, 0.))) - .5)*vec2(22., 8.);
+  if (sky > .002) d += sky*(vec2(fbm(p*.003 + vec2(t*.05, 0.)), fbm(p*.003 + vec2(3., t*.03))) - .5)*vec2(18., 6.);
   vec2 uvd = uv + d*k;
   vec3 c = dot(d, d) > 1e-6 ? cr(uvd) : img(uv);
   if (river > .002) {    // a folyó: két, fél ciklussal eltolt mintavétel a folyás irányában (flowmap), és halvány csillanások
     float a = m2.b*6.2831853 - 1.5707963; vec2 dir = vec2(cos(a), sin(a));
-    float ph0 = fract(t*.16), ph1 = fract(t*.16 + .5);
-    vec3 fl = mix(img(uvd - dir*ph0*11.*k), img(uvd - dir*ph1*11.*k), abs(1. - 2.*ph0));
+    float ph0 = fract(t*.22), ph1 = fract(t*.22 + .5);
+    vec3 fl = mix(cr(uvd - dir*ph0*18.*k), cr(uvd - dir*ph1*18.*k), abs(1. - 2.*ph0));
     float g = pow(noise(p*.12 - dir*t*1.2)*noise(p*.21 + dir*t*.8 + 3.1), 3.)*2.;
-    c = mix(c, fl + g*.2*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
+    c = mix(c, fl + g*.4*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
   }
-  if (mist > .002) c += mist*smoothstep(.45, .8, fbm(p*.0035 + vec2(-t*.03, t*.008)))*.09*mix(vec3(1., .86, .66), vec3(.62, .72, .92), uNight);
+  if (mist > .002) c += mist*smoothstep(.42, .8, fbm(p*.0035 + vec2(-t*.06, t*.015)))*.16*mix(vec3(1., .86, .66), vec3(.62, .72, .92), uNight);
   // pislogás: a környezetüknél jóval világosabb pöttyök (csillagok, fénypöttyök, éjjel a szentjánosbogarak)
   float tw = smoothstep(.07, .25, lum(c) - lum(textureLod(uImg, uvd, 3.).rgb))*(1. - min(canopy*2., 1.))*max(sky, uNight*.8*(1. - river));
   c *= 1. + tw*(noise(p*.35 + vec2(t*.9, -t*.6))*1.2 - .6);
@@ -144,16 +144,16 @@ void main(){
   let leaves = [], notes = [], motes = [], nextLeaf = 0, nextNote = 0;
   const GLYPH = ['♪', '♫', '♩', '♬'];
   function spawn(t) {
-    if (t > nextLeaf && leaves.length < 4 && S.leafPts.length) {
+    if (t > nextLeaf && leaves.length < 8 && S.leafPts.length) {
       const [X, Y] = S.leafPts[Math.floor(Math.random() * S.leafPts.length)];
-      leaves.push({ X, Y, t0: t, vy: rnd(9, 15), dr: rnd(-6, 10), A: rnd(10, 22), w: rnd(.6, 1.1), ph: rnd(0, 6.3), fw: rnd(1.2, 2.4), r0: rnd(0, 6.3), len: rnd(5, 7.5), hue: rnd(36, 48) });
-      nextLeaf = t + rnd(3.5, 8);
+      leaves.push({ X, Y, t0: t, vy: rnd(14, 24), dr: rnd(-6, 14), A: rnd(14, 30), w: rnd(.6, 1.1), ph: rnd(0, 6.3), fw: rnd(1.2, 2.4), r0: rnd(0, 6.3), len: rnd(7, 10), hue: rnd(36, 48) });
+      nextLeaf = t + rnd(1.2, 3.5);
     }
-    if (t > nextNote && notes.length < 5) {
-      notes.push({ X: 1064 + rnd(-8, 8), Y: 812 + rnd(-6, 6), t0: t, life: rnd(6.5, 8.5), vx: rnd(3, 7), vy: rnd(-12, -9), A: rnd(4, 8), w: rnd(.8, 1.4), ph: rnd(0, 6.3), g: GLYPH[Math.floor(Math.random() * 4)], sz: rnd(17, 23), rot: rnd(-.25, .25) });
-      nextNote = t + rnd(2.2, 4);
+    if (t > nextNote && notes.length < 8) {
+      notes.push({ X: 1064 + rnd(-8, 8), Y: 812 + rnd(-6, 6), t0: t, life: rnd(6.5, 8.5), vx: rnd(4, 10), vy: rnd(-20, -14), A: rnd(6, 12), w: rnd(.8, 1.4), ph: rnd(0, 6.3), g: GLYPH[Math.floor(Math.random() * 4)], sz: rnd(24, 32), rot: rnd(-.25, .25) });
+      nextNote = t + rnd(1.1, 2.2);
     }
-    const want = S.night ? 10 : 6;
+    const want = S.night ? 18 : 12;
     while (motes.length < want) motes.push({ X: rnd(0, 1920), Y: S.night ? rnd(560, 1040) : rnd(250, 700), vx: rnd(-4, 4), vy: rnd(-3, 3), w: rnd(.5, 1.3), ph: rnd(0, 6.3), r: rnd(1.2, 2.2) });
   }
   function particles(t, dt) {
@@ -216,11 +216,11 @@ void main(){
   }
   let stopTimer = 0;
   async function sync() {
-    const zen = root.classList.contains('zen') && root.classList.contains('focus');
+    const zen = root.classList.contains('focus');   // a „Csak zene” nézetben mindig fut
     if (zen) {
       clearTimeout(stopTimer);
       if (!(await scene())) return;
-      if (!root.classList.contains('zen')) return;
+      if (!root.classList.contains('focus')) return;
       if (!running) { running = true; last = 0; raf = requestAnimationFrame(frame); }
     } else if (running) {
       view.classList.remove('fmoon');
@@ -228,7 +228,7 @@ void main(){
       stopTimer = setTimeout(() => { cancelAnimationFrame(raf); running = false; leaves = []; notes = []; }, 2200);   // a halványulás után áll le
     }
   }
-  new MutationObserver(() => { if (running || root.classList.contains('zen')) { const c = current(); if (c && c.url !== S.key) { S.ready = false; view.classList.remove('fmoon'); motes = []; } sync(); } })
+  new MutationObserver(() => { if (running || root.classList.contains('focus')) { const c = current(); if (c && c.url !== S.key) { S.ready = false; view.classList.remove('fmoon'); motes = []; } sync(); } })
     .observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   addEventListener('resize', () => { if (!running) return; const c = current(); if (c && c.url !== S.key) { S.ready = false; motes = []; } sync(); });
   cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); cancelAnimationFrame(raf); running = false; cv.remove(); pc.remove(); });
