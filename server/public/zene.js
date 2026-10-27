@@ -1,4 +1,4 @@
-// Közös zene: közös lejátszási lista (bárki betehet számot), sorban, magától megy; mindenki ugyanott tart.
+// Közös zene: egy bekötött YouTube-lejátszási lista (a számokat a YouTube-on teszik bele), sorban, magától megy; mindenki ugyanott tart.
 // A lejátszó egy oldalsó panelben van (a fejléc „🎵 Zene” gombja nyitja), bezárva is szól. Az ajtó nyitására mindenkinél lehalkul.
 (() => {
   const $ = (id) => document.getElementById(id);
@@ -9,7 +9,7 @@
     duckOn: false, holdUntil: 0, level: 1, loadedV: '', loadedRev: -1, errs: [], noteT: 0, endedRev: -1 };
   const synced = () => Date.now() + M.off;       // a szerver ideje
   const expected = () => { const s = M.st; return s ? (s.paused ? s.pos : Math.max(0, synced() - s.startedAt)) / 1000 : 0; };
-  const cur = () => (M.st && M.st.queue.length ? M.st.queue[M.st.cur] : null);
+  const cur = () => (M.st && M.st.items.length ? M.st.items[M.st.cur] : null);
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 
   function note(msg, ms = 6000) {
@@ -21,7 +21,7 @@
   function openDrawer(on) {
     drawer.classList.toggle('open', on); drawer.setAttribute('aria-hidden', on ? 'false' : 'true');
     $('mbtn').setAttribute('aria-expanded', on ? 'true' : 'false');
-    if (on) setTimeout(() => (M.joined ? $('murl') : $('mjoin')).focus({ preventScroll: true }), 300);
+    if (on) setTimeout(() => $('mjoin').focus({ preventScroll: true }), 300);
   }
   $('mbtn').onclick = () => openDrawer(!drawer.classList.contains('open'));
   $('mclose').onclick = () => openDrawer(false);
@@ -110,24 +110,30 @@
   window.MusicHook = (m) => {
     if (m.t === 'music-duck') return duck(m.on, true);
     const mu = m.t === 'state' || m.t === 'music' ? m.music : null;
-    if (!mu || !Array.isArray(mu.queue)) return;
-    const changed = !M.st || M.st.rev !== mu.rev;
+    if (!mu || !Array.isArray(mu.items)) return;
+    const changed = !M.st || M.st.rev !== mu.rev || M.st.fetchedAt !== mu.fetchedAt || M.st.link !== mu.link;
     M.off = mu.now - Date.now(); M.st = mu;
     duck(mu.duck, false);
     if (changed) { paint(); sync(false); }
   };
 
   /* ---- felület ---- */
+  let changing = false;
   function paint() {
-    const s = M.st, it = cur();
+    const s = M.st, it = cur(), has = !!(s && s.list);
+    $('mempty').innerHTML = has ? 'A lista még üres, vagy most töltődik.<br>Tegyél bele egy számot a YouTube-on!' : 'Még nincs bekötve közös lista.<br>Illeszd be lent egy YouTube-lejátszási lista linkjét!';
     $('mempty').hidden = !!it;
     $('mnow').textContent = it ? it.title : '';
-    $('mby').textContent = it ? `Betette: ${it.by}` : '';
-    $('mcount').textContent = s && s.queue.length ? `A lista (${s.queue.length} szám, a végén újrakezdi)` : 'A lista';
-    $('mlist').innerHTML = s && s.queue.length ? s.queue.map((x, i) => `<li class="${i === s.cur ? 'cur' : ''}"><span class="n">${i === s.cur ? '▶' : i + 1}</span>`
-      + `<button type="button" class="t" data-play="${x.id}" title="Lejátszás most (mindenkinek)"><b>${esc(x.title)}</b><small>${esc(x.by)}</small></button>`
-      + `<button type="button" class="x" data-del="${x.id}" title="Kivétel a listából" aria-label="Kivétel: ${esc(x.title)}">✕</button></li>`).join('')
-      : '<li class="mlempty">Még nincs szám a listán. Másold be egy YouTube- vagy YouTube Music-szám linkjét fent.</li>';
+    $('mby').textContent = it ? `${s.cur + 1}. / ${s.items.length}` : '';
+    $('mlinkbox').hidden = !has || changing;
+    $('mform').hidden = has && !changing;
+    if (has) { $('mltitle').textContent = s.title || 'YouTube-lista'; $('mlopen').href = s.link; }
+    if (s && s.err) note('A lista frissítése nem sikerült: ' + s.err, 0);
+    else if ($('mnote').textContent.startsWith('A lista frissítése')) note('');
+    $('mcount').textContent = s && s.items.length ? `A lista (${s.items.length} szám, a végén újrakezdi)` : 'A lista';
+    $('mlist').innerHTML = s && s.items.length ? s.items.map((x, i) => `<li class="${i === s.cur ? 'cur' : ''}"><span class="n">${i === s.cur ? '▶' : i + 1}</span>`
+      + `<button type="button" class="t" data-play="${i}" title="Lejátszás most (mindenkinek)"><b>${esc(x.title)}</b></button></li>`).join('')
+      : `<li class="mlempty">${has ? 'Még nincs szám a listában.' : 'Nincs bekötött lista.'}</li>`;
     paintPlay();
   }
   function paintPlay() {
@@ -139,16 +145,18 @@
     for (const b of ['mprev', 'mnext', 'mpause']) $(b).disabled = !has;
     $('mbtn').classList.toggle('playing', M.joined && has && !(s && s.paused));
   }
-  $('mlist').onclick = (e) => {
-    const p = e.target.closest('[data-play]'), d = e.target.closest('[data-del]');
-    if (p) send({ t: 'music-play', id: Number(p.dataset.play) });
-    else if (d && confirm('Kiveszed ezt a számot a közös listából?')) send({ t: 'music-remove', id: Number(d.dataset.del) });
+  $('mlist').onclick = (e) => { const p = e.target.closest('[data-play]'); if (p) send({ t: 'music-play', i: Number(p.dataset.play) }); };
+  $('mlcopy').onclick = async () => {
+    try { await navigator.clipboard.writeText(M.st.link); note('A lista linkje a vágólapon.', 3000); }
+    catch { prompt('A lista linkje:', M.st.link); }
   };
+  $('mlrefresh').onclick = () => { send({ t: 'music-refresh' }); note('Frissítés…', 2000); };
+  $('mlchange').onclick = () => { changing = true; paint(); $('murl').focus(); };
   $('mjoin').onclick = () => {
     M.joined = !M.joined;
     if (!M.joined) { try { M.player.stopVideo(); } catch {} M.loadedV = ''; M.loadedRev = -1; sync(false); paintPlay(); return; }
     if (!M.ready) { note('A lejátszó még töltődik, próbáld újra mindjárt.'); M.joined = false; return; }
-    if (!cur()) note('Még üres a lista: tegyél be egy számot!');
+    if (!cur()) note(M.st && M.st.list ? 'Még üres a lista: tegyél bele egy számot a YouTube-on!' : 'Még nincs bekötve lista.');
     M.loadedV = ''; sync(true); paintPlay();
   };
   $('mprev').onclick = () => send({ t: 'music-skip', dir: -1 });
@@ -160,8 +168,8 @@
     e.preventDefault();
     const v = $('murl').value.trim(); if (!v) return;
     if (!nick) { note('Előbb adj meg becenevet.'); return; }
-    send({ t: 'music-add', input: v }); $('murl').value = '';
-    note('Hozzáadás…', 3000);
+    send({ t: 'music-list', input: v }); $('murl').value = ''; changing = false;
+    note('A lista bekötése…', 3000);
   };
   window.MusicDebug = (seek) => (seek != null && M.player && M.player.seekTo(seek, true), { t: M.player && M.ready ? M.player.getCurrentTime() : -1, exp: expected(), vol: M.player && M.ready ? M.player.getVolume() : -1, level: M.level, rev: M.st && M.st.rev, cur: M.st && M.st.cur, state: M.player && M.ready ? M.player.getPlayerState() : -1, joined: M.joined, dur: M.player && M.ready ? M.player.getDuration() : -1 });   // csak ellenőrzéshez
   paint();

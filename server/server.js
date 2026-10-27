@@ -359,6 +359,23 @@ function broadcastWorld() {
     for (const c of wss.clients) if (c.readyState === 1 && c.wantsWorld) c.send(msg);
   }, 100);
 }
+// a bekötött YouTube-lista lekérése (percenként, bekötéskor és kérésre; legfeljebb 10 másodpercenként)
+let musicFetching = false, musicLastFetch = 0;
+async function refreshMusic(force) {
+  if (!S.music.list || musicFetching || process.env.MUSIC_FETCH === '0') return;
+  if (!force && Date.now() - musicLastFetch < 10000) return;
+  musicFetching = true; musicLastFetch = Date.now();
+  const list = S.music.list;
+  try {
+    const r = await music.fetchList(list);
+    if (S.music.list === list && music.updateItems(S.music, r.title, r.items, Date.now())) { save(); broadcastMusic(); }
+  } catch (e) {
+    if (S.music.list === list) { music.fetchFailed(S.music, String(e.message || e).slice(0, 160), Date.now()); broadcastMusic(); }
+  } finally { musicFetching = false; }
+}
+if (!S.music.list && process.env.MUSIC_PLAYLIST) music.setList(S.music, process.env.MUSIC_PLAYLIST);   // alapértelmezett lista a .env-ből
+setInterval(() => refreshMusic(true), 60 * 1000).unref();
+setTimeout(() => refreshMusic(true), 3000).unref();
 function broadcastMusic(msg) {
   const out = JSON.stringify(msg || { t: 'music', music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())) });
   for (const c of wss.clients) if (c.readyState === 1) c.send(out);
@@ -425,23 +442,14 @@ wss.on('connection', (ws) => {
     if (m.t.startsWith('music-')) {
       const now = Date.now();
       let e = null;
-      if (m.t === 'music-add') {   // a szám címét és beágyazhatóságát a YouTube-tól kérdezzük, utána kerül a listára
-        const v = music.parse(m.input), nick = ws.nick;
-        if (!v) return err('Ez nem YouTube- vagy YouTube Music-számlink (egy-egy számot lehet betenni).');
-        const reply = (msg) => { if (ws.readyState === 1) err(msg); };   // a válasz később jön, a kapcsolat közben bezárulhatott
-        music.info(v).then((inf) => {
-          if (!inf.ok) return reply(inf.error);
-          const e2 = music.add(S.music, v, inf.title, nick, Date.now());
-          if (e2) return reply(e2);
-          say(`🎵 ${nick} betette a listára: ${S.music.queue[S.music.queue.length - 1].title}`);
-          save(); broadcastMusic(); broadcast();
-        });
-        return;
+      if (m.t === 'music-list') {   // a közös YouTube-lista bekötése (a meghívó link is jó)
+        if (!(e = music.setList(S.music, m.input))) { say(`🎵 ${ws.nick} bekötötte a közös zenelistát.`); save(); broadcastMusic(); broadcast(); refreshMusic(true); }
+        return e ? err(e) : undefined;
       }
+      if (m.t === 'music-refresh') { refreshMusic(false); return; }
       if (m.t === 'music-ended') { if (!music.ended(S.music, m.rev, now)) return; }   // elavult vagy dupla jelentés
       else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, now);
-      else if (m.t === 'music-play') e = music.play(S.music, Number(m.id), now);
-      else if (m.t === 'music-remove') e = music.remove(S.music, Number(m.id), now);
+      else if (m.t === 'music-play') e = music.play(S.music, Number(m.i), now);
       else if (m.t === 'music-pause') e = music.setPaused(S.music, !!m.paused, now);
       else return err('Ismeretlen zene-művelet.');
       if (e) return err(e);

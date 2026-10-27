@@ -331,6 +331,13 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .mdrawer .mform{display:flex;gap:6px;margin-top:14px}
 .mdrawer .mform input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(0,0,0,.3);color:#fff;padding:8px 10px;font:inherit}
 .mdrawer .mform input::placeholder{color:#b8aaa3}
+.mdrawer .mlink{margin-top:14px;padding:10px 12px;border-radius:10px;background:rgba(255,255,255,.06)}
+.mdrawer .mltitle{font-size:.84rem;color:#e9b9a3}
+.mdrawer .mltitle b{color:#fff}
+.mdrawer .mlrow{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.mdrawer a.c{text-decoration:none;display:inline-flex;align-items:center;border-radius:9px;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);color:#fff;font-weight:700;padding:7px 11px}
+.mdrawer .mlhelp{margin-top:8px;font-size:.76rem;color:#c9b9b1;line-height:1.4}
+.mdrawer .mlchange{margin-top:6px;border:0;background:none;color:#b8aaa3;font:inherit;font-size:.74rem;text-decoration:underline;cursor:pointer;padding:0}
 .mdrawer .mnote{margin-top:6px;font-size:.78rem;color:#ffd2a1;min-height:1em}
 .mdrawer .mduck{font-size:.74rem;color:#ffb27a}
 .mdrawer h3{margin:16px 0 6px;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:#e9b9a3}
@@ -1432,7 +1439,13 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
     <div class="mplayer"><div id="ytp"></div><div class="mempty" id="mempty">Még üres a lista.<br>Tegyél be egy számot lent!</div></div>
     <div class="mnow" id="mnow"></div><div class="mby" id="mby"></div>
     <div class="mctl"><button type="button" class="c" id="mjoin">▶ Zene bekapcsolása</button><button type="button" class="c" id="mprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="c" id="mpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="c" id="mnext" title="Következő (mindenkinek)">⏭</button><input type="range" id="mvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
-    <form class="mform" id="mform"><input id="murl" type="text" inputmode="url" autocomplete="off" placeholder="YouTube- vagy YouTube Music-szám linkje" aria-label="YouTube- vagy YouTube Music-szám linkje"><button type="submit" class="c">+ Hozzáadás</button></form>
+    <div class="mlink" id="mlinkbox" hidden>
+      <div class="mltitle">Közös lista: <b id="mltitle"></b></div>
+      <div class="mlrow"><a class="c" id="mlopen" href="#" target="_blank" rel="noopener">Megnyitás a YouTube-on ↗</a><button type="button" class="c" id="mlcopy">Link másolása</button><button type="button" class="c" id="mlrefresh" title="Lista frissítése most">↻</button></div>
+      <div class="mlhelp">Zenét a YouTube-on, ebbe a listába tudsz tenni (a linkkel csatlakozz szerkesztőként); kb. egy percen belül itt is megjelenik.</div>
+      <button type="button" class="mlchange" id="mlchange">Másik lista bekötése</button>
+    </div>
+    <form class="mform" id="mform"><input id="murl" type="text" inputmode="url" autocomplete="off" placeholder="YouTube-lejátszási lista linkje" aria-label="YouTube-lejátszási lista linkje"><button type="submit" class="c">Bekötés</button></form>
     <div class="mnote" id="mnote" aria-live="polite"></div>
     <h3 id="mcount">A lista</h3>
     <ol id="mlist"></ol>
