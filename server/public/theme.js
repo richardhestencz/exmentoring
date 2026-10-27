@@ -18,7 +18,12 @@
   }
   window.isDark = dark;
   window.applyTheme = apply;
-  window.setTheme = (t) => { root.dataset.theme = t; try { localStorage.setItem('theme', t); } catch {} apply(); };
+  // t: 'light' | 'dark' | '' (automatikus: a felület a rendszer beállítását, a főoldal tisztása a napszakot követi)
+  window.setTheme = (t) => {
+    try { t ? localStorage.setItem('theme', t) : localStorage.removeItem('theme'); } catch {}
+    root.dataset.theme = t || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    apply();
+  };
   // a fejlécben a mosómedvére kattintva kis menü nyílik: világos/sötét mód
   function menu(btn) {
     let m = document.getElementById('exm-menu');
@@ -37,7 +42,12 @@
       if (href) el.href = href; else el.onclick = fn;
       m.appendChild(el); return el;
     };
-    const first = item(dark() ? '☀️  Világos mód' : '🌙  Sötét mód', () => { window.setTheme(dark() ? 'light' : 'dark'); close(); });
+    // három állás: világos, sötét, automatikus (a főoldal tisztása a valódi napszakot követi); a választott előtt pipa
+    let chosen = ''; try { chosen = localStorage.getItem('theme') || ''; } catch {}
+    const mark = (k) => (chosen === k ? '✓ ' : '\u2003 ');
+    const first = item(mark('light') + '☀️  Világos mód', () => { window.setTheme('light'); close(); });
+    item(mark('dark') + '🌙  Sötét mód', () => { window.setTheme('dark'); close(); });
+    item(mark('') + '🕒  Automatikus (napszak szerint)', () => { window.setTheme(''); close(); });
     document.body.appendChild(m); btn.setAttribute('aria-expanded', 'true'); first.focus();
     setTimeout(() => document.addEventListener('click', outside, true));
     document.addEventListener('keydown', esc);

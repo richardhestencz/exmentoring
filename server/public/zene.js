@@ -142,6 +142,8 @@
     const changed = !M.st || M.st.rev !== mu.rev || M.st.fetchedAt !== mu.fetchedAt || M.st.link !== mu.link;
     if (!M.clock) M.off = mu.now - Date.now();   // amíg nincs pontos mérés, az üzenet ideje szerint
     M.st = mu;
+    const playing = !!(mu.items.length && !mu.paused);
+    if (playing !== M.playingEv) { M.playingEv = playing; document.dispatchEvent(new CustomEvent('music:playing', { detail: playing })); }
     duck(mu.duck, false);
     if (changed) { paint(); sync(false); }
   };
