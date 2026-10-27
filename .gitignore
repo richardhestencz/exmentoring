@@ -1,4 +1,5 @@
-node_modules/
+# mappa és symlink is (egy worktree-symlink egyszer bekerült és élesben törölte a valódit)
+node_modules
 .venv/
 data/
 logs/
