@@ -459,9 +459,15 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .focusview{display:none}
 html.focus main,html.focus .beta,html.focus .chdue,html.focus .oldv{display:none!important}
 html.focus .focusview{display:block;position:relative;height:calc(100svh - 44px);min-height:420px;overflow:hidden;background:#120c08}
-.fbg{position:absolute;inset:0;background:#120c08 url(img/focus-day-wide.jpg) 50% 100%/cover no-repeat}
-:root[data-theme="dark"] .fbg{background-image:url(img/focus-night-wide.jpg)}
-@media (orientation:portrait){.fbg{background-image:url(img/focus-day-tall.jpg)}:root[data-theme="dark"] .fbg{background-image:url(img/focus-night-tall.jpg)}}
+.fbg{--fd:url(img/focus-day-wide.jpg);--fn:url(img/focus-night-wide.jpg);position:absolute;inset:0;background:#120c08 var(--fd) 50% 100%/cover no-repeat}
+:root[data-theme="dark"] .fbg{background-image:var(--fn)}
+/* 8K fókuszkép: a képernyő valódi pixelszámához illő méret töltődik */
+.fbg{--fd:url(img/focus-day-wide-1920.webp);--fn:url(img/focus-night-wide-1920.webp)}
+@media (min-width:1100px) and (min-resolution:1.5dppx),(min-width:2000px){.fbg{--fd:url(img/focus-day-wide-3840.webp);--fn:url(img/focus-night-wide-3840.webp)}}
+@media (min-width:2000px) and (min-resolution:1.5dppx),(min-width:4000px){.fbg{--fd:url(img/focus-day-wide-7680.webp);--fn:url(img/focus-night-wide-7680.webp)}}
+@media (orientation:portrait){.fbg{--fd:url(img/focus-day-tall.jpg);--fn:url(img/focus-night-tall.jpg)}}
+@media (orientation:portrait) and (min-resolution:1.5dppx),(orientation:portrait) and (min-width:700px){.fbg{--fd:url(img/focus-day-tall-1620.webp);--fn:url(img/focus-night-tall-1620.webp)}}
+@media (orientation:portrait) and (min-width:900px) and (min-resolution:1.5dppx),(orientation:portrait) and (min-resolution:3dppx){.fbg{--fd:url(img/focus-day-tall-2430.webp);--fn:url(img/focus-night-tall-2430.webp)}}
 .fpanel{position:absolute;right:24px;bottom:24px;width:min(380px,calc(100% - 32px));padding:16px 18px}
 .fk{font-size:.74rem;letter-spacing:.12em;text-transform:uppercase;color:#ffd9a8;font-weight:800}
 .fnow{margin-top:6px;font-weight:800;font-size:1.05rem;line-height:1.3;color:#fff}
