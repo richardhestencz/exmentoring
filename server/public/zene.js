@@ -187,7 +187,7 @@
     const st = stageEl.getBoundingClientRect(), feed = R('#feed'), tl = R('.tl'), pills = R('.pills'), board = R('.boardwrap');
     const bottom = feed.bottom + 8 + CARD_H;
     if (bottom + 8 > pills.top) return false;                         // alul a „Közös pot” panelek
-    return board.left >= tl.right + 8 || bottom + 8 <= board.top;     // a tétasztal ne csússzon alá
+    return board.left >= tl.right - 2 || bottom + 8 <= board.top;     // a tétasztal ne csússzon alá
   }
   let wantSlot = false;
   function place(force) {
