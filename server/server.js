@@ -15,6 +15,7 @@ const seats = require('./seats');
 const world = require('./world');
 const bj = require('./blackjack');
 const rouletteHistory = require('./roulette-history');
+const polls = require('./polls');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -81,6 +82,7 @@ function normalizeMinesweeper(value) {
   return out;
 }
 S.minesweeper = normalizeMinesweeper(S.minesweeper);
+S.polls = polls.normalize(S.polls);
 const LAST = {};
 // ---- blackjack időzítés és elszámolás ----
 let bjTimer = null, bjEndAt = 0;
@@ -322,6 +324,18 @@ function sendSpinHistory(ws, id) {
   if (!spin) return ws.send(JSON.stringify({ t: 'err', msg: 'Ehhez a régi húzáshoz nincs részletes napló.' }));
   ws.send(JSON.stringify({ t: 'roulette-spin-history', spin: publicSpin(spin) }));
 }
+function sendPollState(ws, id) {
+  const poll = polls.find(S.polls, id);
+  if (!poll) return ws.send(JSON.stringify({ t: 'err', msg: 'Ez a szavazás nem található.' }));
+  ws.pollId = poll.id;
+  ws.send(JSON.stringify({ t: 'poll-state', poll: polls.view(poll, ws.nick) }));
+}
+function broadcastPoll(poll) {
+  for (const c of wss.clients) {
+    if (c.readyState !== 1 || c.pollId !== poll.id) continue;
+    c.send(JSON.stringify({ t: 'poll-state', poll: polls.view(poll, c.nick) }));
+  }
+}
 let worldTimer = null;
 function broadcastWorld() {
   if (worldTimer) return;
@@ -387,6 +401,7 @@ wss.on('connection', (ws) => {
       return;
     }
     if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
+    if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
     if (m.t === 'w-join' || m.t === 'w-move' || m.t === 'w-sit' || m.t === 'w-leave') {
       ws.wantsWorld = true;
@@ -458,6 +473,25 @@ wss.on('connection', (ws) => {
       const e = profiles.deleteProfile(S.profiles, ws.nick, String(m.name || ''));
       if (e) return err(e);
       save(); broadcast(); return;
+    }
+    if (m.t === 'poll-create') {
+      const result = polls.create(S.polls, { creator: ws.nick, title: m.title, options: m.options, multiple: m.multiple });
+      if (result.error) return err(result.error);
+      ws.pollId = result.poll.id;
+      save();
+      ws.send(JSON.stringify({ t: 'poll-created', url: `/szavazas.html?id=${encodeURIComponent(result.poll.id)}`, poll: polls.view(result.poll, ws.nick) }));
+      broadcastPoll(result.poll);
+      return;
+    }
+    if (m.t === 'poll-vote') {
+      const poll = polls.find(S.polls, m.id);
+      if (!poll) return err('Ez a szavazás nem található.');
+      const e = polls.vote(poll, ws.nick, m.choices);
+      if (e) return err(e);
+      ws.pollId = poll.id;
+      save();
+      broadcastPoll(poll);
+      return;
     }
     const e = m.t === 'bet' ? addBet(ws.nick, m.kind, m.amount) : m.t === 'undo' ? undoBet(ws.nick, false) : m.t === 'clear' ? undoBet(ws.nick, true)
       : m.t === 'profile-apply' ? (profiles.getProfile(S.profiles, ws.nick, String(m.name || '')) ? addBets(ws.nick, profiles.getProfile(S.profiles, ws.nick, String(m.name || '')).bets) : 'Nincs ilyen profil.')

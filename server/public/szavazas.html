@@ -1,0 +1,285 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
+<title>Szavazás – Exmentoring</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="apple-touch-icon" href="/img/raccoon-256.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324;--ink-2:#45494b;--muted:#696e72;--line:#d5dadd;
+  --peach:#fbe4d7;--sand:#f4f0ed;--apricot:#f8c7a3;--orange:#eb772e;--red:#df312d;
+  --dark:#0a0f16;--green:#11845b;--grad:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;--mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+a{color:#b4471a}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
+.studio .rc{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
+.themebtn:focus-visible{outline:2px solid #fff;outline-offset:2px}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
+.hero{background:var(--sand);padding:48px 0 38px;border-bottom:1px solid var(--line)}
+h1{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.8rem);font-weight:800;letter-spacing:-.03em;color:var(--ink);line-height:1.1}
+.lead{margin:0;max-width:68ch;font-size:1.06rem}
+main{min-height:calc(100vh - 44px)}
+.workspace{padding-top:28px;padding-bottom:56px}
+.identity,.panel{background:var(--peach);border-radius:18px;padding:20px;margin-bottom:20px}
+.identity{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+.identity .identity-copy{flex:1 1 240px}
+.identity strong{color:var(--ink);display:block;font-size:1.05rem}
+.identity small{color:var(--muted)}
+.identity form{display:flex;gap:8px;flex:1 1 360px}
+.identity input,.field input,.option-input input,.link-input{min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:10px 12px}
+.identity input{flex:1}
+.identity input:focus-visible,.field input:focus-visible,.option-input input:focus-visible,.link-input:focus-visible{outline:3px solid var(--apricot);border-color:var(--orange)}
+.columns{display:grid;grid-template-columns:minmax(300px,.85fr) minmax(0,1.15fr);gap:20px;align-items:start}
+.panel{background:#fff;border:1px solid var(--line);box-shadow:0 8px 24px rgba(29,20,22,.05)}
+.panel h2{margin:0 0 8px;color:var(--ink);font-size:1.3rem;letter-spacing:-.01em}
+.panel .intro{margin:0 0 20px;color:var(--muted);font-size:.94rem}
+label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0 7px}
+.field{margin-bottom:18px}
+.field input{width:100%}
+.choice-type{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:0 0 20px}
+.choice-type label{margin:0;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:12px;padding:11px 12px;background:var(--sand);cursor:pointer;font-weight:600}
+.choice-type label:has(input:checked){border-color:var(--orange);background:var(--peach);box-shadow:0 0 0 2px var(--apricot)}
+.choice-type input{accent-color:var(--orange)}
+.option-list{display:grid;gap:8px;margin-bottom:10px}
+.option-input{display:flex;align-items:center;gap:8px;margin:0}
+.option-input .option-number{width:26px;text-align:center;color:var(--muted);font:700 .85rem var(--mono)}
+.option-input input{flex:1}
+.option-input .remove-option{width:36px;height:36px;border:1px solid var(--line);border-radius:10px;background:var(--sand);cursor:pointer;color:var(--muted)}
+.option-input .remove-option:disabled{opacity:.35;cursor:not-allowed}
+.option-input .remove-option:focus-visible,.secondary:focus-visible,.btn:focus-visible,.copy:focus-visible{outline:3px solid var(--apricot);outline-offset:2px}
+.form-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:20px}
+.btn,.secondary,.copy{border-radius:10px;padding:10px 16px;font-weight:700;cursor:pointer}
+.btn{border:0;background:var(--grad);color:#fff}
+.secondary{border:1px solid var(--line);background:var(--sand);color:var(--ink);font-weight:600}
+.hint{color:var(--muted);font-size:.88rem;margin:0}
+.error{color:#b3261e;font-weight:600;min-height:1.5em;margin:12px 0 0}
+.created{margin-top:20px;padding-top:18px;border-top:1px solid var(--line)}
+.created h3{margin:0 0 5px;color:var(--ink);font-size:1rem}
+.link-row{display:flex;gap:8px;margin-top:8px}
+.link-input{flex:1;font:500 .85rem var(--mono);color:var(--ink);min-width:0}
+.copy{border:0;background:var(--dark);color:#fff;white-space:nowrap}
+.poll-panel[hidden],.created[hidden],#loginForm[hidden]{display:none}
+.poll-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
+.poll-head h2{margin:0}
+.poll-meta{color:var(--muted);font-size:.86rem;text-align:right;white-space:nowrap}
+.poll-type{display:inline-block;margin:0 0 18px;padding:5px 10px;border-radius:999px;background:var(--sand);color:var(--muted);font-size:.8rem;font-weight:700}
+.poll-options{display:grid;gap:10px}
+.poll-option{display:grid;grid-template-columns:24px minmax(0,1fr) auto;gap:10px;align-items:center;margin:0;padding:12px;border:1px solid var(--line);border-radius:13px;background:var(--sand);cursor:pointer}
+.poll-option:has(input:checked){border-color:var(--orange);background:var(--peach)}
+.poll-option input{width:18px;height:18px;accent-color:var(--orange);margin:0}
+.option-copy{min-width:0;color:var(--ink);font-weight:600}
+.option-label{display:block;overflow-wrap:anywhere}
+.result-bar{display:block;height:7px;margin-top:8px;border-radius:99px;background:rgba(128,96,90,.16);overflow:hidden}
+.result-bar i{display:block;height:100%;border-radius:inherit;background:var(--grad);transition:width .35s ease}
+.option-count{font-variant-numeric:tabular-nums;color:var(--ink);min-width:34px;text-align:right}
+.poll-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.poll-status{color:var(--muted);font-size:.9rem}
+.poll-status strong{color:var(--ink)}
+.loading{color:var(--muted);padding:24px 0}
+.empty-poll{color:var(--muted);margin:0}
+.toast{position:fixed;left:50%;bottom:20px;transform:translateX(-50%);background:var(--dark);color:#fff;padding:10px 16px;border-radius:12px;font-weight:600;opacity:0;transition:opacity .25s;pointer-events:none;z-index:50;max-width:calc(100% - 32px);text-align:center}
+.toast.show{opacity:1}
+footer{background:var(--dark);color:#cfc6c2;padding:28px 0 26px}
+footer strong{color:#fff}
+footer p{margin:0;font-size:.92rem}
+:root[data-theme="dark"]{--ink:#f4ece6;--ink-2:#d6cbc4;--muted:#a69b9b;--line:#3b2f37;--peach:#2a1c23;--sand:#1c151a;--apricot:#7a4630}
+:root[data-theme="dark"] body{background:#110d12}
+:root[data-theme="dark"] .panel{background:#1d1519}
+:root[data-theme="dark"] .identity input,:root[data-theme="dark"] .field input,:root[data-theme="dark"] .option-input input,:root[data-theme="dark"] .link-input{background:#2a2024;color:var(--ink)}
+:root[data-theme="dark"] .choice-type label,:root[data-theme="dark"] .poll-option,:root[data-theme="dark"] .secondary{background:#2a2024}
+:root[data-theme="dark"] .choice-type label:has(input:checked),:root[data-theme="dark"] .poll-option:has(input:checked){background:#3a272c}
+@media (max-width:820px){.columns{grid-template-columns:1fr}}
+@media (max-width:560px){.top nav a{padding:12px 8px}.choice-type{grid-template-columns:1fr}.poll-head{display:block}.poll-meta{text-align:left;margin-top:4px}.link-row{flex-direction:column}.copy{width:100%}.identity form{flex-basis:100%}}
+@media (prefers-reduced-motion:reduce){.result-bar i{transition:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/aknakereso.html">Aknakereső</a><a href="/szavazas.html" aria-current="page">Szavazás</a><a href="/#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
+  </div>
+  <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
+</header>
+
+<main>
+  <section class="hero"><div class="wrap">
+    <h1>Szavazás</h1>
+    <p class="lead">Hozz létre egy kérdést, válassz az egyválasztós és a multiple choice forma között, majd küldd el a generált publikus linket. A szavazatok és az eredmények mindenki számára láthatók.</p>
+  </div></section>
+
+  <div class="wrap workspace">
+    <section class="identity" aria-label="Szavazó azonosítása">
+      <div class="identity-copy"><strong id="identityTitle">Ki szavaz?</strong><small id="identityHint">A válaszod a megszokott becenevedhez lesz mentve.</small></div>
+      <div id="identityCurrent" hidden><strong id="currentNick"></strong><small>ezzel a névvel lesz elmentve a válaszod</small></div>
+      <form id="loginForm"><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="Beceneved" aria-label="Beceneved" required><button class="btn" type="submit">Belépek</button></form>
+      <button class="secondary" id="changeNick" type="button" hidden>Másik becenév</button>
+    </section>
+
+    <div class="columns">
+      <section class="panel" id="createPanel">
+        <h2>Új szavazás</h2>
+        <p class="intro">Adj neki címet, írj legalább két opciót, és válaszd ki, hogy egy vagy több válasz legyen megengedett.</p>
+        <form id="createForm">
+          <div class="field"><label for="pollTitle">Cím</label><input id="pollTitle" maxlength="120" placeholder="Pl. Hova menjünk csapatépítőre?" required></div>
+          <label>Válasz típusa</label>
+          <div class="choice-type" role="radiogroup" aria-label="Válasz típusa">
+            <label><input type="radio" name="pollType" value="single" checked> Egyet lehet választani</label>
+            <label><input type="radio" name="pollType" value="multiple"> Több is választható</label>
+          </div>
+          <label>Opciók</label>
+          <div class="option-list" id="optionList"></div>
+          <button class="secondary" id="addOption" type="button">+ Opció hozzáadása</button>
+          <p class="error" id="createError" role="alert"></p>
+          <div class="form-actions"><button class="btn" type="submit">Szavazás létrehozása</button><span class="hint">A link létrehozás után megosztható.</span></div>
+        </form>
+        <div class="created" id="created" hidden>
+          <h3>Elkészült a publikus link</h3>
+          <p class="hint">Ezt küldd el a többieknek:</p>
+          <div class="link-row"><input class="link-input" id="createdLink" readonly aria-label="Publikus szavazási link"><button class="copy" id="copyLink" type="button">Másolás</button></div>
+        </div>
+      </section>
+
+      <section class="panel poll-panel" id="pollPanel" hidden aria-live="polite">
+        <div id="pollContent"><p class="loading">Szavazás betöltése…</p></div>
+      </section>
+    </div>
+  </div>
+</main>
+
+<footer><div class="wrap"><p><strong>Exmentoring</strong><br>A Mentoring szoba közös rulettje és közösségi eszközei. Virtuális játék, valódi pénz nincs benne.</p></div></footer>
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const safeGet = (key) => { try { return localStorage.getItem(key) || ''; } catch { return ''; } };
+  const safeSet = (key, value) => { try { localStorage.setItem(key, value); } catch {} };
+  const esc = (value) => String(value).replace(/[&<>\"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;' }[c]));
+  const query = new URLSearchParams(location.search);
+  let pollId = query.get('id') || '';
+  let nick = safeGet('nick'), socket, reconnect = 0, currentPoll = null, toastTimer;
+
+  function toast(message) {
+    const el = $('toast'); el.textContent = message; el.classList.add('show');
+    clearTimeout(toastTimer); toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  }
+  function setIdentity(editing = false) {
+    $('identityCurrent').hidden = !nick || editing;
+    $('loginForm').hidden = !!nick && !editing;
+    $('changeNick').hidden = !nick || editing;
+    $('identityTitle').textContent = nick && !editing ? 'Bejelentkezve' : 'Ki szavaz?';
+    $('identityHint').textContent = nick && !editing ? '' : 'A válaszod a megszokott becenevedhez lesz mentve.';
+    $('currentNick').textContent = nick || '';
+    if (editing) { $('nickInput').value = ''; $('nickInput').focus(); }
+  }
+  function send(message) { if (socket && socket.readyState === WebSocket.OPEN) socket.send(JSON.stringify(message)); }
+  function connect() {
+    socket = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
+    socket.onopen = () => {
+      reconnect = 0; $('conn').style.display = 'none';
+      if (nick) send({ t: 'hello', nick });
+      if (pollId) send({ t: 'poll-get', id: pollId });
+    };
+    socket.onclose = () => { $('conn').style.display = 'block'; setTimeout(connect, Math.min(8000, 1000 * ++reconnect)); };
+    socket.onmessage = (event) => {
+      const message = JSON.parse(event.data);
+      if (message.t === 'hello') { nick = message.nick; safeSet('nick', nick); setIdentity(); renderPoll(currentPoll); }
+      else if (message.t === 'poll-state') { currentPoll = message.poll; pollId = message.poll.id; showPoll(); renderPoll(currentPoll); }
+      else if (message.t === 'poll-created') {
+        pollId = message.poll.id; currentPoll = message.poll;
+        const url = new URL(message.url, location.href).href;
+        history.replaceState(null, '', message.url);
+        $('created').hidden = false; $('createdLink').value = url;
+        showPoll(); renderPoll(currentPoll); toast('A szavazás elkészült.');
+      } else if (message.t === 'err') {
+        const error = $('voteError') || $('createError');
+        if (error) error.textContent = message.msg;
+        toast(message.msg);
+      }
+    };
+  }
+  function showPoll() { $('pollPanel').hidden = false; }
+  function renderPoll(poll) {
+    if (!poll) return;
+    const total = poll.voters || 0;
+    const choices = new Set(poll.choices || []);
+    const inputType = poll.multiple ? 'checkbox' : 'radio';
+    const optionHtml = poll.options.map((option, index) => {
+      const count = poll.counts[index] || 0;
+      const percentage = total ? Math.round(count / total * 100) : 0;
+      return `<label class="poll-option"><input type="${inputType}" name="poll-choice" value="${index}"${choices.has(index) ? ' checked' : ''}${nick ? '' : ' disabled'}><span class="option-copy"><span class="option-label">${esc(option)}</span><span class="result-bar"><i style="width:${percentage}%"></i></span></span><b class="option-count">${count}</b></label>`;
+    }).join('');
+    $('pollContent').innerHTML = `<div class="poll-head"><div><h2>${esc(poll.title)}</h2><span class="poll-type">${poll.multiple ? 'Több válasz választható' : 'Egy válasz választható'}</span></div><span class="poll-meta">Létrehozta: ${esc(poll.creator || '–')}</span></div><form id="voteForm"><div class="poll-options">${optionHtml}</div><div class="poll-footer"><span class="poll-status"><strong>${total}</strong> válaszadó · az eredmények mindenki számára láthatók</span><button class="btn" type="submit">${choices.size ? 'Válasz módosítása' : 'Szavazok'}</button></div><p class="error" id="voteError" role="alert"></p></form>`;
+    $('voteForm').onsubmit = (event) => {
+      event.preventDefault();
+      if (!nick) { setIdentity(true); toast('A szavazáshoz add meg a beceneved.'); return; }
+      const selected = [...document.querySelectorAll('input[name="poll-choice"]:checked')].map((input) => Number(input.value));
+      send({ t: 'poll-vote', id: poll.id, choices: selected });
+    };
+  }
+  function addOption(value = '') {
+    const items = $('optionList').querySelectorAll('.option-input');
+    if (items.length >= 20) { $('addOption').disabled = true; return; }
+    const row = document.createElement('div'); row.className = 'option-input';
+    row.innerHTML = `<span class="option-number">${items.length + 1}.</span><input maxlength="160" placeholder="Opció ${items.length + 1}" value="${esc(value)}" aria-label="${items.length + 1}. opció"><button class="remove-option" type="button" aria-label="Opció törlése">×</button>`;
+    row.querySelector('.remove-option').onclick = () => { if ($('optionList').children.length > 2) { row.remove(); renumberOptions(); } };
+    $('optionList').append(row); renumberOptions();
+  }
+  function renumberOptions() {
+    [...$('optionList').children].forEach((row, index) => {
+      row.querySelector('.option-number').textContent = `${index + 1}.`;
+      row.querySelector('input').placeholder = `Opció ${index + 1}`;
+      row.querySelector('input').setAttribute('aria-label', `${index + 1}. opció`);
+      row.querySelector('.remove-option').disabled = $('optionList').children.length <= 2;
+    });
+    $('addOption').disabled = $('optionList').children.length >= 20;
+  }
+
+  $('loginForm').onsubmit = (event) => {
+    event.preventDefault();
+    const value = $('nickInput').value.trim();
+    if (value.length < 2) return toast('A becenév legalább 2 karakter legyen.');
+    nick = value; safeSet('nick', nick); send({ t: 'hello', nick }); setIdentity();
+    if (currentPoll) renderPoll(currentPoll);
+  };
+  $('changeNick').onclick = () => { nick = ''; safeSet('nick', ''); setIdentity(true); };
+  $('addOption').onclick = () => addOption();
+  $('createForm').onsubmit = (event) => {
+    event.preventDefault(); $('createError').textContent = '';
+    if (!nick) { setIdentity(true); return toast('A létrehozáshoz add meg a beceneved.'); }
+    const options = [...$('optionList').querySelectorAll('input')].map((input) => input.value.trim()).filter(Boolean);
+    const multiple = document.querySelector('input[name="pollType"]:checked').value === 'multiple';
+    send({ t: 'poll-create', title: $('pollTitle').value.trim(), options, multiple });
+  };
+  $('copyLink').onclick = async () => {
+    try { await navigator.clipboard.writeText($('createdLink').value); toast('A link a vágólapra került.'); }
+    catch { $('createdLink').select(); document.execCommand('copy'); toast('A link kimásolva.'); }
+  };
+  addOption('Igen'); addOption('Nem'); setIdentity(); connect();
+  if (pollId) showPoll();
+})();
+</script>
+</body>
+</html>
