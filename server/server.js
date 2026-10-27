@@ -436,6 +436,7 @@ wss.on('connection', (ws) => {
       return;
     }
     if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
+    if (m.t === 'music-ping') return ws.send(JSON.stringify({ t: 'music-pong', c: Number(m.c) || 0, s: Date.now() }));   // óraszinkron a közös zenéhez
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');

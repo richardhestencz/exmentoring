@@ -4,8 +4,8 @@
   const $ = (id) => document.getElementById(id);
   const drawer = $('mdrawer');
   if (!drawer) return;
-  const DUCK_LEVEL = 0.15, DUCK_DOWN_MS = 500, DUCK_UP_MS = 2000, DUCK_HOLD_MS = 15000, DRIFT_S = 2, RESYNC_MS = 15000;
-  const M = { st: null, off: 0, player: null, ready: false, joined: false, vol: Number(safeGet('mvol')) || 60,
+  const DUCK_LEVEL = 0.15, DUCK_DOWN_MS = 500, DUCK_UP_MS = 2000, DUCK_HOLD_MS = 15000, DRIFT_S = 0.35, RESYNC_MS = 2000, SEEK_LEAD = 0.1;   // ennyinél nagyobb eltérésnél igazít; a tekerés után ennyivel később szól újra
+  const M = { st: null, off: 0, clock: false, player: null, ready: false, joined: false, vol: Number(safeGet('mvol')) || 60,
     duckOn: false, holdUntil: 0, level: 1, loadedV: '', loadedRev: -1, errs: [], noteT: 0, endedRev: -1 };
   const synced = () => Date.now() + M.off;       // a szerver ideje
   const expected = () => { const s = M.st; return s ? (s.paused ? s.pos : Math.max(0, synced() - s.startedAt)) / 1000 : 0; };
@@ -66,7 +66,7 @@
   function onStateChange(e) {
     const s = M.st; if (!s) return;
     if (e.data === 0 && M.joined && M.endedRev !== s.rev) { M.endedRev = s.rev; send({ t: 'music-ended', rev: s.rev }); }   // vége: a következő jön
-    if (e.data === 1) M.errs = M.errs.filter((t) => Date.now() - t < 10000);
+    if (e.data === 1) { M.errs = M.errs.filter((t) => Date.now() - t < 10000); setTimeout(() => seekIfOff(expected()), 400); }   // indulás, puffer, reklám után azonnal a közös helyre
     paintPlay();
   }
   function onError(e) {
@@ -101,18 +101,30 @@
     try {
       const st = M.player.getPlayerState();
       if (st !== 1 && st !== 3) return;                  // hirdetés vagy puffer alatt nem tekergetünk
-      if (Math.abs(M.player.getCurrentTime() - pos) > DRIFT_S) M.player.seekTo(pos, true);
+      if (Math.abs(M.player.getCurrentTime() - pos) > DRIFT_S) M.player.seekTo(pos + SEEK_LEAD, true);
     } catch {}
   }
   setInterval(() => { if (M.joined && cur()) seekIfOff(expected()); }, RESYNC_MS);
 
   // a szerver üzenetei (a főoldal onmessage-e hívja)
+  // pontos óra: oda-vissza időmérés a szerverrel; a legkisebb késésű mérés a mérvadó (a késés felét beszámítva)
+  const pings = [];
+  function ping() { send({ t: 'music-ping', c: Date.now() }); }
+  function pong(m) {
+    const now = Date.now(), rtt = now - m.c; if (rtt < 0 || rtt > 5000) return;
+    pings.push({ rtt, off: m.s - (m.c + rtt / 2) }); if (pings.length > 10) pings.shift();
+    const best = pings.reduce((a, b) => (b.rtt < a.rtt ? b : a));
+    M.off = best.off; M.clock = true;
+  }
+  let pingN = 0; setInterval(() => { if (pingN < 6 || pingN % 15 === 0) ping(); pingN++; }, 1000);   // indításkor sűrűn, aztán 15 s-onként
   window.MusicHook = (m) => {
     if (m.t === 'music-duck') return duck(m.on, true);
+    if (m.t === 'music-pong') return pong(m);
     const mu = m.t === 'state' || m.t === 'music' ? m.music : null;
     if (!mu || !Array.isArray(mu.items)) return;
     const changed = !M.st || M.st.rev !== mu.rev || M.st.fetchedAt !== mu.fetchedAt || M.st.link !== mu.link;
-    M.off = mu.now - Date.now(); M.st = mu;
+    if (!M.clock) M.off = mu.now - Date.now();   // amíg nincs pontos mérés, az üzenet ideje szerint
+    M.st = mu;
     duck(mu.duck, false);
     if (changed) { paint(); sync(false); }
   };
