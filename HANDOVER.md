@@ -114,6 +114,14 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 - **Blackjack:** csak az asztalra kattintva nyílik (a képen a piknikasztal). Saját kép jön be: szemben a mosómedve osztó, előtted az asztal 6 tétkörrel (`img/bj-view.jpg`, éjjel `bj-view-night.jpg`, 1376x768). A pontok helye a kép képpontjaiban az `index.html` elején, a `BJ_SCENE` objektumban (osztó lapjai, 6 hely, a posztó alja). Egy szabad helyre kattintva („Ülj ide”) leülsz a kiválasztott zsetonnal; a lapok a tétkör fölött, a név és a tét alatta. Vissza: „Vissza a rulettehez” gomb vagy Esc. Keskeny képernyőn a szélső helyek a panel listájában látszanak.
 - **Kapcsoló:** `?demo`: mind a 16 hely benépesítve, becenév-kérés nélkül (bemutatóhoz).
 
+## Közös zene
+
+A főoldalon, a bal oldali hírfolyam alatt (keskeny vagy alacsony ablakban a játéktér alatt) a **Közös zene** kártya: a hivatalos YouTube IFrame lejátszó (látható, 200 px magas), amit mindenki ugyanazon a helyen hallgat.
+- **Playlist:** bárki feltehet YouTube / YouTube Music playlist- vagy videólinket (`list=` azonosító; a hírfolyamba bekerül, ki tette fel). Következő, előző, szünet mindenkinek közös; a hangerő-csúszka csak a sajátod.
+- **Szinkron:** a szerver (`server/music.js`, a `state.json`-ban `music`) tárolja a listát, a szám indexét és kezdési idejét; a kliens csatlakozáskor oda teker, 15 másodpercenként 2 mp fölötti eltérésnél újraigazít. Számváltást az első jelentő léptet (rev-dedupe).
+- **Halkítás:** az ajtó nyitásakor (`/api/door`) a szerver `music-duck` üzenetet küld, mindenkinél 0,5 mp alatt 15%-ra halkul, legalább 15 mp-ig, zárás után 2 mp alatt visszajön.
+- **Korlátok:** a böngésző hanggal csak kattintás után indít („Zene bekapcsolása”); YouTube-hirdetések és a beágyazást tiltó számok (átugorja) maradnak; a Premium nem érvényesül a beágyazott lejátszóban.
+
 ## Napi üzemeltetés
 
 | Teendő | Hogyan |
