@@ -445,7 +445,8 @@ app.post('/api/door', ingest, (req, res) => {
     if (R.phase === 'betting') {
       if (!R.doorBet) { placeDoorBet(); R.doorBet = true; }   // ha a nyitás jele elveszett, most tesz fel
       R.spinner = DOOR; startSpin();
-    } else R.doorQueue++;                          // pörgés közben csukódott: a következő körben tesz fel és pörget
+    } else if (!R.doorBet || R.doorOpenQueued) R.doorQueue++;   // pörgés közben csukódott: a következő körben tesz fel és pörget
+    // (ha a nyitáskori tétje már ebben a pörgésben van, és azóta nem nyílt újra, ez a csukás nem tesz fel még egyszer)
   } else return res.status(400).json({ error: 'state: open|closed' });
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
