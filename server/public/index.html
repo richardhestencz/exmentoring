@@ -54,7 +54,7 @@ ul{list-style:none;margin:0;padding:0}
 .beta3d .beta .cta,.beta3d .beta .cta-s,.beta3d .beta i{display:none}
 .w3d,.play3d{display:none}
 .beta3d .w3d{display:block;position:absolute;left:0;top:0;border:0;z-index:1;transform-origin:0 0;will-change:transform,filter;background:#fbeee2}
-.beta3d #bg{visibility:hidden}
+.beta3d #bg,.beta3d #bgNight{visibility:hidden}
 .beta3d .crowd{display:none}
 .beta3d .play3d{display:inline-block;background:#eb772e!important;color:#fff!important;border-color:#eb772e!important;font-weight:800;white-space:nowrap}
 .stage.playing3d{position:fixed;inset:0;height:100vh;height:100dvh;min-height:0;z-index:60;perspective:none}
@@ -73,6 +73,8 @@ ul{list-style:none;margin:0;padding:0}
 /* a generált jelenet: méretét és helyét a JS állítja, hogy a kőkör pont a kerék alá essen */
 .land{position:absolute;left:0;top:0;max-width:none;z-index:1;transform-origin:0 0;will-change:transform,filter;user-select:none;pointer-events:none;
   -webkit-mask-image:linear-gradient(180deg,#000 88%,transparent);mask-image:linear-gradient(180deg,#000 88%,transparent)}
+.land-night{opacity:0;transition:opacity 12s linear}
+@media (prefers-reduced-motion:reduce){.land-night{transition:none}}
 .land.narrow{-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);
   -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);mask-composite:intersect}
 /* helyválasztás közben a felső panelek ne takarják a helyeket */
@@ -507,6 +509,7 @@ footer strong{color:#fff}
   <span id="jatek" style="position:absolute;top:-44px"></span>
   <div class="world" id="world">
     <img class="land" id="bg" alt="" src="img/scene-wide.jpg" decoding="async">
+    <img class="land land-night" id="bgNight" alt="" src="img/scene-night-wide.jpg" decoding="async">
     <iframe class="w3d" id="w3d" title="3D tisztás" hidden></iframe>
     <div class="crowd" id="crowd" aria-label="Kik vannak bent"></div>
     <div class="shade"></div>
@@ -1003,7 +1006,7 @@ ball.castShadow=true;scene.add(outline(ball,1.18));
 /* ---------- háttérkép + kamera: a kerék a kép kőkörére kerül ---------- */
 // a kőkör/tisztás helye a képeken (képpontban), ezekre igazodik a kerék
 const SCENES=Avatar.SCENES;   // a kőkör helye és mérete a háttérképeken (avatar.js)
-const bg=$('bg'),crowd=$('crowd');
+const bg=$('bg'),bgNight=$('bgNight'),crowd=$('crowd');
 /* ---------- BÉTA: a háttér az élő 3D tisztás; „Belépés a tisztásra”: a saját mosómedvénk, a kerék, a blackjack-asztal ---------- */
 var BETA=/^\/beta/.test(location.pathname),w3d=$('w3d'),w3dLayout=null,playing3d=false,lastCam='';   // var: a háttér elrendezése ennél korábban is lefuthat
 function postW3d(m){if(BETA&&w3d.contentWindow)w3d.contentWindow.postMessage(m,location.origin)}
@@ -1022,10 +1025,44 @@ addEventListener('message',e=>{
   else if(m.t==='need-nick'){play3d(false);renaming=!nick;showNick()}
 });let sceneInfo=null,crowdKey='';
 let nightFilter='',SW=1,SH=1,mobile=false,camT=0,ring={x:0,y:0,w:600},bgBox={left:0,top:0};
+const BUDAPEST='Europe/Budapest';
+const BUDAPEST_CLOCK=new Intl.DateTimeFormat('en-GB',{timeZone:BUDAPEST,year:'numeric',month:'numeric',day:'numeric',hour:'numeric',minute:'numeric',second:'numeric',hourCycle:'h23'});
+const BUDAPEST_OFFSET=new Intl.DateTimeFormat('en-US',{timeZone:BUDAPEST,timeZoneName:'longOffset',hour:'numeric'});
+function localClock(now=new Date()){
+  const parts=Object.fromEntries(BUDAPEST_CLOCK.formatToParts(now).filter(p=>p.type!=='literal').map(p=>[p.type,+p.value]));
+  const zone=BUDAPEST_OFFSET.formatToParts(now).find(p=>p.type==='timeZoneName')?.value||'GMT+01:00';
+  const m=zone.match(/GMT([+-])(\d{1,2})(?::(\d{2}))?/),offset=m?(m[1]==='-'?-1:1)*(+m[2]*60+(+m[3]||0)):60;
+  const date=Date.UTC(parts.year,parts.month-1,parts.day),start=Date.UTC(parts.year,0,0);
+  return {year:parts.year,month:parts.month,day:parts.day,minutes:parts.hour*60+parts.minute+parts.second/60,dayOfYear:Math.floor((date-start)/86400000),offset};
+}
+function backgroundCycle(now=new Date()){
+  const p=localClock(now),lat=47.5*Math.PI/180,lon=19.04;
+  const b=2*Math.PI*(p.dayOfYear-81)/364;
+  const equation=9.87*Math.sin(2*b)-7.53*Math.cos(b)-1.5*Math.sin(b);
+  const decl=(23.44*Math.PI/180)*Math.sin(2*Math.PI*(284+p.dayOfYear)/365);
+  const cosHour=clamp((Math.cos(90.833*Math.PI/180)-Math.sin(lat)*Math.sin(decl))/(Math.cos(lat)*Math.cos(decl)),-1,1);
+  const hourAngle=Math.acos(cosHour)*180/Math.PI;
+  const solarNoon=720-4*lon-equation+p.offset;
+  const sunrise=solarNoon-hourAngle*4,sunset=solarNoon+hourAngle*4;
+  const dawn=1-smooth(clamp((p.minutes-(sunrise-70))/120,0,1));
+  const dusk=smooth(clamp((p.minutes-(sunset-50))/120,0,1));
+  return {night:Math.max(dawn,dusk),daylight:1-Math.max(dawn,dusk)};
+}
+function applyBackgroundCycle(cycle=backgroundCycle()){
+  const portrait=SW/SH<1;
+  nightFilter=portrait?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs külön éjszakai kép
+  bgNight.style.opacity=cycle.night.toFixed(3);
+  if(sceneInfo){
+    const night=cycle.night>=.42;
+    if(sceneInfo.night!==night){sceneInfo.night=night;crowdKey='';drawCrowd()}
+  }
+}
+function updateBackgroundClock(){applyBackgroundCycle()}
 function layoutBg(){
-  const dark=isDark(), sc=SW/SH<1?SCENES.tall:dark?SCENES.night:SCENES.wide;
+  const portrait=SW/SH<1,sc=portrait?SCENES.tall:SCENES.wide;
   if(bg.getAttribute('src')!==sc.src)bg.src=sc.src;
-  nightFilter=dark&&sc===SCENES.tall?'brightness(.46) saturate(1.25) hue-rotate(-14deg)':'';   // álló képből nincs éjszakai: besötétítjük
+  const nightSrc=portrait?sc.src:SCENES.night.src;
+  if(bgNight.getAttribute('src')!==nightSrc)bgNight.src=nightSrc;
   const dockTop=$('dock').getBoundingClientRect().top-stage.getBoundingClientRect().top;
   const ringY=Math.min(dockTop-(mobile?36:44),SH*.56);           // a kerék közepe a tétasztal fölé
   // a legfelső hely (a neve is) és a kerék is férjen be: ha a kép a szélességhez igazítva túl magas, kicsinyítünk (legfeljebb 72%-ig),
@@ -1034,13 +1071,15 @@ function layoutBg(){
   const sCover=SW/sc.w, sFit=(ringY-(mobile?96:56))/(sc.cy-topY);
   const s=Math.min(sCover,Math.max(sCover*.72,sFit));
   bg.classList.toggle('narrow',s<sCover-.001);
+  bgNight.classList.toggle('narrow',s<sCover-.001);
   const top=ringY-sc.cy*s, left=(SW-sc.w*s)/2;
   Object.assign(bg.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
+  Object.assign(bgNight.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
   Object.assign(crowd.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
   // a 3D tisztás az egész színpadot kitölti; a kereke a főoldal kereke alá kerül
   if(BETA){Object.assign(w3d.style,{width:SW+'px',height:SH+'px',left:'0px',top:'0px'});w3dLayout={t:'layout',w:SW,h:SH,cx:ring.x,cy:ring.y,ring:ring.w};postW3d(w3dLayout)}
   ring={x:left+sc.cx*s,y:ringY,w:sc.wheel*s};bgBox={left,top};
-  sceneInfo={sc,s};crowdKey='';drawCrowd();
+  sceneInfo={sc,s,night:backgroundCycle().night>=.42};crowdKey='';applyBackgroundCycle();drawCrowd();
   if(typeof placeBjHit==='function'){placeBjHit();aimWorld();layoutBjScene()}
 }
 function fit(){
@@ -1048,6 +1087,7 @@ function fit(){
   renderer.setSize(SW,SH,false);camera.aspect=SW/SH;layoutBg();
 }
 new ResizeObserver(fit).observe(stage);fit();
+setInterval(updateBackgroundClock,15000);
 addEventListener('themechange',()=>{layoutBg();if(S)render();postW3d({t:'night',on:isDark()})});
 const WHEEL_IDLE=.8;                                  // várakozáskor a kerék a kőkör 80%-a
 let zoomK=0;
@@ -1076,7 +1116,10 @@ function updateCamera(T,dt){
   const ox=ring.x-bgBox.left, oy=ring.y-bgBox.top;
   bg.style.transform=`translate(${(tx+ox*(1-z)).toFixed(1)}px,${(ty+oy*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;
   const blur=Math.max(0,(k-.35)/.65);
-  bg.style.filter=((blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'')+' '+nightFilter).trim()||'none';
+  const cameraFilter=(blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'');
+  bg.style.filter=cameraFilter.trim()||'none';
+  bgNight.style.transform=bg.style.transform;
+  bgNight.style.filter=(cameraFilter+' '+nightFilter).trim()||'none';
   crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
   // BÉTA: a 3D tisztás kamerája pontosan a kerékkamerát követi (ugyanaz a billenés és közelítés), nem síkban nagyítunk
   if(BETA&&!playing3d){
@@ -1094,9 +1137,9 @@ function drawCrowd(){
   if(!sceneInfo||(!DEMO&&(!S||!S.seats)))return;
   const seated=DEMO?DEMO_NICKS.map((nick,i)=>({nick,spot:i})):Object.entries(S.seats).filter(([,v])=>v.spot!==null).map(([n,v])=>({nick:n,spot:v.spot}));
   const me=!DEMO&&nick&&S.seats[nick];
-  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,seated,nick,me]);
+  const key=JSON.stringify([sceneInfo.s,sceneInfo.sc.src,sceneInfo.night,seated,nick,me]);
   if(key===crowdKey)return;crowdKey=key;
-  const {sc,s}=sceneInfo,night=!!sc.night,frag=[];
+  const {sc,s,night}=sceneInfo,frag=[];
   // a hátrébb lévők előbb (a kép rétegrendje: a fej magassága szerint)
   seated.map(o=>({...o,pos:Avatar.spotPos(sc,o.spot)})).sort((a,b)=>a.pos.y-b.pos.y).forEach((o,z)=>{
     const q=o.pos;                                                     // a kép képpontjai -> képernyő: * s
