@@ -34,6 +34,7 @@ canvas{display:block}
 body.playing .play{display:block}
 body.playing .hud,body.playing .note,body.intro .hud,body.intro .note,body.intro .entry,body.intro #tags{display:none}
 #exit{position:fixed;right:12px;top:12px;z-index:3}
+#menuBtn{position:fixed;right:110px;top:12px;z-index:3;background:rgba(255,255,255,.85)!important;color:#2a1a12!important}
 .keys{position:fixed;left:12px;top:12px;z-index:3;color:#5a3a2a;font-size:.8rem;background:rgba(255,255,255,.75);padding:6px 10px;border-radius:10px}
 #reticle{position:fixed;left:50%;top:50%;width:10px;height:10px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 1.5px rgba(30,20,12,.55);z-index:3;pointer-events:none;transition:width .15s,height .15s,margin .15s,border-color .15s}
 #reticle[hidden],body:not(.playing) #reticle{display:none}
@@ -59,6 +60,8 @@ kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding
 .pbox button{font:inherit;font-weight:800;padding:11px 16px;border-radius:999px;border:0;cursor:pointer;background:#eb772e;color:#fff}
 .pbox #quit{background:#f1e4da;color:#2a1a12}
 .pbox button:focus-visible{outline:3px solid #2a1a12;outline-offset:2px}
+.fovrow{display:flex;flex-wrap:wrap;justify-content:space-between;gap:4px 10px;font-weight:700;font-size:.9rem;text-align:left}
+.fovrow input{width:100%;accent-color:#eb772e}
 .pbox small{color:#6b5446;font-size:.78rem;line-height:1.35}
 #flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
 #sync{position:fixed;inset:0;z-index:5;pointer-events:none;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;color:#5b5b5b;letter-spacing:.35em;text-align:center}
@@ -87,15 +90,16 @@ kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding
 <div class="entry" id="entry" hidden><input id="nick" maxlength="20" placeholder="Beceneved" autocomplete="nickname"><button type="button" id="go">🦝 Belépés a tisztásra</button></div>
 <div class="play">
   <button type="button" id="exit">Kilépés</button>
-  <div class="keys">WASD / nyilak: mozgás · Shift: futás · Szóköz: ugrás · kattints, és az egér forgat · célozz egy helyre vagy játékra, E · Esc: menü</div>
+  <div class="keys">W/S: előre-hátra · A/D vagy egér: fordulás · Shift: futás · Szóköz: ugrás · kattints, és az egér forgat · célozz egy helyre vagy játékra, E · T: menü</div>
   <div id="joy"><div></div></div>
   <button type="button" id="runBtn" aria-pressed="false">Futás</button>
   <button type="button" id="actBtn">E</button>
   <button type="button" id="jumpBtn">Ugrás</button>
+  <button type="button" id="menuBtn" aria-label="Menü">☰ Menü</button>
 </div>
 <div id="reticle" class="play-only" hidden></div>
 <div id="prompt" hidden></div>
-<div id="pause" hidden><div class="pbox"><b>Szünet</b><button type="button" id="resume">▶ Folytatás</button><button type="button" id="quit">Kilépés a tisztásról</button><small>A mosómedvéd ott marad, ahol most áll. WASD: mozgás · Shift: futás · Szóköz: ugrás · E: leülés, játék · Esc: ez a menü</small></div></div>
+<div id="pause" hidden><div class="pbox"><b>Menü</b><button type="button" id="resume">▶ Folytatás</button><label class="fovrow">Látószög (FOV) <span id="fovv">60°</span><input type="range" id="fov" min="40" max="100" step="1" value="70"></label><button type="button" id="quit">Kilépés a tisztásról</button><small>A mosómedvéd ott marad, ahol most áll. W/S: előre-hátra · A/D vagy egér: fordulás · Shift: futás · Szóköz: ugrás · E: leülés, játék · T: ez a menü</small></div></div>
 <div class="wtag" id="wtag" hidden></div>
 <div id="flash"></div>
 <div id="sync" hidden><div><b>SZINKRONIZÁLÁS</b><span id="syncNick"></span><i></i><span id="syncPct">0%</span></div></div>
@@ -553,7 +557,13 @@ function embedCam() {
   camera.position.set(WHEEL.position.x, WHEEL.position.y + d * Math.sin(el), WHEEL.position.z + d * Math.cos(el)); camera.lookAt(WHEEL.position);
   camera.setViewOffset(w, h, w / 2 - cx, h / 2 - cy, w, h); camera.updateProjectionMatrix();
 }
-function freeCam() { camera.clearViewOffset(); camera.fov = 35; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+let FOV = Math.min(100, Math.max(40, +safeGet('fov3d') || 70));   // a játék látószöge (a T-menüben állítható)
+function freeCam() { camera.clearViewOffset(); camera.fov = FOV; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+function setFov(v) {
+  FOV = Math.min(100, Math.max(40, Math.round(v))); safeSet('fov3d', FOV);
+  document.getElementById('fov').value = FOV; document.getElementById('fovv').textContent = FOV + '°';
+  if (mode === 'play' || mode === 'intro') { camera.fov = FOV; camera.updateProjectionMatrix(); }
+}
 function startPlay() {
   wantPlay = false; const n = safeGet('nick');
   if (n.length < 2) { toParent({ t: 'need-nick' }); return; }
@@ -577,7 +587,7 @@ renderer.domElement.addEventListener('click', (e) => {
 
 // ---------- a játékos ----------
 let mode = 'view';   // view: körbenézés, intro: belépő, play: a saját mosómedvénk
-const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 4.3, near: null, h: 0, vy: 0 };
+const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 5.6, near: null, h: 0, vy: 0 };
 let lastSent = '', sendAt = 0;
 function enter() {
   const nick = (document.getElementById('nick').value || '').trim();
@@ -650,20 +660,20 @@ function jumpToGame(g) {
 // ---------- bemenet: billentyű, egér, érintés ----------
 const keys = new Set(); let runLock = false;
 addEventListener('keydown', (e) => {
-  if (mode !== 'play' || e.target.tagName === 'INPUT') return;
+  if (mode !== 'play' || (e.target.tagName === 'INPUT' && e.target.type !== 'range')) return;
+  if (e.code === 'KeyT') { e.preventDefault(); paused ? closePause(true) : openPause(); return; }
+  if (paused) return;
   keys.add(e.code);
   if (e.code === 'KeyE' || e.code === 'Enter') act();
   if (e.code === 'Space') jump();
-  if (e.code === 'Escape') { paused ? closePause() : openPause(); return; }
-  if (paused) return;
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
 function jump() { if (me.spot === null && me.h === 0 && mode === 'play' && !paused) me.vy = 3.6; }
-// Esc először az egeret engedi el (a böngésző), másodszorra lép ki
-document.addEventListener('pointerlockchange', () => { if (!locked() && mode === 'play' && !paused) openPause(); });
-// Esc-menü: megáll a mozgás, előjön az egér; Folytatás vagy Kilépés a tisztásról
+// az Esc-et a böngésző foglalja (elengedi az egeret); a menü a T
+document.addEventListener('pointerlockchange', () => { if (!locked() && mode === 'play' && !paused) toast('Kattints a játékba a kamerához · T: menü'); });
+// T-menü: megáll a mozgás, előjön az egér; látószög, Folytatás vagy Kilépés a tisztásról
 let paused = false;
 function openPause() { if (mode !== 'play') return; paused = true; keys.clear(); document.getElementById('pause').hidden = false; document.exitPointerLock?.(); setTimeout(() => document.getElementById('resume').focus(), 30); }
 function closePause(relock) {
@@ -678,18 +688,20 @@ function act() {
   sitDown(i);
 }
 let drag = null;
+// állva a mosómedve fordul, és a kamera mindig mögötte marad; ülve csak a kamera kerül körbe
+function turnBy(a) { if (me.spot === null) me.ry += a; else me.yaw += a; }
 const locked = () => document.pointerLockElement === renderer.domElement;
 renderer.domElement.addEventListener('click', (e) => { if (mode === 'play' && !paused && e.pointerType !== 'touch' && !matchMedia('(pointer:coarse)').matches && !locked()) renderer.domElement.requestPointerLock?.(); });
 addEventListener('mousemove', (e) => { if (!locked() || mode !== 'play') return;
-  me.yaw -= e.movementX * 0.0035; me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + e.movementY * 0.0028)); });
+  turnBy(-e.movementX * 0.0035); me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + e.movementY * 0.0028)); });
 renderer.domElement.addEventListener('pointerdown', (e) => { if (mode === 'play' && !locked() && !(e.pointerType === 'touch' && e.clientX < innerWidth * 0.45)) drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
 addEventListener('pointermove', (e) => {
   if (!drag || e.pointerId !== drag.id) return;
-  me.yaw -= (e.clientX - drag.x) * 0.006; me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + (e.clientY - drag.y) * 0.004));
+  turnBy(-(e.clientX - drag.x) * 0.006); me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + (e.clientY - drag.y) * 0.004));
   drag.x = e.clientX; drag.y = e.clientY;
 });
 addEventListener('pointerup', (e) => { if (drag && e.pointerId === drag.id) drag = null; });
-renderer.domElement.addEventListener('wheel', (e) => { if (mode === 'play') me.dist = Math.min(9, Math.max(2.5, me.dist + e.deltaY * 0.004)); }, { passive: true });
+renderer.domElement.addEventListener('wheel', (e) => { if (mode === 'play') me.dist = Math.min(10, Math.max(2.5, me.dist + e.deltaY * 0.004)); }, { passive: true });
 // mobilon: virtuális joystick bal lent, gombok jobb lent
 const joy = { x: 0, y: 0, id: null };
 {
@@ -703,9 +715,11 @@ const joy = { x: 0, y: 0, id: null };
   pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
   document.getElementById('actBtn').onclick = act;
   document.getElementById('jumpBtn').onclick = jump;
+  document.getElementById('menuBtn').onclick = () => (paused ? closePause() : openPause());
   document.getElementById('runBtn').onclick = (e) => { runLock = !runLock; e.currentTarget.setAttribute('aria-pressed', runLock); };
   document.getElementById('exit').onclick = () => leave();
   document.getElementById('resume').onclick = () => closePause(true);
+  document.getElementById('fov').addEventListener('input', (e) => setFov(+e.target.value)); setFov(FOV);
   document.getElementById('quit').onclick = () => { closePause(false); leave(); };
   document.getElementById('go').onclick = enter;
   document.getElementById('nick').value = safeGet('nick');
@@ -773,7 +787,7 @@ function runIntro(t, dt) {
 const clock = new THREE.Clock(), v = new THREE.Vector3();
 const UP = new THREE.Vector3(0, 1, 0);
 function playStep(dt) {
-  // mozgás a kamera irányához képest
+  // W/S előre-hátra, A/D fordul (a kamera vele fordul, mindig a mosómedve mögött)
   let ix = paused ? 0 : joy.x, iy = paused ? 0 : joy.y;
   if (keys.has('KeyW') || keys.has('ArrowUp')) iy += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iy -= 1;
   if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1; if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1;
@@ -782,15 +796,16 @@ function playStep(dt) {
   if (me.spot === null) {
     const run = runLock !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) || (joy.id !== null && l > 0.92);
     let act = 'idle';
-    if (moving) {
-      const fx = -Math.sin(me.yaw), fz = -Math.cos(me.yaw), rx = Math.cos(me.yaw), rz = -Math.sin(me.yaw);
-      let mx = fx * iy + rx * ix, mz = fz * iy + rz * ix; const ml = Math.hypot(mx, mz); mx /= ml; mz /= ml;
-      const speed = (run ? 3.4 : 1.35) * Math.min(1, l);
-      const q = { x: me.x + mx * speed * dt, z: me.z + mz * speed * dt }; collide(q); me.x = q.x; me.z = q.z;
-      me.ry += angDiff(Math.atan2(mx, mz), me.ry) * (1 - Math.exp(-12 * dt));
-      act = run ? 'run' : 'walk';
-      setAct(me.av, act, run ? 1.15 : Math.max(0.6, speed / 1.35));
-    } else setAct(me.av, 'idle');
+    if (Math.abs(ix) > 0.15) me.ry -= Math.max(-1, Math.min(1, ix)) * (run ? 2.2 : 2.6) * dt;
+    const fwd = Math.max(-1, Math.min(1, iy));
+    if (Math.abs(fwd) > 0.15) {
+      const speed = (fwd > 0 ? (run ? 3.4 : 1.35) : 0.9) * Math.abs(fwd), dir = Math.sign(fwd);
+      const q = { x: me.x + Math.sin(me.ry) * dir * speed * dt, z: me.z + Math.cos(me.ry) * dir * speed * dt }; collide(q); me.x = q.x; me.z = q.z;
+      act = run && fwd > 0 ? 'run' : 'walk';
+      setAct(me.av, act, act === 'run' ? 1.15 : Math.max(0.6, speed / 1.35) * dir);
+    } else if (Math.abs(ix) > 0.15) { act = 'walk'; setAct(me.av, 'walk', 0.6); }   // helyben fordul: aprókat lép
+    else setAct(me.av, 'idle');
+    me.yaw += angDiff(me.ry + Math.PI, me.yaw) * (1 - Math.exp(-10 * dt));
     if (me.h > 0 || me.vy > 0) { me.vy -= 11 * dt; me.h = Math.max(0, me.h + me.vy * dt); if (me.h === 0) me.vy = 0; }
     myPose(); sendMove(act);
     me.near = aimSpot();
@@ -852,7 +867,7 @@ renderer.setAnimationLoop(() => {
     p.tag.style.display = on && !(mode === 'play' && p === me.av) ? '' : 'none'; p.tag.style.left = (v.x * 0.5 + 0.5) * innerWidth + 'px'; p.tag.style.top = (-v.y * 0.5 + 0.5) * innerHeight + 'px'; }
 });
 addEventListener('resize', () => { acam.aspect = innerWidth / innerHeight; acam.updateProjectionMatrix(); if (mode !== 'view') freeCam(); });
-window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave, WHEEL, LAY: () => LAY, mode: () => mode };
+window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave, WHEEL, LAY: () => LAY, mode: () => mode, playStep };
 </script>
 </body>
 </html>

@@ -1141,7 +1141,7 @@ function renderBjScene(B,me){
 }
 $('bjpts').onclick=e=>{const b=e.target.closest('[data-seat]');if(!b||b.disabled)return;if(!nick){showNick();return}
   const c=bjCost();if(c)send({t:'bj-bet',amount:c,seat:+b.dataset.seat})};
-addEventListener('keydown',e=>{if(e.key==='Escape'&&playing3d){postW3d({t:'pause'});return}if(e.key==='Escape'&&bjView)setView(false)});
+addEventListener('keydown',e=>{if(playing3d&&(e.key==='t'||e.key==='T')){postW3d({t:'pause'});return}if(e.key==='Escape'&&bjView)setView(false)});
 // az asztal maga is gomb (a mosómedvék rétegében, a háttérrel együtt mozog)
 var bjHit=document.createElement('button');bjHit.type='button';bjHit.className='bjhit';bjHit.setAttribute('aria-label','Blackjack-asztal: ülj le játszani');
 bjHit.onclick=()=>setView(true);
