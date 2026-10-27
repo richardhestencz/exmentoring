@@ -362,9 +362,13 @@ ul{list-style:none;margin:0;padding:0}
 .go:focus-visible,.btn:focus-visible,.snd:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .histrow{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 10px}
 .hist{display:flex;gap:4px;flex-wrap:wrap}
-.num{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 3px;border-radius:6px;font-weight:700;font-size:.78rem;color:#fff;font-variant-numeric:tabular-nums}
+.num{display:inline-flex;align-items:center;justify-content:center;min-width:26px;height:26px;padding:0 3px;border:0;border-radius:6px;font-weight:700;font-size:.78rem;color:#fff;font-variant-numeric:tabular-nums;cursor:pointer}
+.num:hover,.num:focus-visible{filter:brightness(1.18);outline:2px solid #fff;outline-offset:1px}
 .c-red{background:var(--red)}.c-black{background:#05080c;outline:1px solid rgba(255,255,255,.3)}.c-green{background:var(--green)}
 .snd{flex:none;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer}
+.rank-name{display:block;max-width:100%;padding:0;border:0;background:none;color:inherit;font:inherit;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+.rank-name:hover,.rank-name:focus-visible{text-decoration:underline;outline:none}
+.rank-meta{display:block;color:rgba(255,255,255,.65);font-size:.68rem;font-weight:500;white-space:nowrap}
 
 /* becenév: középen, amíg nincs megadva */
 .modal{position:absolute;inset:0;z-index:9;display:grid;place-items:center;padding:16px;background:rgba(10,15,22,.28)}
@@ -382,6 +386,23 @@ ul{list-style:none;margin:0;padding:0}
 .btn{padding:13px 20px;border-radius:12px;border:0;background:var(--grad);color:#fff;font-weight:800;cursor:pointer}
 .err{color:var(--bad);font-size:.92rem;min-height:1.4em;margin:10px 0 0}
 .stage.nonick .dock,.stage.nonick .tl{opacity:.5;filter:blur(1.5px);pointer-events:none}
+.history-modal{position:fixed;inset:0;z-index:100;display:grid;place-items:center;padding:16px;background:rgba(10,15,22,.68)}
+.history-modal[hidden]{display:none}
+.history-card{width:min(820px,100%);max-height:min(82vh,760px);overflow:auto;padding:22px;border:1px solid rgba(255,255,255,.2);border-radius:18px;background:#17151b;color:#f3e6de;box-shadow:0 20px 70px rgba(0,0,0,.48)}
+.history-head{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;margin-bottom:14px}
+.history-head h2{margin:0;color:#fff;font-size:1.25rem}
+.history-head p{margin:3px 0 0;color:#cfc6c2;font-size:.82rem}
+.history-close{width:32px;height:32px;border:1px solid rgba(255,255,255,.25);border-radius:50%;background:transparent;color:#fff;font-size:1.2rem;line-height:1;cursor:pointer}
+.history-close:hover,.history-close:focus-visible{background:rgba(255,255,255,.14);outline:2px solid #fff;outline-offset:2px}
+.history-summary{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 16px}
+.history-summary span{padding:6px 10px;border-radius:9px;background:rgba(255,255,255,.09);font-size:.82rem;font-variant-numeric:tabular-nums}
+.history-table{width:100%;border-collapse:collapse;font-size:.82rem}
+.history-table th,.history-table td{padding:8px 7px;border-bottom:1px solid rgba(255,255,255,.13);text-align:left;vertical-align:top}
+.history-table th{color:#f8c7a3;font-weight:700;white-space:nowrap}
+.history-table td.num-cell,.history-table th.num-cell{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.history-table .win{color:var(--ok);font-weight:700}.history-table .loss{color:var(--bad);font-weight:700}
+.history-empty{margin:0;color:#cfc6c2}
+@media(max-width:600px){.history-card{padding:16px}.history-table{font-size:.74rem}.history-table th,.history-table td{padding:7px 4px}.history-table th:nth-child(2),.history-table td:nth-child(2){max-width:95px;overflow:hidden;text-overflow:ellipsis}.rank-meta{font-size:.6rem}}
 
 /* mobil */
 @media (max-width:760px){
@@ -570,6 +591,13 @@ footer strong{color:#fff}
   </div>
 </div>
 
+<div class="history-modal" id="historyModal" hidden role="dialog" aria-modal="true" aria-labelledby="historyTitle">
+  <div class="history-card">
+    <div class="history-head"><div><h2 id="historyTitle">Tételőzmény</h2><p id="historySubtitle"></p></div><button class="history-close" id="historyClose" type="button" aria-label="Bezárás">×</button></div>
+    <div id="historyBody"><p class="history-empty">Betöltés…</p></div>
+  </div>
+</div>
+
 <section id="szabalyok">
   <div class="wrap">
     <h2 class="sec">Hogyan működik</h2>
@@ -601,6 +629,7 @@ const RED=new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
 const colorOf=n=>n===0?'green':RED.has(n)?'red':'black';
 const $=id=>document.getElementById(id);
 const fmt=n=>Number(n).toLocaleString('hu-HU');
+const kindLabel=k=>({red:'piros',black:'fekete',even:'páros',odd:'páratlan',low:'1–18',high:'19–36'}[k]||k.replace(/^dozen:/,'tucat ').replace(/^col:/,'oszlop '));
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
 const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
@@ -609,6 +638,21 @@ const rcImg=()=>`<img class="rc em" src="/img/raccoon-${window.isDark&&isDark()?
 
 /* ---------- állapot + websocket ---------- */
 let S=null,nick=safeGet('nick'),offset=0,ws,retry=0,canSpin=false,curSpin=null;
+const historyModal=$('historyModal');
+function showHistory(title,subtitle,body){$('historyTitle').textContent=title;$('historySubtitle').textContent=subtitle||'';$('historyBody').innerHTML=body;historyModal.hidden=false;$('historyClose').focus()}
+function closeHistory(){historyModal.hidden=true}
+function money(n){return `${n<0?'−':''}${fmt(Math.abs(n))}`}
+function renderUserHistory(data){
+  const rows=data.history||[],wins=rows.filter(x=>x.won).length,rate=rows.length?((wins/rows.length)*100).toFixed(1):'0.0';
+  const body=rows.length?`<div class="history-summary"><span>${rows.length} tét</span><span>${wins} sikeres</span><span>${rate}% találati arány</span></div><table class="history-table"><thead><tr><th>Pörgetés</th><th>Tipp</th><th class="num-cell">Tét</th><th class="num-cell">Szám</th><th>Eredmény</th><th class="num-cell">Kifizetés</th><th class="num-cell">Nettó</th></tr></thead><tbody>${rows.map(x=>`<tr><td>${esc(x.spinId)}</td><td>${esc(kindLabel(x.kind))}</td><td class="num-cell">${fmt(x.stake)}</td><td class="num-cell">${x.number}</td><td class="${x.won?'win':'loss'}">${x.won?'Nyert':'Vesztett'}</td><td class="num-cell">${fmt(x.payout)}</td><td class="num-cell ${x.net>=0?'win':'loss'}">${x.net>=0?'+':''}${money(x.net)}</td></tr>`).join('')}</tbody></table>`:'<p class="history-empty">Ehhez a névhez még nincs naplózott ruletttét.</p>';
+  showHistory(`${data.nick} tételőzménye`,`${rows.length} külön tét az eddig naplózott pörgetésekben`,body);
+}
+function renderSpinHistory(spin){
+  const bets=spin.bets||[],body=bets.length?`<div class="history-summary"><span>Összes tét: ${fmt(spin.totalStake)}</span><span>Összes kifizetés: ${fmt(spin.totalPayout)}</span><span>Összes nettó: ${spin.net>=0?'+':''}${money(spin.net)}</span></div><table class="history-table"><thead><tr><th>Játékos</th><th>Tipp</th><th class="num-cell">Tét</th><th>Eredmény</th><th class="num-cell">Kifizetés</th><th class="num-cell">Nettó</th></tr></thead><tbody>${bets.map(x=>`<tr><td>${esc(x.nick)}</td><td>${esc(kindLabel(x.kind))}</td><td class="num-cell">${fmt(x.stake)}</td><td class="${x.won?'win':'loss'}">${x.won?'Nyert':'Nem nyert'}</td><td class="num-cell">${fmt(x.payout)}</td><td class="num-cell ${x.net>=0?'win':'loss'}">${x.net>=0?'+':''}${money(x.net)}</td></tr>`).join('')}</tbody></table>`:'<p class="history-empty">Ebben a pörgetésben nem volt tét.</p>';
+  showHistory(`Pörgetés ${spin.id}`,`Kihúzott szám: ${spin.number} · ${new Date(spin.at).toLocaleString('hu-HU')}`,body);
+}
+function openUserHistory(player){showHistory(`${player} tételőzménye`,'Betöltés…','<p class="history-empty">Betöltés…</p>');send({t:'roulette-user-history',nick:player})}
+function openSpinHistory(id){showHistory(`Pörgetés ${id}`,'Betöltés…','<p class="history-empty">Betöltés…</p>');send({t:'roulette-spin-history',id})}
 function connect(){
   ws=new WebSocket((location.protocol==='https:'?'wss':'ws')+'://'+location.host);
   ws.onopen=()=>{retry=0;$('conn').style.display='none';if(nick)send({t:'hello',nick})};
@@ -616,11 +660,18 @@ function connect(){
   ws.onmessage=e=>{
     const m=JSON.parse(e.data);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render()}
+    else if(m.t==='roulette-user-history')renderUserHistory(m)
+    else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
     else if(m.t==='err'){if(!$('nickmodal').hidden)$('err').textContent=m.msg;else toast(m.msg)}
     else if(m.t==='hello'){$('err').textContent='';nick=m.nick;safeSet('nick',nick);if(pendingMode){send({t:'where',mode:pendingMode});pendingMode=null}showNick();if(S)render()}
   };
 }
 const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
+$('historyClose').onclick=closeHistory;
+historyModal.onclick=e=>{if(e.target===historyModal)closeHistory()};
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!historyModal.hidden)closeHistory()});
+$('board').onclick=e=>{const b=e.target.closest('[data-history-nick]');if(b)openUserHistory(b.dataset.historyNick)};
+$('hist').onclick=e=>{const b=e.target.closest('[data-spin-id]');if(b)openSpinHistory(b.dataset.spinId)};
 const serverNow=()=>Date.now()+offset;
 // belépés: becenév + hol vagy ma (helyben vagy home office); minden nap újra megkérdezzük (a helyek éjfélkor lejárnak)
 let pendingMode=null,renaming=false;
@@ -835,7 +886,8 @@ function render(){
     ge.className='gain '+(g>0?'pos':g<0?'neg':'');
     bn.classList.add('show');
   }else bn.classList.remove('show');
-  $('hist').innerHTML=S.history.slice(0,6).map(n=>`<span class="num c-${colorOf(n)}">${n}</span>`).join('')||'<span style="font-size:.8rem;opacity:.8">Még nincs szám</span>';
+  const spins=Array.isArray(S.spinHistory)&&S.spinHistory.length?S.spinHistory.slice(0,6):[];
+  $('hist').innerHTML=spins.length?spins.map(s=>`<button class="num c-${s.color||colorOf(s.number)}" data-spin-id="${esc(s.id)}" title="Pörgetés ${esc(s.id)} részletei">${s.number}</button>`).join(''):S.history.slice(0,6).map(n=>`<span class="num c-${colorOf(n)}" title="Ehhez a régi húzáshoz nincs részletes napló">${n}</span>`).join('')||'<span style="font-size:.8rem;opacity:.8">Még nincs szám</span>';
   $('dopens').textContent=fmt(S.door.opens);
   const dn=$('dnet');dn.textContent=(S.door.net>0?'+':'')+fmt(S.door.net);dn.className=S.door.net>0?'pos':S.door.net<0?'neg':'';
   // mindenki látszik: az első három dobogós (arany, ezüst, bronz), az utolsó a bohóc (ha legalább négyen vannak)
@@ -843,7 +895,8 @@ function render(){
   $('board').innerHTML=nb?S.board.map((b,i)=>{
     const cls=i===0?'p1':i===1?'p2':i===2?'p3':(i===nb-1&&nb>=4?'clown':'');
     const rk={p1:'🥇',p2:'🥈',p3:'🥉',clown:'🤡'}[cls]||(i+1);
-    return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk">${esc(b.nick)}</span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
+    const bets=Number(b.bets)||0,wins=Number(b.wins)||0,rate=bets?`${Number(b.winRate||0).toFixed(1)}%`:'–';
+    return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk"><button class="rank-name" type="button" data-history-nick="${esc(b.nick)}">${esc(b.nick)}</button><small class="rank-meta">${wins}/${bets} sikeres · ${rate}</small></span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
   }).join(''):'<li><span></span><span class="nk">Még nincs lejátszott kör.</span></li>';
   showNick();drawCrowd();placeBjHit();renderBJ();
   $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';

@@ -14,6 +14,7 @@ const profiles = require('./profiles');
 const seats = require('./seats');
 const world = require('./world');
 const bj = require('./blackjack');
+const rouletteHistory = require('./roulette-history');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -30,6 +31,8 @@ const DOOR = 'ajtó';
 // ---- állapot (a perzisztens rész a data/state.json-ban) ----
 const S = { pot: START_POT, history: [], stats: {}, doorOpens: 0, credited: { date: '', names: [] }, bent: {}, roundBets: [], rest: physics.DEFAULT_REST };
 try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch {}
+S.stats = rouletteHistory.normalizeStats(S.stats);
+S.rouletteHistory = Array.isArray(S.rouletteHistory) ? S.rouletteHistory : [];
 // Gyros: a kezdő adat a data/gyros-seed.json-ból jön (nincs a repóban). Csak becenevek legyenek benne (Ricsi, Matyi…),
 // teljes név soha. Induláskor a seedben lévő beceneveket aliasonként átvesszük, így ott lehet javítani őket.
 {
@@ -120,7 +123,7 @@ const R = { id: 0, phase: 'betting', endAt: 0, spinStart: 0, result: null, bets:
 let feed = [];
 const say = (text) => { feed.unshift({ ts: Date.now(), text }); feed = feed.slice(0, 40); };
 const fmt = (n) => n.toLocaleString('hu-HU') + ' 🦝';
-const stat = (nick) => (S.stats[nick] ||= { net: 0, rounds: 0 });
+const stat = (nick) => (S.stats[nick] ||= { net: 0, rounds: 0, bets: 0, wins: 0 });
 
 // ---- tétek: zsetonokkal, ugyanarra a mezőre többször is ----
 function addBet(nick, kind, amount) {
@@ -217,15 +220,28 @@ function startSpin() {
 function startResult() {
   const n = R.result;
   const net = {};
+  const settledBets = rouletteHistory.settleBets(R.bets, n, game.payout);
   for (const k of Object.keys(LAST)) delete LAST[k];
   for (const b of R.bets) if (b.nick !== DOOR) (LAST[b.nick] ||= []).push({ kind: b.kind, stake: b.stake });
-  for (const b of R.bets) {
-    const back = game.payout(b.kind, n, b.stake);
-    S.pot += back;
-    net[b.nick] = (net[b.nick] || 0) + back - b.stake;
+  for (const b of settledBets) {
+    S.pot += b.payout;
+    net[b.nick] = (net[b.nick] || 0) + b.net;
   }
-  for (const [nick, v] of Object.entries(net)) { const s = stat(nick); s.net += v; s.rounds++; }
   const color = n === 0 ? 'zöld' : game.RED.has(n) ? 'piros' : 'fekete';
+  rouletteHistory.updateStats(S.stats, settledBets, DOOR);
+  const spinAt = Date.now();
+  const spinId = rouletteHistory.nextSpinId(S, spinAt);
+  S.rouletteHistory.unshift({
+    id: spinId,
+    round: R.id,
+    at: spinAt,
+    number: n,
+    color: n === 0 ? 'green' : game.RED.has(n) ? 'red' : 'black',
+    bets: settledBets,
+    totalStake: settledBets.reduce((sum, bet) => sum + bet.stake, 0),
+    totalPayout: settledBets.reduce((sum, bet) => sum + bet.payout, 0),
+    net: settledBets.reduce((sum, bet) => sum + bet.net, 0),
+  });
   say(`${n} (${color}). ${tease(R.spinner, net)}`);
   // kör-napló a logs/server.log-ba: ki pörgetett, ki mire tett, mi jött, ki mennyit nyert/veszített
   const bySum = {};
@@ -249,13 +265,17 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
 
 function snapshot(withTrack) {
-  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net })).sort((a, b) => b.net - a.net).slice(0, 60);
+  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net, bets: s.bets, wins: s.wins, winRate: rouletteHistory.winRate(s) })).sort((a, b) => b.net - a.net).slice(0, 60);
+  const spinHistory = S.rouletteHistory.slice(0, 20).map((spin) => ({
+    id: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color,
+    bets: Array.isArray(spin.bets) ? spin.bets.length : 0, totalStake: spin.totalStake, totalPayout: spin.totalPayout, net: spin.net,
+  }));
   const snap = {
     t: 'state', boot: BOOT_ID, now: Date.now(), pot: S.pot, round: R.id, phase: R.phase, endAt: R.endAt,
     spinStart: R.spinStart, spinMs: R.spinMs, result: R.phase === 'result' ? R.result : null,
     net: R.phase === 'result' ? R.net : null, chips: game.CHIPS,
     rest: S.rest || physics.DEFAULT_REST,
-    bets: R.bets, history: S.history, board, feed: feed.slice(0, 15),
+    bets: R.bets, history: S.history, spinHistory, board, feed: feed.slice(0, 15),
     door: { opens: S.doorOpens, net: S.stats[DOOR]?.net || 0 },
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
@@ -269,6 +289,30 @@ function snapshot(withTrack) {
     snap.spin = { w0, tw, alpha0, hz, hits, track };
   }
   return snap;
+}
+function publicSpin(spin) {
+  if (!spin) return null;
+  return {
+    id: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color,
+    bets: Array.isArray(spin.bets) ? spin.bets : [],
+    totalStake: spin.totalStake, totalPayout: spin.totalPayout, net: spin.net,
+  };
+}
+function sendUserHistory(ws, rawNick) {
+  const target = cleanNick(rawNick);
+  const records = [];
+  for (const spin of S.rouletteHistory) {
+    for (const bet of Array.isArray(spin.bets) ? spin.bets : []) {
+      if (bet.nick !== target) continue;
+      records.push({ spinId: spin.id, round: spin.round, at: spin.at, number: spin.number, color: spin.color, ...bet });
+    }
+  }
+  ws.send(JSON.stringify({ t: 'roulette-user-history', nick: target, history: records }));
+}
+function sendSpinHistory(ws, id) {
+  const spin = S.rouletteHistory.find((item) => item.id === String(id));
+  if (!spin) return ws.send(JSON.stringify({ t: 'err', msg: 'Ehhez a régi húzáshoz nincs részletes napló.' }));
+  ws.send(JSON.stringify({ t: 'roulette-spin-history', spin: publicSpin(spin) }));
 }
 let worldTimer = null;
 function broadcastWorld() {
@@ -351,6 +395,8 @@ wss.on('connection', (ws) => {
       save(); broadcast();
       return;
     }
+    if (m.t === 'roulette-user-history') return sendUserHistory(ws, m.nick);
+    if (m.t === 'roulette-spin-history') return sendSpinHistory(ws, m.id);
     if (m.t === 'spin') {
       if (R.phase !== 'betting') return err('A kerék éppen forog.');
       if (!R.bets.some((b) => b.nick === ws.nick)) return err('Pörgetés előtt tegyél legalább egy tétet.');

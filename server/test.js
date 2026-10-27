@@ -3,6 +3,30 @@ const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
 const g = require('./game');
+const rh = require('./roulette-history');
+
+test('rulett tét-napló: minden tét külön rekord és külön eredmény', () => {
+  const bets = rh.settleBets([
+    { nick: 'Ricsi', kind: 'in:17', stake: 100 },
+    { nick: 'Ricsi', kind: 'red', stake: 500 },
+  ], 17, (kind, number, stake) => kind === 'in:17' && number === 17 ? stake * 36 : 0);
+  assert.strictEqual(bets.length, 2, 'két helyre tett tét két naplóbejegyzés');
+  assert.strictEqual(bets[0].won, true);
+  assert.strictEqual(bets[1].won, false);
+  const stats = rh.normalizeStats({});
+  rh.updateStats(stats, [...bets, { nick: 'ajtó', kind: 'red', stake: 500, payout: 0, net: -500, won: false }], 'ajtó');
+  assert.deepStrictEqual(stats.Ricsi, { net: 3000, rounds: 1, bets: 2, wins: 1 });
+  assert.deepStrictEqual(stats.ajtó, { net: -500, rounds: 1, bets: 0, wins: 0 });
+  assert.strictEqual(rh.winRate(stats.Ricsi), 50);
+});
+
+test('rulett pörgetésazonosító: dátum és napi sorszám', () => {
+  const state = { rouletteHistory: [] };
+  const first = Date.parse('2026-10-27T10:00:00+02:00');
+  assert.strictEqual(rh.nextSpinId(state, first), '20261027001');
+  assert.strictEqual(rh.nextSpinId(state, first + 1000), '20261027002');
+  assert.strictEqual(rh.nextSpinId(state, Date.parse('2026-10-28T12:01:00+01:00')), '20261028001');
+});
 
 test('kifizetések', () => {
   assert.strictEqual(g.payout('in:17', 17, 100), 3600);
