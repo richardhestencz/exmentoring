@@ -65,9 +65,15 @@
   /* ---- a közös állapot követése ---- */
   function onStateChange(e) {
     const s = M.st; if (!s) return;
-    if (e.data === 0 && M.joined && M.endedRev !== s.rev) { M.endedRev = s.rev; send({ t: 'music-ended', rev: s.rev }); }   // vége: a következő jön
+    if (e.data === 0 && M.joined) reportEnd();   // vége: a következő jön (a szerver ellenőrzi, tényleg vége-e)
     if (e.data === 1) { M.errs = M.errs.filter((t) => Date.now() - t < 10000); setTimeout(align, 300); }   // indulás, puffer, reklám után azonnal a közös helyre
     paintPlay();
+  }
+  function reportEnd() {
+    const s = M.st; if (!s || (M.endedRev === s.rev && Date.now() - M.endedAt < 4000)) return;
+    let dur = 0; try { dur = M.player.getDuration(); } catch {}
+    if (dur > 0 && expected() < dur - 5) return;           // a közös idő szerint még nincs vége (pl. betöltés közbeni ugrás): nem jelentünk
+    M.endedRev = s.rev; M.endedAt = Date.now(); send({ t: 'music-ended', rev: s.rev, dur });
   }
   function onError(e) {
     const c = e.data, s = M.st;
@@ -75,7 +81,8 @@
     if ([100, 101, 150, 153].includes(c)) note('Ennél a számnál le van tiltva a beágyazás, átugrom.');
     else note(`A lejátszó hibát jelzett (${c}), átugrom.`);
     if (!s || !M.joined || M.errs.length >= 6) { if (s && M.errs.length >= 6) note('Több szám egymás után nem játszható le; ellenőrizd a listát.', 0); return; }
-    if (M.endedRev !== s.rev) { M.endedRev = s.rev; send({ t: 'music-ended', rev: s.rev }); }
+    // egy gép hibája nem léptet mindenkit: jelezzük, és itt csend van, amíg a többieknél véget nem ér (ha a hallgatók fele hibát jelez, a szerver ugrik)
+    if (M.errRev !== s.rev) { M.errRev = s.rev; send({ t: 'music-error', rev: s.rev, code: c }); }
   }
 
   // a lejátszót a szerver állapotához igazítja; force: mindenképp betölt
@@ -107,7 +114,12 @@
   M.stats = { seeks: 0, nudges: 0 };
   function setRate(r) { try { if (M.player.getPlaybackRate() !== r) M.player.setPlaybackRate(r); } catch {} }
   function stopNudge() { clearTimeout(rateT); rateT = 0; rateUntil = 0; setRate(1); }
-  function seek(now) { stopNudge(); far = 0; try { M.player.seekTo(expected() + M.lead, true); } catch {} seekAt = now; M.stats.seeks++; }
+  function seek(now) {
+    stopNudge(); far = 0;
+    let dur = 0; try { dur = M.player.getDuration(); } catch {}
+    if (dur > 0 && expected() >= dur - 1) { reportEnd(); return; }   // a közös idő szerint már vége: nem tekerünk a vége utánra
+    try { M.player.seekTo(dur > 0 ? Math.min(expected() + M.lead, dur - 1) : expected() + M.lead, true); } catch {} seekAt = now; M.stats.seeks++;
+  }
   function align() {
     if (!M.ready || !M.joined || !M.st || M.st.paused || !cur()) return;
     let st, t; try { st = M.player.getPlayerState(); t = M.player.getCurrentTime(); } catch { return; }
@@ -131,13 +143,18 @@
     rateT = setTimeout(stopNudge, ms);
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState !== 'visible' && rateUntil) stopNudge(); });
-  setInterval(() => { if (M.joined && cur()) align(); }, 1000);
+  setInterval(() => {
+    if (!M.joined || !cur()) return;
+    let st = -1; try { st = M.player.getPlayerState(); } catch {}
+    if (st === 0) reportEnd();   // nálunk vége: ha a közös idő szerint is, (újra) jelentjük; a szerver a duplát kiszűri
+    else align();
+  }, 1000);
   const seekIfOff = () => align();
 
   // a szerver üzenetei (a főoldal onmessage-e hívja)
   // pontos óra: oda-vissza időmérés a szerverrel; a legkisebb késésű mérés a mérvadó (a késés felét beszámítva)
   const pings = [];
-  function ping() { send({ t: 'music-ping', c: Date.now() }); }
+  function ping() { send({ t: 'music-ping', c: Date.now(), j: M.joined ? 1 : 0 }); }
   function pong(m) {
     const now = Date.now(), rtt = now - m.c; if (rtt < 0 || rtt > 5000) return;
     pings.push({ rtt, off: m.s - (m.c + rtt / 2) }); if (pings.length > 10) pings.shift();
@@ -145,7 +162,7 @@
     if (!M.clock || Math.abs(best.off - M.off) > 40) M.off = best.off;
     M.clock = true;
   }
-  let pingN = 0; setInterval(() => { if (pingN < 6 || pingN % 15 === 0) ping(); pingN++; }, 1000);   // indításkor sűrűn, aztán 15 s-onként
+  let pingN = 0; setInterval(() => { if (pingN < 6 || pingN % 15 === 0) ping(); pingN++; }, 1000);   // a 15 s-os jelzésből tudja a szerver, hányan hallgatják   // indításkor sűrűn, aztán 15 s-onként
   window.MusicHook = (m) => {
     if (m.t === 'music-duck') return duck(m.on, true);
     if (m.t === 'music-pong') return pong(m);

@@ -32,10 +32,10 @@ test('frissítés: az első lekéréskor indul; ami szól, szól tovább; ha kik
 test('a szám végén magától a következő jön, a lista végén újrakezdi; dupla jelentés csak egyszer lép', () => {
   const m = music.empty(); music.setList(m, L); music.updateItems(m, '', [A, B], 1000);
   const rev = m.rev;
-  assert.strictEqual(music.ended(m, rev, 5000), true);
-  assert.strictEqual(music.ended(m, rev, 5010), false, 'a második kliens jelentése elavult');
+  assert.strictEqual(music.ended(m, rev, 5000, 3), true);
+  assert.strictEqual(music.ended(m, rev, 5010, 3), false, 'a második kliens jelentése elavult');
   assert.deepStrictEqual([m.cur, m.startedAt], [1, 5000]);
-  music.ended(m, m.rev, 9000);
+  music.ended(m, m.rev, 9000, 3);
   assert.strictEqual(m.cur, 0, 'körbeér');
 });
 
@@ -142,11 +142,27 @@ test('véletlen sorrend: egy körön belül nincs ismétlés, a kör végén új
   'abcdefghijk'.split('').forEach((c, i) => music.addSong(m, c.repeat(11), c, 'X', i));
   music.setShuffle(m, true);
   const seen = new Set([m.curV]);
-  for (let i = 0; i < 10; i++) { music.ended(m, m.rev, 100 + i); seen.add(m.curV); }
+  for (let i = 0; i < 10; i++) { music.ended(m, m.rev, 100 + i, 1); seen.add(m.curV); }
   assert.strictEqual(seen.size, 11, 'mind a 11 szám szólt, ismétlés nélkül');
-  music.ended(m, m.rev, 200);
+  music.ended(m, m.rev, 200, 1);
   assert.ok(m.curV, 'új kör indul');
   music.setShuffle(m, false);
   const at = m.cur; music.skip(m, 1, 300);
   assert.strictEqual(m.cur, (at + 1) % 11, 'kikapcsolva sorban jön');
+});
+
+test('vége-jelentés: csak ha a közös idő szerint is vége; a lejátszási hiba csak a hallgatók felénél léptet', () => {
+  const m = music.empty(); music.setList(m, L); music.updateItems(m, '', [A, B, C], 1000);
+  const rev = m.rev;
+  assert.strictEqual(music.ended(m, rev, 1000 + 39000, 200), false, 'korai jelentés (39 s egy 200 s-os számból): eldobva');
+  assert.strictEqual(music.ended(m, rev, 1000 + 120000), false, 'hossz nélkül nem fogadjuk el');
+  assert.strictEqual(m.cur, 0);
+  assert.strictEqual(music.ended(m, rev, 1000 + 196000, 200), true, '4 s-mal a vége előtt már jó');
+  assert.strictEqual(m.cur, 1);
+  const r2 = m.rev;
+  assert.strictEqual(music.failed(m, r2, 'Ricsi', 4, 300000), false, 'egy gép hibája 4 hallgatóból nem léptet');
+  assert.strictEqual(music.failed(m, r2, 'Ricsi', 4, 300100), false, 'ugyanaz a gép kétszer sem számít kétszer');
+  assert.strictEqual(music.failed(m, r2, 'Gabó', 4, 300200), true, 'a hallgatók fele: léptet');
+  assert.strictEqual(m.cur, 2);
+  assert.strictEqual(music.failed(m, m.rev, 'Misi', 1, 400000), true, 'egyedül hallgatva a saját hiba léptet');
 });

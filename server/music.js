@@ -128,8 +128,22 @@ function fetchFailed(m, msg, now) { m.err = msg; m.fetchedAt = now; }
 
 // egy kliens jelenti, hogy a szám véget ért (vagy nem játszható): a következő indul.
 // Csak az a jelentés számít, amelyik a jelenlegi rev-re vonatkozik: így többen jelentve is csak egyszer lép.
-function ended(m, rev, now) {
+// Egy kliens jelenti, hogy a szám véget ért. Csak akkor léptetünk, ha a közös idő szerint is a végénél jár
+// (a kliens a szám hosszát is küldi): így egy rossz órájú vagy épp betöltő böngésző nem ugratja tovább mindenkinél.
+const ENDED_SLACK = 6;   // ennyi másodperccel a vége előtt már elfogadjuk
+function ended(m, rev, now, dur) {
+  if (!m.items.length || rev !== m.rev || m.paused) return false;
+  if (!(Number.isFinite(dur) && dur > 0)) return false;
+  if ((now - m.startedAt) / 1000 < dur - ENDED_SLACK) return false;   // korai jelentés: eldobjuk
+  startAt(m, nextIndex(m), now);
+  return true;
+}
+// Lejátszási hiba (pl. nem beágyazható szám): csak akkor ugrunk, ha a hallgatók legalább fele jelezte (egy gép hibája ne ugrasson mindenkit).
+function failed(m, rev, nick, listeners, now) {
   if (!m.items.length || rev !== m.rev) return false;
+  if (m.errRev !== rev) { m.errRev = rev; m.errBy = []; }
+  if (!m.errBy.includes(nick)) m.errBy.push(nick);
+  if (m.errBy.length < Math.max(1, Math.ceil(listeners / 2))) return false;
   startAt(m, nextIndex(m), now);
   return true;
 }
@@ -228,4 +242,4 @@ function onDoor(rt, state, now) {
 }
 const duckActive = (rt, now) => !!rt.open && now - rt.since < DUCK_MAX_MS;
 
-module.exports = { parseList, parseVideo, addSong, removeSong, setShuffle, nextIndex, fetchTitle, empty, sanitize, position, view, setList, updateItems, fetchFailed, ended, skip, play, setPaused, fetchList, collect, onDoor, duckActive, MAX_ITEMS };
+module.exports = { failed, ENDED_SLACK, parseList, parseVideo, addSong, removeSong, setShuffle, nextIndex, fetchTitle, empty, sanitize, position, view, setList, updateItems, fetchFailed, ended, skip, play, setPaused, fetchList, collect, onDoor, duckActive, MAX_ITEMS };

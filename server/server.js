@@ -436,6 +436,9 @@ function broadcastWorld() {
     for (const c of wss.clients) if (c.readyState === 1 && c.wantsWorld) c.send(msg);
   }, 100);
 }
+// kik hallgatják most a zenét (a lejátszó 15 s-onként jelez): a lejátszási hibánál ennek a fele kell az ugráshoz
+const musicHeard = new Map();
+const musicListeners = (now) => { let n = 0; for (const [k, t] of musicHeard) { if (now - t < 45000) n++; else musicHeard.delete(k); } return n; };
 // a bekötött YouTube-lista lekérése (percenként, bekötéskor és kérésre; legfeljebb 10 másodpercenként)
 let musicFetching = false, musicLastFetch = 0;
 async function refreshMusic(force) {
@@ -515,7 +518,7 @@ wss.on('connection', (ws) => {
       return;
     }
     if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
-    if (m.t === 'music-ping') return ws.send(JSON.stringify({ t: 'music-pong', c: Number(m.c) || 0, s: Date.now() }));   // óraszinkron a közös zenéhez
+    if (m.t === 'music-ping') { if (m.j && ws.nick) musicHeard.set(ws.nick, Date.now()); return ws.send(JSON.stringify({ t: 'music-pong', c: Number(m.c) || 0, s: Date.now() })); }   // óraszinkron; aki hallgatja, azt számoljuk   // óraszinkron a közös zenéhez
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
@@ -543,7 +546,17 @@ wss.on('connection', (ws) => {
         }, (x) => { ws.lastAdd = 0; err(String(x.message || x).slice(0, 160)); });
         return;
       }
-      if (m.t === 'music-ended') { if (!music.ended(S.music, m.rev, now)) return; }   // elavult vagy dupla jelentés
+      const zlog = (what) => console.log(`[${new Date(now).toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] zene: ${ws.nick} ${what}`);
+      if (m.t === 'music-ended') {   // csak ha a közös idő szerint is vége (elavult, dupla vagy korai jelentést eldobunk)
+        const el = ((now - S.music.startedAt) / 1000).toFixed(1);
+        if (!music.ended(S.music, m.rev, now, Number(m.dur))) { if (m.rev === S.music.rev) zlog(`korai vége-jelentést küldött (eltelt ${el} s, hossz ${Number(m.dur) || '?'} s), eldobva`); return; }
+        zlog(`vége-jelentés (eltelt ${el} s) -> következő szám`);
+      } else if (m.t === 'music-error') {
+        const n = musicListeners(now);
+        zlog(`lejátszási hibát jelzett (${Number(m.code) || '?'}), hallgatók: ${n}`);
+        if (!music.failed(S.music, m.rev, ws.nick, n, now)) return;
+        zlog('-> a hallgatók fele nem tudja lejátszani, következő szám');
+      }
       else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, now);
       else if (m.t === 'music-play') e = music.play(S.music, Number(m.i), now);
       else if (m.t === 'music-pause') e = music.setPaused(S.music, !!m.paused, now);
