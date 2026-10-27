@@ -16,6 +16,11 @@ canvas{display:block}
 .note{position:fixed;left:12px;bottom:12px;color:#5a3a2a;font-size:.78rem;background:rgba(255,255,255,.7);padding:6px 10px;border-radius:8px;z-index:2;max-width:min(560px,calc(100% - 24px))}
 .load{position:fixed;inset:0;display:grid;place-items:center;color:#5a3a2a;font-weight:700;z-index:3;background:#fbeee2;transition:opacity .6s}
 .load.done{opacity:0;pointer-events:none}
+.embed .hud,.embed .note,.embed .entry{display:none!important}
+.embed .load{background:transparent;color:transparent}
+.embed body:not(.playing) .tag{font-size:11px}
+.wtag{position:fixed;transform:translate(-50%,-100%);z-index:2;pointer-events:none;color:#fff;font-weight:900;font-size:13px;background:rgba(178,58,47,.9);border-radius:999px;padding:2px 10px;white-space:nowrap}
+.wtag[hidden]{display:none}
 .frombeta .load{background:#f3f3f3;color:#6b6b6b;font-family:ui-monospace,Menlo,monospace;letter-spacing:.3em}
 .load[hidden]{display:none}
 .tag{position:fixed;transform:translate(-50%,-100%);z-index:2;pointer-events:none;color:#fff;font-weight:800;font-size:12px;background:rgba(42,26,18,.7);border-radius:999px;padding:1px 8px;white-space:nowrap}
@@ -37,11 +42,12 @@ body.playing .hud,body.playing .note,body.intro .hud,body.intro .note,body.intro
 #prompt{position:fixed;left:50%;top:calc(50% + 26px);transform:translateX(-50%);z-index:3;background:rgba(20,14,10,.78);color:#fff;font-weight:700;padding:8px 16px;border-radius:999px}
 #prompt[hidden]{display:none}
 kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding:0 7px;margin-right:6px;font:inherit;font-weight:900;box-shadow:0 2px 0 #bbb}
-#joy,#actBtn,#runBtn{display:none}
+#joy,#actBtn,#runBtn,#jumpBtn{display:none}
 @media (pointer:coarse){
   #joy{display:block;position:fixed;left:22px;bottom:28px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.7);z-index:3;touch-action:none}
   #joy>div{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.9)}
-  #actBtn,#runBtn{display:block;position:fixed;right:20px;z-index:3;min-width:84px}
+  #actBtn,#runBtn,#jumpBtn{display:block;position:fixed;right:20px;z-index:3;min-width:84px}
+  #jumpBtn{bottom:146px;background:rgba(255,255,255,.85);color:#2a1a12}
   #actBtn{bottom:30px} #runBtn{bottom:88px;background:rgba(255,255,255,.85);color:#2a1a12}
   #runBtn[aria-pressed="true"]{background:#eb772e;color:#fff}
   .keys{display:none}
@@ -58,6 +64,7 @@ kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding
 </style>
 </head>
 <body>
+<script>if(location.search.includes('embed'))document.documentElement.classList.add('embed')</script>
 <script>if(location.search.includes('belep'))document.documentElement.classList.add('frombeta')</script>
 <div class="load" id="load">A tisztás töltődik…</div>
 <div class="hud">
@@ -72,13 +79,15 @@ kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding
 <div class="entry" id="entry" hidden><input id="nick" maxlength="20" placeholder="Beceneved" autocomplete="nickname"><button type="button" id="go">🦝 Belépés a tisztásra</button></div>
 <div class="play">
   <button type="button" id="exit">Kilépés</button>
-  <div class="keys">WASD / nyilak: mozgás · Shift: futás · kattints, és az egér forgat · célozz egy helyre, E: leülés, felállás</div>
+  <div class="keys">WASD / nyilak: mozgás · Shift: futás · Szóköz: ugrás · kattints, és az egér forgat · célozz egy helyre vagy játékra, E · Esc: kilépés</div>
   <div id="joy"><div></div></div>
   <button type="button" id="runBtn" aria-pressed="false">Futás</button>
   <button type="button" id="actBtn">E</button>
+  <button type="button" id="jumpBtn">Ugrás</button>
 </div>
 <div id="reticle" class="play-only" hidden></div>
 <div id="prompt" hidden></div>
+<div class="wtag" id="wtag" hidden></div>
 <div id="flash"></div>
 <div id="sync" hidden><div><b>SZINKRONIZÁLÁS</b><span id="syncNick"></span><i></i><span id="syncPct">0%</span></div></div>
 <div id="toast"></div>
@@ -195,10 +204,74 @@ const waterMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false
 { const w = new THREE.Mesh(new THREE.CircleGeometry(1, 48), waterMat); w.rotation.set(-Math.PI / 2, 0, -LAKE.a); w.scale.set(LAKE.rx, LAKE.rz, 1); w.position.set(LAKE.x, 0.03, LAKE.z); scene.add(w); }
 
 // ---------- tűz ----------
-const flames = new THREE.Group(); flames.position.set(0, 0.12, 0.6); scene.add(flames);
+const flames = new THREE.Group(); flames.position.set(0, 0.12, 0.6); flames.visible = false;   // a kőkörön most a rulettkerék áll
 for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.17 - i * 0.015, 0.75 - i * 0.07, 7), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffc23c : 0xff6a1c, transparent: true, opacity: 0.95 })); f.position.set(Math.cos(i * 1.9) * 0.14, 0.38, Math.sin(i * 1.9) * 0.14); flames.add(f); }
 const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, 'rgba(255,170,60,.9)'); gr.addColorStop(1, 'rgba(255,120,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
 glow.rotation.x = -Math.PI / 2; glow.scale.set(7, 7, 1); glow.position.set(0, 0.05, 0.6); glow.visible = false; scene.add(glow);
+
+// ---------- a rulettkerék a kőkörön: ugyanaz a kerék, mint a főoldalon, a szerver pörgését játssza vissza ----------
+const ORDER = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+const RED = new Set([1, 3, 5, 7, 9, 12, 14, 16, 18, 19, 21, 23, 25, 27, 30, 32, 34, 36]);
+const W_STEP = Math.PI * 2 / 37, W_IN = 0.58, W_OUT = 0.95, W_BALL = 0.048, WK = 0.74;
+const pocketH = (r) => 0.03 * ((r - 0.76) / 0.19) ** 2;
+const WHEEL = new THREE.Group(); WHEEL.position.set(0, 0.2, 0.6); WHEEL.scale.setScalar(WK); scene.add(WHEEL);
+const wheelSpin = new THREE.Group(); WHEEL.add(wheelSpin);
+const wBall = new THREE.Mesh(new THREE.SphereGeometry(W_BALL, 20, 14), new THREE.MeshBasicMaterial({ color: 0xfff3e6 })); WHEEL.add(wBall);
+{
+  const c = document.createElement('canvas'), N = 1024, C = N / 2, sc = C / W_OUT; c.width = c.height = N; const g = c.getContext('2d');
+  g.fillStyle = '#d98a4f'; g.beginPath(); g.arc(C, C, C, 0, 7); g.fill();
+  ORDER.forEach((n, i) => {
+    const a0 = i * W_STEP - Math.PI / 2 - W_STEP / 2, a1 = a0 + W_STEP;
+    g.beginPath(); g.moveTo(C + Math.cos(a0) * W_IN * sc, C + Math.sin(a0) * W_IN * sc); g.arc(C, C, (W_OUT - 0.02) * sc, a0, a1); g.arc(C, C, W_IN * sc, a1, a0, true); g.closePath();
+    g.fillStyle = n === 0 ? '#4a7a50' : RED.has(n) ? '#c8473a' : '#35182a'; g.fill();
+    g.save(); g.translate(C, C); g.rotate(i * W_STEP - Math.PI / 2); g.translate((W_OUT - 0.1) * sc, 0); g.rotate(Math.PI / 2);
+    g.fillStyle = '#fbe4d7'; g.font = '800 44px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle'; g.fillText(String(n), 0, 0); g.restore();
+  });
+  g.fillStyle = '#2b1320'; g.beginPath(); g.arc(C, C, (W_IN + 0.005) * sc, 0, 7); g.fill();
+  g.strokeStyle = '#2a0f1e'; g.lineWidth = 7; [W_OUT - 0.006, W_OUT - 0.02, W_IN].forEach((r) => { g.beginPath(); g.arc(C, C, r * sc, 0, 7); g.stroke(); });
+  const tex = new THREE.CanvasTexture(c); tex.colorSpace = THREE.SRGBColorSpace; tex.anisotropy = 8;
+  const fg = new THREE.RingGeometry(0.001, W_OUT, 96, 20), pos = fg.attributes.position;
+  for (let i = 0; i < pos.count; i++) pos.setZ(i, pocketH(Math.max(W_IN, Math.hypot(pos.getX(i), pos.getY(i)))));
+  const face = new THREE.Mesh(fg, new THREE.MeshBasicMaterial({ map: tex, side: THREE.DoubleSide })); face.rotation.x = -Math.PI / 2; wheelSpin.add(face);
+  const v2 = (pts) => pts.map((q) => new THREE.Vector2(q[0], q[1]));
+  const rim = new THREE.Mesh(new THREE.LatheGeometry(v2([[0, -0.07], [1.36, -0.07], [1.36, 0.12], [1.3, 0.19], [1.25, 0.19], [1.2, 0.165]]), 96), new THREE.MeshBasicMaterial({ color: 0xa95c36, side: THREE.DoubleSide }));
+  const trk = new THREE.Mesh(new THREE.LatheGeometry(v2([[1.2, 0.165], [1.0, 0.07], [0.95, 0.03]]), 96), new THREE.MeshBasicMaterial({ color: 0x3b1a2a, side: THREE.DoubleSide }));
+  const edge = new THREE.Mesh(new THREE.CylinderGeometry(1.4, 1.4, 0.27, 96, 1, true), new THREE.MeshBasicMaterial({ color: 0x24140c, side: THREE.BackSide })); edge.position.y = 0.055;
+  const copper = new THREE.MeshBasicMaterial({ color: 0xd88a3c });
+  const cone = new THREE.Mesh(new THREE.CylinderGeometry(0.045, 0.17, 0.22, 32), copper); cone.position.y = 0.22;
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.17, 0.585, 0.09, 48), copper); base.position.y = 0.065;
+  const knob = new THREE.Mesh(new THREE.SphereGeometry(0.058, 16, 12), copper); knob.position.y = 0.34;
+  WHEEL.add(rim, trk, edge); wheelSpin.add(cone, base, knob);
+  for (let i = 0; i < 37; i++) { const b = i * W_STEP - Math.PI / 2 - W_STEP / 2, f = new THREE.Mesh(new THREE.BoxGeometry(0.37, 0.03, 0.02), copper);
+    f.position.set(Math.cos(b) * 0.765, 0.02, Math.sin(b) * 0.765); f.rotation.y = -b; wheelSpin.add(f); }
+  for (const m of [rim, trk, face, cone, base, knob]) tinted.push(m.material);
+}
+// a kőkör közepe (a tűzifa) eltűnik, ott a kerék áll: a megadott sugáron belül a modell (és a kontúrja) nem rajzolódik ki
+function clipCenter(obj, cx, cz, r) {
+  obj.traverse((o) => {
+    if (!o.isMesh) return;
+    const m = o.material, prev = m.onBeforeCompile;
+    m.onBeforeCompile = (sh, rr) => {
+      if (prev) prev.call(m, sh, rr);
+      sh.vertexShader = 'varying vec3 vClipW;\n' + sh.vertexShader.replace('#include <project_vertex>', '#include <project_vertex>\n vClipW = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+      sh.fragmentShader = 'varying vec3 vClipW;\n' + sh.fragmentShader.replace('void main() {', `void main() {\n if (length(vClipW.xz - vec2(${cx.toFixed(3)}, ${cz.toFixed(3)})) < ${r.toFixed(3)}) discard;`);
+    };
+    m.customProgramCacheKey = () => 'clip' + m.uuid; m.needsUpdate = true;
+  });
+}
+// a szerver állapota: mikor pörög, és a golyó pályája (ugyanaz, mint a főoldalon)
+const RS = { st: null, spin: null, offset: 0 };
+const wheelAlpha = (sp, t) => { const x = Math.min(t, sp.tw); return sp.alpha0 - sp.w0 * (x - x * x / (2 * sp.tw)); };
+function wheelPose() {
+  const S = RS.st, rest = S ? S.rest : { alpha: 0, a: -Math.PI / 2, r: 0.735, y: W_BALL };
+  if (S && S.phase === 'spin' && RS.spin && RS.spin.round === S.round) {
+    const sp = RS.spin, t = Math.max(0, (Date.now() + RS.offset - S.spinStart) / 1000), n = sp.track.length / 3,
+      f = Math.min(Math.max(t * sp.hz, 0), n - 1), i = Math.min(Math.floor(f), n - 2), u = f - i;
+    const g = (k) => sp.track[3 * i + k] * (1 - u) / 1000 + sp.track[3 * (i + 1) + k] * u / 1000;
+    return { alpha: wheelAlpha(sp, t), a: g(0), r: g(1), y: g(2) };
+  }
+  return rest;
+}
 
 // ---------- modellek ----------
 const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
@@ -374,6 +447,7 @@ function setNight(on) {
 document.getElementById('night').onclick = () => setNight(!night);
 
 // ---------- betöltés ----------
+const EMBED = new URLSearchParams(location.search).has('embed');   // a béta-főoldal háttere (iframe)
 const DEMO = new URLSearchParams(location.search).has('demo');   // ?demo: mosómedve-statiszták ülnek a páratlan helyeken (bemutatóhoz)
 let SPOTS = [];
 const SPOT_NAMES = ['a blackjack-padra', 'a blackjack-padra', 'az osztó helyére', 'a sámlira', 'a sámlira', 'a rönkre', 'a rönkre', 'a rönkre', 'a rönkre',
@@ -383,7 +457,7 @@ const npcAt = {};   // hely -> statiszta neve
 let ready = false;
 (async () => {
   await Promise.all([
-    prop('/img/m3d/firering.glb', FIRE[0], FIRE[1], 2.2, 0, { y: -0.26 }),
+    prop('/img/m3d/firering.glb', FIRE[0], FIRE[1], 2.2, 0, { y: -0.26 }).then((o) => (P.fire = o)),
     prop('/img/m3d/log.glb', -2.5, 0.65, 2.1, 0.95, { thick: 0.45 }).then((o) => (P.logL = o)),
     prop('/img/m3d/log.glb', 2.5, 0.65, 2.1, -0.95, { thick: 0.45 }).then((o) => (P.logR = o)),
     prop('/img/m3d/picnic.glb', BJT[0], BJT[1], 2.1, 0).then((o) => (P.picnic = o)),
@@ -393,11 +467,15 @@ let ready = false;
     ...TREES.map(([x, z, h]) => prop('/img/m3d/pine.glb', x, z, h, (x * 7 + z) % 6.28, { height: true, blobW: 0.9 })),
     loadRaccoon(),
   ]);
-  SPOTS = buildSpots(); buildObstacles();
+  // a kerék a kövek tetején ül: a kőkör legmagasabb pontja a perem alatt
+  { let top = 0; for (let a = 0; a < 6.28; a += 0.2) top = Math.max(top, topAt(P.fire, FIRE[0] + Math.cos(a) * 1.0, FIRE[1] + Math.sin(a) * 1.0));
+    WHEEL.position.y = top + 0.07 * WK + 0.01; clipCenter(P.fire, FIRE[0], FIRE[1], 0.8); }
+  SPOTS = buildSpots(); buildObstacles(); buildGames();
   if (DEMO) SPOTS.forEach((p, i) => { if (p && i % 2) { const av = makeAv(NICKS[i]); av.npc = true; seatOn(av, p); npcAt[i] = NICKS[i]; } });
   ready = true;
   const fromBeta = new URLSearchParams(location.search).has('belep');
-  document.getElementById('load').classList.add('done'); setTimeout(() => (document.getElementById('load').hidden = true), 700); document.getElementById('entry').hidden = false;
+  document.getElementById('load').classList.add('done'); setTimeout(() => (document.getElementById('load').hidden = true), 700); document.getElementById('entry').hidden = EMBED;
+  if (EMBED) { controls.enabled = false; embedCam(); if (wantPlay) startPlay(); parent.postMessage({ t: 'ready' }, location.origin); }
   connect();
   // a főoldal BÉTA gombjáról jött: ha van már beceneve, egyből indul a belépő
   if (fromBeta && safeGet('nick').length >= 2) { document.getElementById('flash').style.opacity = 1; enter(); }
@@ -415,6 +493,7 @@ function connect() {
   ws.onmessage = (e) => {
     const m = JSON.parse(e.data);
     if (m.t === 'world') onWorld(m.world);
+    else if (m.t === 'state') { RS.offset = m.now - Date.now(); if (m.spin) RS.spin = { round: m.round, ...m.spin }; RS.st = m; }
     else if (m.t === 'hello' && pendingJoin) send({ t: 'w-join' });
     else if (m.t === 'w-me' && pendingJoin) { pendingJoin = false; startIntro(m.me); }
     else if (m.t === 'err') toast(m.msg);
@@ -446,9 +525,41 @@ function syncRemote(av, dt) {
 }
 const angDiff = (a, b) => ((a - b + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
+// ---------- beágyazva (a béta-főoldal háttere): a kamera úgy áll, hogy a kerék pont a főoldal kereke alá essen ----------
+let LAY = null, wantPlay = false;
+const toParent = (o) => { if (EMBED) parent.postMessage(o, location.origin); };
+function embedCam() {
+  if (!EMBED || !LAY || mode !== 'view') return;
+  const { w, h, cx, cy, ring } = LAY, el = 0.41, fov = 30;
+  // a főoldal kereke (Ø 2,72) a kőkör szélességének 80%-a; a 3D kerék ugyanakkorára
+  const viewH = 2.72 * WK * h / (ring * 0.8), d = viewH / (2 * Math.tan(fov * Math.PI / 360));
+  camera.fov = fov; camera.aspect = w / h;
+  camera.position.set(WHEEL.position.x, WHEEL.position.y + d * Math.sin(el), WHEEL.position.z + d * Math.cos(el)); camera.lookAt(WHEEL.position);
+  camera.setViewOffset(w, h, w / 2 - cx, h / 2 - cy, w, h); camera.updateProjectionMatrix();
+}
+function freeCam() { camera.clearViewOffset(); camera.fov = 35; camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); }
+function startPlay() {
+  wantPlay = false; const n = safeGet('nick');
+  if (n.length < 2) { toParent({ t: 'need-nick' }); return; }
+  document.getElementById('nick').value = n; document.getElementById('flash').style.opacity = 1; enter();
+}
+addEventListener('message', (e) => {
+  if (e.origin !== location.origin || !e.data) return;
+  const m = e.data;
+  if (m.t === 'layout') { LAY = m; embedCam(); }
+  else if (m.t === 'play') { if (ready && mode === 'view') startPlay(); else wantPlay = true; }
+  else if (m.t === 'night') setNight(!!m.on);
+});
+// beágyazva a blackjack-asztalra kattintva a főoldal kinyitja a blackjacket
+renderer.domElement.addEventListener('click', (e) => {
+  if (!EMBED || mode !== 'view' || !P.picnic) return;
+  aimRay.setFromCamera(new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1), camera);
+  if (aimRay.intersectObject(P.picnic, true).length) toParent({ t: 'bj' });
+});
+
 // ---------- a játékos ----------
 let mode = 'view';   // view: körbenézés, intro: belépő, play: a saját mosómedvénk
-const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 4.3, near: null };
+const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 4.3, near: null, h: 0, vy: 0 };
 let lastSent = '', sendAt = 0;
 function enter() {
   const nick = (document.getElementById('nick').value || '').trim();
@@ -457,15 +568,17 @@ function enter() {
   document.getElementById('entry').hidden = true;
   if (ws && ws.readyState === 1) send({ t: 'hello', nick });
 }
-function leave() {
+function leave(why = '') {
   send({ t: 'w-leave' }); mode = 'view'; controls.enabled = true;
   if (me.av) { dropAv(me.av); me.av = null; }
-  lastSent = ''; document.body.classList.remove('playing'); document.getElementById('entry').hidden = false; document.getElementById('prompt').hidden = true; mark.visible = false; document.exitPointerLock?.();
+  lastSent = ''; document.body.classList.remove('playing'); document.getElementById('entry').hidden = EMBED; document.getElementById('prompt').hidden = true; mark.visible = false; document.exitPointerLock?.();
+  document.getElementById('wtag').hidden = true;
+  if (EMBED) { controls.enabled = false; toParent({ t: 'exit', why }); embedCam(); return; }
   fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: v3(VIEWS.home[0]), t1: v3(VIEWS.home[1]), k: 0 };
 }
 function myPose() {
   if (me.spot !== null) return;
-  me.av.r.position.set(me.x, BASE.foot, me.z); me.av.r.rotation.y = me.ry; me.av.sh.position.set(me.x, 0.02, me.z);
+  me.av.r.position.set(me.x, BASE.foot + me.h, me.z); me.av.r.rotation.y = me.ry; me.av.sh.position.set(me.x, 0.02, me.z); me.av.sh.scale.setScalar(1 / (1 + me.h * 1.5));
 }
 function sitDown(i) {
   const p = SPOTS[i]; me.spot = i; seatOn(me.av, p); send({ t: 'w-sit', spot: i });
@@ -487,19 +600,33 @@ const aimRay = new THREE.Raycaster(), CENTER = new THREE.Vector2(0, 0), _p = new
 function aimSpot() {
   aimRay.setFromCamera(CENTER, camera);
   const o = aimRay.ray.origin, d = aimRay.ray.direction; let best = null, bs = 1e9;
-  SPOTS.forEach((p, i) => {
-    if (!p || Math.hypot(p.pos.x - me.x, p.pos.z - me.z) > 2.4) return;
+  const tryT = (p, i, reach, size) => {
+    if (!p || Math.hypot(p.pos.x - me.x, p.pos.z - me.z) > reach) return;
     _p.set(p.pos.x, Math.max(p.y, 0) + 0.45, p.pos.z).sub(o);
     const along = _p.dot(d); if (along < 0.5) return;
     const off = _p.addScaledVector(d, -along).length();
-    if (off < 0.35 + along * 0.05 && off < bs) { bs = off; best = i; }
-  });
+    const q = off / ((0.35 + along * 0.05) * size); if (q < 1 && q < bs) { bs = q; best = i; }
+  };
+  SPOTS.forEach((p, i) => tryT(p, i, 2.4, 1));
+  GAMES.forEach((g, k) => tryT(g, -1 - k, g.reach, g.ring * 0.5));
   return best;
 }
 // a célzott hely jelölése a földön
 const mark = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.42, 40), new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
 mark.rotation.x = -Math.PI / 2; mark.visible = false; scene.add(mark);
-const taken = (i) => npcAt[i] || (occ[i] && occ[i] !== myNick ? occ[i] : '');
+const taken = (i) => (i < 0 ? '' : npcAt[i] || (occ[i] && occ[i] !== myNick ? occ[i] : ''));
+let GAMES = [];
+function buildGames() {
+  const pc = local(P.picnic, 0, 0);
+  GAMES = [{ kind: 'roulette', pos: new THREE.Vector3(WHEEL.position.x, 0, WHEEL.position.z), y: 0.15, verb: 'Rulett', ring: 2.6, reach: 2.6 },
+    { kind: 'bj', pos: pc, y: topAt(P.picnic, pc.x, pc.z) - 0.3, verb: 'Blackjack', ring: 2.0, reach: 2.8 }];
+}
+const target = (i) => (i < 0 ? { ...GAMES[-1 - i], label: '' } : { ...SPOTS[i], verb: VERB[SPOTS[i].pose], label: SPOT_NAMES[i], ring: 1, reach: 2.4 });
+function jumpToGame(g) {
+  const kind = GAMES[g].kind;
+  if (EMBED) { leave(kind); return; }
+  leave(); location.href = '/beta.html' + (kind === 'bj' ? '#blackjack' : '');
+}
 
 // ---------- bemenet: billentyű, egér, érintés ----------
 const keys = new Set(); let runLock = false;
@@ -507,13 +634,19 @@ addEventListener('keydown', (e) => {
   if (mode !== 'play' || e.target.tagName === 'INPUT') return;
   keys.add(e.code);
   if (e.code === 'KeyE' || e.code === 'Enter') act();
+  if (e.code === 'Space') jump();
+  if (e.code === 'Escape') leave();
   if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
+function jump() { if (me.spot === null && me.h === 0 && mode === 'play') me.vy = 3.6; }
+// Esc először az egeret engedi el (a böngésző), másodszorra lép ki
+document.addEventListener('pointerlockchange', () => { if (!locked() && mode === 'play') toast('Esc: kilépés · kattints a játékba a folytatáshoz'); });
 function act() {
   if (me.spot !== null) return standUp();
-  const i = me.near; if (i === null) return toast('Célozz a középső célzóval egy helyre (pad, rönk, sámli, függőágy, horgászhely, kenu).');
+  const i = me.near; if (i === null) return toast('Célozz a középső célzóval egy helyre (pad, rönk, sámli, függőágy, kenu) vagy a kerékre, a blackjack-asztalra.');
+  if (i < 0) return jumpToGame(-1 - i);
   const who = taken(i); if (who) return toast(`Ezen a helyen már ${who} ül.`);
   sitDown(i);
 }
@@ -542,8 +675,9 @@ const joy = { x: 0, y: 0, id: null };
   const end = () => { joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; };
   pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
   document.getElementById('actBtn').onclick = act;
+  document.getElementById('jumpBtn').onclick = jump;
   document.getElementById('runBtn').onclick = (e) => { runLock = !runLock; e.currentTarget.setAttribute('aria-pressed', runLock); };
-  document.getElementById('exit').onclick = leave;
+  document.getElementById('exit').onclick = () => leave();
   document.getElementById('go').onclick = enter;
   document.getElementById('nick').value = safeGet('nick');
   document.getElementById('nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') enter(); });
@@ -574,7 +708,7 @@ function startIntro(state) {
   const pl = new THREE.Vector3(me.x, 0, me.z);
   intro = { t0: clock.getElapsedTime(), items: [...pops, ...avs.map((a) => a.r)].map((o) => ({ o, s: o.scale.clone(), d: Math.hypot(o.position.x - pl.x, o.position.z - pl.z) })) };
   for (const it of intro.items) it.o.scale.setScalar(1e-4);
-  mode = 'intro'; controls.enabled = false; fly = null; controls.autoRotate = false;
+  mode = 'intro'; controls.enabled = false; fly = null; controls.autoRotate = false; freeCam();
   document.body.classList.add('intro');
   document.getElementById('sync').hidden = false; document.getElementById('syncNick').textContent = myNick;
 }
@@ -628,16 +762,17 @@ function playStep(dt) {
       act = run ? 'run' : 'walk';
       setAct(me.av, act, run ? 1.15 : Math.max(0.6, speed / 1.35));
     } else setAct(me.av, 'idle');
+    if (me.h > 0 || me.vy > 0) { me.vy -= 11 * dt; me.h = Math.max(0, me.h + me.vy * dt); if (me.h === 0) me.vy = 0; }
     myPose(); sendMove(act);
     me.near = aimSpot();
   } else me.near = null;
   // a cselekvés-felirat
   const pr = document.getElementById('prompt');
   if (me.spot !== null) { pr.innerHTML = '<kbd>E</kbd> Felállás'; pr.hidden = false; }
-  else if (me.near !== null) { const p = SPOTS[me.near], who = taken(me.near);
-    pr.innerHTML = who ? `Foglalt: ${who}` : `<kbd>E</kbd> ${VERB[p.pose]} ${SPOT_NAMES[me.near]}`; pr.hidden = false; }
+  else if (me.near !== null) { const p = target(me.near), who = taken(me.near);
+    pr.innerHTML = who ? `Foglalt: ${who}` : `<kbd>E</kbd> ${p.verb} ${p.label}`.trim(); pr.hidden = false; }
   else pr.hidden = true;
-  document.getElementById('actBtn').textContent = me.spot !== null ? 'Felállás' : me.near !== null ? VERB[SPOTS[me.near].pose] : 'E';
+  document.getElementById('actBtn').textContent = me.spot !== null ? 'Felállás' : me.near !== null ? target(me.near).verb : 'E';
   // harmadik személyű kamera
   // ülve a csípő fölé nézünk (a modell gyökere ilyenkor a föld alatt lehet); állva a jobb váll mögül, így a célzó a világba mutat
   const seated = me.spot !== null, cp = Math.cos(me.pitch), sp = Math.sin(me.pitch);
@@ -657,7 +792,7 @@ function playStep(dt) {
   // célzó és a jelölő gyűrű
   const aimOn = !seated && me.near !== null, free = aimOn && !taken(me.near);
   const ret = document.getElementById('reticle'); ret.hidden = seated; ret.classList.toggle('on', aimOn); ret.classList.toggle('busy', aimOn && !free);
-  mark.visible = aimOn; if (aimOn) { const p = SPOTS[me.near]; mark.position.set(p.pos.x, Math.max(0.03, p.y + 0.03), p.pos.z); mark.material.color.set(free ? 0xff8a2a : 0x9a9a9a); mark.scale.setScalar(1 + Math.sin(clock.getElapsedTime() * 6) * 0.08); }
+  mark.visible = aimOn; if (aimOn) { const p = target(me.near); mark.position.set(p.pos.x, me.near < 0 ? 0.04 : Math.max(0.03, p.y + 0.03), p.pos.z); mark.material.color.set(free ? 0xff8a2a : 0x9a9a9a); mark.scale.setScalar(p.ring * (1 + Math.sin(clock.getElapsedTime() * 6) * 0.08)); }
 }
 const camRay = new THREE.Raycaster();
 renderer.setAnimationLoop(() => {
@@ -665,19 +800,29 @@ renderer.setAnimationLoop(() => {
   waterMat.uniforms.t.value = t;
   flames.children.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i * 2) * 0.22; f.rotation.y = t * (i % 2 ? 1 : -1); });
   glow.material.opacity = 0.75 + Math.sin(t * 11) * 0.12;
+  { const p = wheelPose(); wheelSpin.rotation.y = p.alpha; wBall.position.set(Math.cos(p.a) * p.r, p.y, Math.sin(p.a) * p.r); }
+  WHEEL.visible = !(EMBED && mode === 'view');   // beágyazva a főoldal saját kereke látszik ugyanott
   for (const av of players.values()) syncRemote(av, dt);
   for (const av of avs) av.mixer.update(dt);
   if (mode === 'intro') return runIntro(t, dt);
   if (mode === 'play') playStep(dt);
+  else if (EMBED) { embedCam(); }
   else {
     if (fly) { fly.k = Math.min(1, fly.k + 0.012); const e = fly.k * fly.k * (3 - 2 * fly.k); camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.t0, fly.t1, e); if (fly.k >= 1) fly = null; }
     controls.update();
   }
   renderer.render(scene, camera);
+  // a kerék fölött: pörög, illetve a nyerőszám
+  { const wt = document.getElementById('wtag'), S = RS.st, show = mode === 'play' && S && (S.phase === 'spin' || S.phase === 'result');
+    wt.hidden = !show;
+    if (show) { v.set(WHEEL.position.x, 1.25, WHEEL.position.z).project(camera);
+      const n = S.result, col = n === 0 ? '🟢' : RED.has(n) ? '🔴' : '⚫';
+      wt.textContent = S.phase === 'spin' ? '🎡 Pörög a kerék!' : `Nyerőszám: ${n} ${col}`;
+      wt.style.left = (v.x * 0.5 + 0.5) * innerWidth + 'px'; wt.style.top = (-v.y * 0.5 + 0.5) * innerHeight + 'px'; wt.style.display = v.z < 1 ? '' : 'none'; } }
   for (const p of avs) { v.copy(p.r.position); v.y += p.top; v.project(camera); const on = v.z < 1 && v.z > -1;
     p.tag.style.display = on && !(mode === 'play' && p === me.av) ? '' : 'none'; p.tag.style.left = (v.x * 0.5 + 0.5) * innerWidth + 'px'; p.tag.style.top = (-v.y * 0.5 + 0.5) * innerHeight + 'px'; }
 });
-addEventListener('resize', () => { acam.aspect = innerWidth / innerHeight; acam.updateProjectionMatrix(); });
+addEventListener('resize', () => { acam.aspect = innerWidth / innerHeight; acam.updateProjectionMatrix(); if (mode !== 'view') freeCam(); });
 window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave };
 </script>
 </body>

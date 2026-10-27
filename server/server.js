@@ -513,6 +513,8 @@ app.delete('/api/presence/people/:nick', ingest, (req, res) => {
   save(); broadcast(); res.json({ ok: true });
 });
 app.get('/itt', (req, res) => res.sendFile(path.join(__dirname, 'public', 'itt.html')));
+// BÉTA: ugyanaz a főoldal, a háttérben a 3D tisztással (a lap maga dönti el az útvonalból)
+app.get(['/beta', '/beta.html'], (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 // ---- frissítés a GitHubról (a Mac mini napi frissítése mellett bárki kérheti az oldalról) ----
 const UPDATE_SCRIPT = path.join(__dirname, '..', 'mac-mini', 'update.sh');

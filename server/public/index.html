@@ -7,6 +7,7 @@
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
 <script src="/theme.js"></script>
 <title>Exmentoring</title>
+<script>if(/^\/beta/.test(location.pathname))document.documentElement.classList.add('beta3d')</script>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
 <link rel="apple-touch-icon" href="/img/raccoon-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -41,6 +42,20 @@ ul{list-style:none;margin:0;padding:0}
 @media (prefers-reduced-motion:reduce){.beta{animation:none}}
 .tobeta{position:fixed;inset:0;z-index:99;background:#f3f3f3;opacity:0;pointer-events:none;transition:opacity .55s;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;letter-spacing:.35em;color:#6b6b6b;font-weight:700}
 .tobeta.on{opacity:1;pointer-events:auto}
+.oldv{display:none;margin-left:10px;color:#e9dcd3;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap}
+.oldv:hover{color:#fff}
+.beta3d .oldv{display:inline}
+.beta3d .beta{animation:none;cursor:default;pointer-events:none}
+.w3d,.play3d{display:none}
+.beta3d .w3d{display:block;position:absolute;left:0;top:0;border:0;z-index:1;transform-origin:0 0;will-change:transform,filter;background:#fbeee2}
+.beta3d #bg{visibility:hidden}
+.beta3d .crowd{display:none}
+.beta3d .play3d{display:inline-block;background:#eb772e!important;color:#fff!important;border-color:#eb772e!important;font-weight:800;white-space:nowrap}
+.stage.playing3d{position:fixed;inset:0;height:100vh;height:100dvh;min-height:0;z-index:60;perspective:none}
+.stage.playing3d>*:not(.world){visibility:hidden!important}
+.stage.playing3d .world{transform:none!important}
+.stage.playing3d #cv{display:none}
+.stage.playing3d .w3d{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;filter:none!important}
 .top nav{display:flex;overflow-x:auto;scrollbar-width:none}
 .top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
 .top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
@@ -454,7 +469,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/tisztas3d.html?belep=1" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel">BÉTA</a></span>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel">BÉTA</a><a class="oldv" href="/">← megszokott nézet</a></span>
     <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="/aknakereso.html">Aknakereső</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -465,6 +480,7 @@ footer strong{color:#fff}
   <span id="jatek" style="position:absolute;top:-44px"></span>
   <div class="world" id="world">
     <img class="land" id="bg" alt="" src="img/scene-wide.jpg" decoding="async">
+    <iframe class="w3d" id="w3d" title="3D tisztás" hidden></iframe>
     <div class="crowd" id="crowd" aria-label="Kik vannak bent"></div>
     <div class="shade"></div>
     <canvas id="cv" aria-label="3D rulettkerék"></canvas>
@@ -489,7 +505,7 @@ footer strong{color:#fff}
   </div>
 
   <div class="tl">
-    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button></div>
+    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
   </div>
 
@@ -633,6 +649,7 @@ $('nick').value=nick;
 let toastT;
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
 $('spinbtn').onclick=()=>send({t:'spin'});
+$('play3d').onclick=()=>{if(!nick){showNick();return}play3d(true)};
 showNick();
 
 /* ---------- tétasztal (vízszintes, mint az élő kaszinóban) ---------- */
@@ -927,7 +944,24 @@ ball.castShadow=true;scene.add(outline(ball,1.18));
 /* ---------- háttérkép + kamera: a kerék a kép kőkörére kerül ---------- */
 // a kőkör/tisztás helye a képeken (képpontban), ezekre igazodik a kerék
 const SCENES=Avatar.SCENES;   // a kőkör helye és mérete a háttérképeken (avatar.js)
-const bg=$('bg'),crowd=$('crowd');let sceneInfo=null,crowdKey='';
+const bg=$('bg'),crowd=$('crowd');
+/* ---------- BÉTA: a háttér az élő 3D tisztás; „Belépés a tisztásra”: a saját mosómedvénk, a kerék, a blackjack-asztal ---------- */
+var BETA=/^\/beta/.test(location.pathname),w3d=$('w3d'),w3dLayout=null,playing3d=false;   // var: a háttér elrendezése ennél korábban is lefuthat
+function postW3d(m){if(BETA&&w3d.contentWindow)w3d.contentWindow.postMessage(m,location.origin)}
+if(BETA){w3d.hidden=false;w3d.src='/tisztas3d.html?embed=1'}
+function play3d(on){
+  playing3d=on;stage.classList.toggle('playing3d',on);document.body.style.overflow=on?'hidden':'';
+  if(on){w3d.style.transform='none';w3d.style.filter='none';postW3d({t:'play'});setTimeout(()=>w3d.focus(),60)}
+  else{fit();window.scrollTo({top:0})}
+}
+addEventListener('message',e=>{
+  if(!BETA||e.origin!==location.origin||e.source!==w3d.contentWindow||!e.data)return;
+  const m=e.data;
+  if(m.t==='ready'){if(w3dLayout)postW3d(w3dLayout);postW3d({t:'night',on:isDark()})}
+  else if(m.t==='exit'){play3d(false);if(m.why==='bj')setView(true);else if(m.why==='roulette')toast('A kerék itt van: tegyél tétet, és pörgess!')}
+  else if(m.t==='bj'){if(playing3d)play3d(false);setView(true)}
+  else if(m.t==='need-nick'){play3d(false);renaming=!nick;showNick()}
+});let sceneInfo=null,crowdKey='';
 let nightFilter='',SW=1,SH=1,mobile=false,camT=0,ring={x:0,y:0,w:600},bgBox={left:0,top:0};
 function layoutBg(){
   const dark=isDark(), sc=SW/SH<1?SCENES.tall:dark?SCENES.night:SCENES.wide;
@@ -944,6 +978,8 @@ function layoutBg(){
   const top=ringY-sc.cy*s, left=(SW-sc.w*s)/2;
   Object.assign(bg.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
   Object.assign(crowd.style,{width:sc.w*s+'px',height:sc.h*s+'px',left:left+'px',top:top+'px'});
+  // a 3D tisztás az egész színpadot kitölti; a kereke a főoldal kereke alá kerül
+  if(BETA){Object.assign(w3d.style,{width:SW+'px',height:SH+'px',left:'0px',top:'0px'});w3dLayout={t:'layout',w:SW,h:SH,cx:ring.x,cy:ring.y,ring:ring.w};postW3d(w3dLayout)}
   ring={x:left+sc.cx*s,y:ringY,w:sc.wheel*s};bgBox={left,top};
   sceneInfo={sc,s};crowdKey='';drawCrowd();
   if(typeof placeBjHit==='function'){placeBjHit();aimWorld();layoutBjScene()}
@@ -953,7 +989,7 @@ function fit(){
   renderer.setSize(SW,SH,false);camera.aspect=SW/SH;layoutBg();
 }
 new ResizeObserver(fit).observe(stage);fit();
-addEventListener('themechange',()=>{layoutBg();if(S)render()});
+addEventListener('themechange',()=>{layoutBg();if(S)render();postW3d({t:'night',on:isDark()})});
 const WHEEL_IDLE=.8;                                  // várakozáskor a kerék a kőkör 80%-a
 let zoomK=0;
 function updateCamera(T,dt){
@@ -983,6 +1019,7 @@ function updateCamera(T,dt){
   const blur=Math.max(0,(k-.35)/.65);
   bg.style.filter=((blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'')+' '+nightFilter).trim()||'none';
   crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
+  if(BETA&&!playing3d){w3d.style.transform=`translate(${(tx+ring.x*(1-z)).toFixed(1)}px,${(ty+ring.y*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;w3d.style.filter=bg.style.filter}
 }
 
 /* ---------- a tisztás: aki leült, a jóváhagyott kép saját mosómedvéjeként ül a helyén; a szabad helyeken + ---------- */
@@ -1211,11 +1248,14 @@ $('upd').onclick=async()=>{
 // új verzió után a szerver újraindul: ilyenkor egyszer újratöltjük az oldalt
 let seenBoot=null;
 connect();
+// a 3D tisztásról „Blackjack”-kel jött: egyből a blackjack-nézet
+if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
 </script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>
 // BÉTA: az oldal fehérbe fordul, és átvált a 3D tisztásra (ott a belépő folytatódik)
 document.getElementById('beta').addEventListener('click',(e)=>{
+  if(/^\/beta/.test(location.pathname)){e.preventDefault();return}
   if(e.metaKey||e.ctrlKey||e.shiftKey||matchMedia('(prefers-reduced-motion: reduce)').matches) return;
   e.preventDefault(); const href=e.currentTarget.href;
   document.getElementById('tobeta').classList.add('on'); setTimeout(()=>{location.href=href},560);
