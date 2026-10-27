@@ -17,6 +17,7 @@ const bj = require('./blackjack');
 const rouletteHistory = require('./roulette-history');
 const polls = require('./polls');
 const chapter = require('./chapter');
+const music = require('./music');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -55,6 +56,8 @@ if (rouletteHistoryNeedsMigration) {
     for (const c of S.gyros.contributors) { const n = names.find((x) => x.alias === c.alias); if (n) c.name = n.name; }
   }
 }
+S.music = music.sanitize(S.music);
+const musicRt = { open: false, since: 0 };   // az ajtó éppen nyitva van-e (nem mentjük)
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
@@ -294,7 +297,7 @@ function snapshot(withTrack) {
     cola: (cola.prune(S.cola), S.cola.codes),
     profiles: S.profiles, seats: seats.view(S.seats, today()), chapter: chapter.view(S.chapter),
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
-    minesweeper: S.minesweeper,
+    minesweeper: S.minesweeper, music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -356,6 +359,10 @@ function broadcastWorld() {
     for (const c of wss.clients) if (c.readyState === 1 && c.wantsWorld) c.send(msg);
   }, 100);
 }
+function broadcastMusic(msg) {
+  const out = JSON.stringify(msg || { t: 'music', music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())) });
+  for (const c of wss.clients) if (c.readyState === 1) c.send(out);
+}
 function broadcast(withTrack) {
   const msg = JSON.stringify(snapshot(withTrack));
   for (const c of wss.clients) if (c.readyState === 1) c.send(msg);
@@ -415,6 +422,18 @@ wss.on('connection', (ws) => {
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
+    if (m.t === 'music-set' || m.t === 'music-track' || m.t === 'music-skip' || m.t === 'music-pause') {
+      const now = Date.now();
+      let e = null;
+      if (m.t === 'music-set') {
+        if (!(e = music.setSource(S.music, m.input, ws.nick, now))) say(`🎵 ${ws.nick} új ${S.music.kind === 'playlist' ? 'playlistet' : 'számot'} tett fel.`);
+      } else if (m.t === 'music-track') { if (!music.trackChanged(S.music, m.rev, m.to, now)) return; }  // elavult vagy dupla jelentés
+      else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, m.len, now);
+      else e = music.setPaused(S.music, !!m.paused, now);
+      if (e) return err(e);
+      save(); broadcastMusic(); if (m.t === 'music-set') broadcast();
+      return;
+    }
     if (m.t === 'w-join' || m.t === 'w-move' || m.t === 'w-sit' || m.t === 'w-leave') {
       ws.wantsWorld = true;
       if (m.t === 'w-leave') { ws.inWorld = false; world.leave(S.world, ws.nick); save(); return broadcastWorld(); }
@@ -546,6 +565,8 @@ app.post('/api/door', ingest, (req, res) => {
   const st = req.body?.state;
   console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] ajtó: ${st} (fázis: ${R.phase})`);
   // nyitásra az ajtó felteszi a tétjét, csukásra pörög a kerék
+  const duck = music.onDoor(musicRt, st, Date.now());   // a zene halkul, amíg az ajtó nyitva van
+  if (duck) broadcastMusic(duck);
   if (st === 'open') {
     S.doorOpens++;
     say('🚪 Az ajtó kinyílt.');
