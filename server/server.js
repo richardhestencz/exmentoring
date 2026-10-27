@@ -13,7 +13,6 @@ const cola = require('./cola');
 const profiles = require('./profiles');
 const seats = require('./seats');
 const bj = require('./blackjack');
-const conquest = require('./hodito');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -246,13 +245,6 @@ app.use(express.json({ limit: '4kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
-const hodito = new conquest.Manager((room) => broadcastHodito(room));
-
-function broadcastHodito(room) {
-  if (!room) return;
-  const msg = JSON.stringify({ t: 'hodito-state', state: hodito.public(room) });
-  for (const c of wss.clients) if (c.readyState === 1 && c.hoditoRoom === room.code) c.send(msg);
-}
 
 function snapshot(withTrack) {
   const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net })).sort((a, b) => b.net - a.net).slice(0, 60);
@@ -293,7 +285,7 @@ function addMinesweeperScore(nick, level, seconds) {
 wss.on('connection', (ws) => {
   ws.nick = ''; ws.budget = 10;
   const refill = setInterval(() => { ws.budget = 10; }, 1000);
-  ws.on('close', () => { clearInterval(refill); if (ws.hoditoRoom) hodito.leave(hodito.rooms.get(ws.hoditoRoom), ws.nick); });
+  ws.on('close', () => clearInterval(refill));
   ws.send(JSON.stringify(snapshot(true)));
   ws.on('message', (raw) => {
     if (--ws.budget < 0) return;
@@ -325,31 +317,6 @@ wss.on('connection', (ws) => {
       else if (m.t === 'gyros-unclaim') say(`${m.alias} visszavonta a ${num} számú nyugtát.`);
       else say(`Új gyros-hozzájáruló: ${G.contributors[G.contributors.length - 1].alias}`);
       save(); broadcast();
-      return;
-    }
-    if (m.t.startsWith('hodito-')) {
-      if (!ws.nick) return err('Előbb adj meg becenevet.');
-      if (m.t === 'hodito-create') {
-        if (ws.hoditoRoom) hodito.leave(hodito.rooms.get(ws.hoditoRoom), ws.nick);
-        const room = hodito.create(ws.nick); ws.hoditoRoom = room.code; return broadcastHodito(room);
-      }
-      if (m.t === 'hodito-join') {
-        if (ws.hoditoRoom) hodito.leave(hodito.rooms.get(ws.hoditoRoom), ws.nick);
-        const result = hodito.joinByCode(m.code, ws.nick); if (result.error) return err(result.error);
-        ws.hoditoRoom = result.room.code; return broadcastHodito(result.room);
-      }
-      const room = ws.hoditoRoom ? hodito.rooms.get(ws.hoditoRoom) : null;
-      if (!room) return err('Előbb hozz létre vagy csatlakozz egy szobához.');
-      let result = { room };
-      if (m.t === 'hodito-start') result = hodito.start(room, ws.nick);
-      else if (m.t === 'hodito-base') result = hodito.chooseBase(room, ws.nick, m.id);
-      else if (m.t === 'hodito-target') result = hodito.chooseTarget(room, ws.nick, m.id);
-      else if (m.t === 'hodito-bonus-target') result = hodito.chooseBonusTarget(room, ws.nick, m.id);
-      else if (m.t === 'hodito-answer') result = hodito.answer(room, ws.nick, m.answer);
-      else if (m.t === 'hodito-leave') { hodito.leave(room, ws.nick); ws.hoditoRoom = ''; return; }
-      else return err('Ismeretlen Hódító-művelet.');
-      if (result.error) return err(result.error);
-      if (m.t === 'hodito-create' || m.t === 'hodito-join') return broadcastHodito(result.room || room);
       return;
     }
     if (!ws.nick) return err('Előbb adj meg becenevet.');
