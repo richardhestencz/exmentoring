@@ -69,9 +69,16 @@ ul{list-style:none;margin:0;padding:0}
 .stage.playing3d .world{transform:none!important}
 .stage.playing3d #cv{display:none}
 .stage.playing3d .w3d{left:0!important;top:0!important;width:100%!important;height:100%!important;transform:none!important;filter:none!important}
-.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav{display:flex;align-items:center;gap:2px}
 .top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
 .top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.nav-primary{display:flex;align-items:center}
+.nav-more{position:relative}
+.nav-more summary{list-style:none;cursor:pointer;color:#e9dcd3;font-size:1.5rem;line-height:1;padding:6px 12px 10px;user-select:none}
+.nav-more summary::-webkit-details-marker{display:none}
+.nav-more summary:hover,.nav-more summary:focus-visible,.nav-more[open] summary{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.nav-dropdown{position:absolute;right:0;top:100%;display:grid;min-width:190px;padding:6px;background:var(--dark);border:1px solid rgba(255,255,255,.18);border-radius:0 0 10px 10px;box-shadow:0 8px 18px rgba(0,0,0,.28);z-index:40}
+.nav-dropdown a{padding:9px 12px}
 .conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
 
 /* ---------- játéktér: naplemente, a kerék középen, mint a tábortűz ---------- */
@@ -506,7 +513,8 @@ footer strong{color:#fff}
 <header class="top">
   <div class="wrap">
     <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a></span>
-    <nav aria-label="Oldal szakaszai"><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="/aknakereso.html">Aknakereső</a><a href="/szavazas.html">Szavazás</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></nav>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a></span>
+    <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
 </header>
