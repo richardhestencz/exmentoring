@@ -946,18 +946,18 @@ ball.castShadow=true;scene.add(outline(ball,1.18));
 const SCENES=Avatar.SCENES;   // a kőkör helye és mérete a háttérképeken (avatar.js)
 const bg=$('bg'),crowd=$('crowd');
 /* ---------- BÉTA: a háttér az élő 3D tisztás; „Belépés a tisztásra”: a saját mosómedvénk, a kerék, a blackjack-asztal ---------- */
-var BETA=/^\/beta/.test(location.pathname),w3d=$('w3d'),w3dLayout=null,playing3d=false;   // var: a háttér elrendezése ennél korábban is lefuthat
+var BETA=/^\/beta/.test(location.pathname),w3d=$('w3d'),w3dLayout=null,playing3d=false,lastCam='';   // var: a háttér elrendezése ennél korábban is lefuthat
 function postW3d(m){if(BETA&&w3d.contentWindow)w3d.contentWindow.postMessage(m,location.origin)}
 if(BETA){w3d.hidden=false;w3d.src='/tisztas3d.html?embed=1'}
 function play3d(on){
   playing3d=on;stage.classList.toggle('playing3d',on);document.body.style.overflow=on?'hidden':'';
   if(on){w3d.style.transform='none';w3d.style.filter='none';postW3d({t:'play'});setTimeout(()=>w3d.focus(),60)}
-  else{fit();window.scrollTo({top:0})}
+  else{fit();lastCam='';window.scrollTo({top:0})}
 }
 addEventListener('message',e=>{
   if(!BETA||e.origin!==location.origin||e.source!==w3d.contentWindow||!e.data)return;
   const m=e.data;
-  if(m.t==='ready'){if(w3dLayout)postW3d(w3dLayout);postW3d({t:'night',on:isDark()})}
+  if(m.t==='ready'){if(w3dLayout)postW3d(w3dLayout);lastCam='';postW3d({t:'night',on:isDark()})}
   else if(m.t==='exit'){play3d(false);if(m.why==='bj')setView(true);else if(m.why==='roulette')toast('A kerék itt van: tegyél tétet, és pörgess!')}
   else if(m.t==='bj'){if(playing3d)play3d(false);setView(true)}
   else if(m.t==='need-nick'){play3d(false);renaming=!nick;showNick()}
@@ -1019,7 +1019,12 @@ function updateCamera(T,dt){
   const blur=Math.max(0,(k-.35)/.65);
   bg.style.filter=((blur>0?`blur(${(blur*6).toFixed(1)}px) brightness(${(1-blur*.35).toFixed(2)})`:'')+' '+nightFilter).trim()||'none';
   crowd.style.transform=bg.style.transform;crowd.style.filter=bg.style.filter;
-  if(BETA&&!playing3d){w3d.style.transform=`translate(${(tx+ring.x*(1-z)).toFixed(1)}px,${(ty+ring.y*(1-z)).toFixed(1)}px) scale(${z.toFixed(4)})`;w3d.style.filter=bg.style.filter}
+  // BÉTA: a 3D tisztás kamerája pontosan a kerékkamerát követi (ugyanaz a billenés és közelítés), nem síkban nagyítunk
+  if(BETA&&!playing3d){
+    const m={t:'cam',p:camera.position.toArray().map(v=>+v.toFixed(4)),fov:camera.fov,ox:+(-xo).toFixed(2),oy:+((.5-frac)*SH).toFixed(2),w:SW,h:SH},k=JSON.stringify(m);
+    if(k!==lastCam){lastCam=k;postW3d(m)}
+    w3d.style.transform='none';w3d.style.filter=bg.style.filter;
+  }
 }
 
 /* ---------- a tisztás: aki leült, a jóváhagyott kép saját mosómedvéjeként ül a helyén; a szabad helyeken + ---------- */
@@ -1136,7 +1141,7 @@ function renderBjScene(B,me){
 }
 $('bjpts').onclick=e=>{const b=e.target.closest('[data-seat]');if(!b||b.disabled)return;if(!nick){showNick();return}
   const c=bjCost();if(c)send({t:'bj-bet',amount:c,seat:+b.dataset.seat})};
-addEventListener('keydown',e=>{if(e.key==='Escape'&&bjView)setView(false)});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&playing3d){postW3d({t:'pause'});return}if(e.key==='Escape'&&bjView)setView(false)});
 // az asztal maga is gomb (a mosómedvék rétegében, a háttérrel együtt mozog)
 var bjHit=document.createElement('button');bjHit.type='button';bjHit.className='bjhit';bjHit.setAttribute('aria-label','Blackjack-asztal: ülj le játszani');
 bjHit.onclick=()=>setView(true);
