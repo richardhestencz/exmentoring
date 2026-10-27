@@ -294,32 +294,57 @@ ul{list-style:none;margin:0;padding:0}
 .door b{font-size:1.15rem}
 
 
-/* közös zene (hivatalos YouTube-lejátszó, mindenki ugyanazt hallgatja) */
-.music{padding:10px 12px;font-size:.84rem;width:100%}
-.music .mhead{display:flex;align-items:baseline;gap:8px;margin-bottom:6px}
-.music .mhead b{font-size:.92rem;color:#fff;white-space:nowrap}
-.music .mby{flex:1;min-width:0;font-size:.72rem;color:var(--apricot);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
-.music .mplayer{position:relative;width:100%;height:200px;min-width:200px;border-radius:10px;overflow:hidden;background:#120a14}
-.music .mplayer iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.music .mempty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:#e9b9a3;font-size:.82rem;pointer-events:none;z-index:1}
-.music [hidden]{display:none!important}
-.music .mctl{display:flex;align-items:center;gap:6px;margin-top:8px}
-.music .mctl button,.music .mform button{border:0;border-radius:9px;background:rgba(255,255,255,.14);color:#fff;font-weight:700;cursor:pointer;padding:6px 10px;font-size:.84rem}
-.music .mctl button:hover:not(:disabled),.music .mform button:hover{background:rgba(255,255,255,.24)}
-.music .mctl button:disabled{opacity:.4;cursor:default}
-.music .mctl #mjoin{flex:1;background:var(--grad);padding:7px 10px}
-.music .mctl #mjoin.on{background:rgba(255,255,255,.14)}
-.music .mctl input[type=range]{width:64px;flex:none;accent-color:var(--orange)}
-.music .mform{display:flex;gap:6px;margin-top:8px}
-.music .mform input{flex:1;min-width:0;border:1px solid var(--glass-line);border-radius:9px;background:rgba(0,0,0,.28);color:#fff;padding:6px 9px;font-size:.8rem}
-.music .mform input::placeholder{color:#b8aaa3}
-.music .mnote{min-height:0;margin-top:6px;font-size:.74rem;color:#ffd2a1}
-.music .mnote:empty{display:none}
-.music .mduck{font-size:.72rem;color:var(--apricot);margin-left:6px}
-.music.ducked .mhead b::after{content:" 🔉";font-weight:400}
-.mslot{padding:12px 16px;background:#fff}
-.mslot .music{max-width:420px;margin:0 auto;background:#241528;border-color:rgba(255,255,255,.1)}
-@media (max-width:760px){.music{font-size:.8rem}}
+/* közös zene: fejléc-gomb + oldalsó panel (közös lejátszási lista; bezárva is szól) */
+.mbtn{margin-left:10px;display:inline-flex;align-items:center;gap:6px;border:1px solid rgba(255,255,255,.25);background:rgba(255,255,255,.08);color:#fff;font:inherit;font-weight:800;font-size:.78rem;padding:4px 12px;border-radius:999px;cursor:pointer;white-space:nowrap}
+.mbtn:hover,.mbtn:focus-visible{background:rgba(255,255,255,.18);outline:none}
+.mbtn .eq{display:none;gap:2px;align-items:flex-end;height:12px}
+.mbtn .eq i{width:3px;background:#ffb27a;border-radius:1px;animation:eq 1s ease-in-out infinite}
+.mbtn .eq i:nth-child(2){animation-delay:-.4s}.mbtn .eq i:nth-child(3){animation-delay:-.7s}
+.mbtn.playing .eq{display:inline-flex}
+@keyframes eq{0%,100%{height:3px}50%{height:12px}}
+@media (prefers-reduced-motion:reduce){.mbtn .eq i{animation:none;height:8px}}
+html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt (blackjack-réteg, bezárt zenepanel) */
+.top .studio{flex:none}
+.top nav{min-width:0;flex:0 1 auto}
+@media (max-width:760px){.mbtn .ml{display:none}.mbtn{padding:4px 9px;margin-left:6px}.chdue .s{display:none}.chdue{padding:4px 9px;margin-left:6px}.beta{margin-left:8px}}
+@media (max-width:420px){.studio>a[href="#jatek"]{display:none}}
+.mdrawer{visibility:hidden;transition:transform .3s ease,visibility 0s .3s;position:fixed;top:44px;right:0;bottom:0;width:min(400px,100vw);z-index:95;background:#1c1119;color:#f4e8e2;box-shadow:-12px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column;transform:translateX(105%);font-size:.88rem}
+.mdrawer.open{transform:none;visibility:visible;transition:transform .3s ease}
+.mdrawer .mh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+.mdrawer .mh b{flex:1;font-size:1rem}
+.mdrawer .mh button{border:0;background:none;color:#fff;font-size:1.4rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px}
+.mdrawer .mh button:hover{background:rgba(255,255,255,.12)}
+.mdrawer .mbody{flex:1;overflow-y:auto;padding:12px 14px 18px}
+.mdrawer .mplayer{position:relative;width:100%;aspect-ratio:16/9;border-radius:10px;overflow:hidden;background:#000}
+.mdrawer .mplayer iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.mdrawer .mempty{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;text-align:center;padding:16px;color:#e9b9a3;pointer-events:none}
+.mdrawer [hidden]{display:none!important}
+.mdrawer .mnow{margin:10px 0 2px;font-weight:800;color:#fff;line-height:1.3}
+.mdrawer .mby{font-size:.76rem;color:#e9b9a3}
+.mdrawer .mctl{display:flex;align-items:center;gap:6px;margin-top:10px}
+.mdrawer button.c{border:0;border-radius:9px;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:700;cursor:pointer;padding:7px 11px}
+.mdrawer button.c:hover:not(:disabled){background:rgba(255,255,255,.22)}
+.mdrawer button.c:disabled{opacity:.4;cursor:default}
+.mdrawer #mjoin{flex:1;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553)}
+.mdrawer #mjoin.on{background:rgba(255,255,255,.12)}
+.mdrawer input[type=range]{width:70px;accent-color:#eb772e}
+.mdrawer .mform{display:flex;gap:6px;margin-top:14px}
+.mdrawer .mform input{flex:1;min-width:0;border:1px solid rgba(255,255,255,.18);border-radius:9px;background:rgba(0,0,0,.3);color:#fff;padding:8px 10px;font:inherit}
+.mdrawer .mform input::placeholder{color:#b8aaa3}
+.mdrawer .mnote{margin-top:6px;font-size:.78rem;color:#ffd2a1;min-height:1em}
+.mdrawer .mduck{font-size:.74rem;color:#ffb27a}
+.mdrawer h3{margin:16px 0 6px;font-size:.82rem;letter-spacing:.08em;text-transform:uppercase;color:#e9b9a3}
+.mdrawer ol{list-style:none;margin:0;padding:0;display:grid;gap:4px}
+.mdrawer li{display:flex;align-items:center;gap:8px;border-radius:9px;padding:6px 8px;background:rgba(255,255,255,.04)}
+.mdrawer li.cur{background:rgba(235,119,46,.22);box-shadow:inset 3px 0 0 #eb772e}
+.mdrawer li .t{flex:1;min-width:0;cursor:pointer;border:0;background:none;color:inherit;font:inherit;text-align:left;padding:0}
+.mdrawer li .t b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mdrawer li .t small{color:#b8aaa3;font-size:.72rem}
+.mdrawer li .n{width:1.6em;text-align:right;color:#b8aaa3;font-size:.78rem}
+.mdrawer li.cur .n{color:#ffb27a}
+.mdrawer li .x{border:0;background:none;color:#b8aaa3;cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:6px}
+.mdrawer li .x:hover{background:rgba(255,255,255,.12);color:#fff}
+.mdrawer .mlempty{color:#b8aaa3;font-size:.84rem}
 
 /* eredmény-szalag (mint az élő kaszinóban: szomszédok + nyerő szám) */
 .banner{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);display:flex;flex-direction:column;align-items:center;gap:12px;
@@ -540,7 +565,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a></span>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="Közös zene: lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> Zene</span></button></span>
     <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -579,13 +604,6 @@ footer strong{color:#fff}
   <div class="tl">
     <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
-    <section class="glass music" id="music" aria-label="Közös zene">
-      <div class="mhead"><b>🎵 Közös zene</b><span class="mduck" id="mduck" hidden>(halkítva, ajtó)</span><span class="mby" id="mby"></span></div>
-      <div class="mplayer"><div id="ytp"></div><div class="mempty" id="mempty">Még nincs playlist.<br>Tegyél fel egyet az alábbi mezővel!</div></div>
-      <div class="mctl"><button type="button" id="mjoin">Zene bekapcsolása</button><button type="button" id="mprev" title="Előző (mindenkinek)">⏮</button><button type="button" id="mpause" title="Szünet (mindenkinek)">⏸</button><button type="button" id="mnext" title="Következő (mindenkinek)">⏭</button><input type="range" id="mvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
-      <form class="mform" id="mform"><input id="murl" type="text" inputmode="url" autocomplete="off" placeholder="YouTube vagy YouTube Music playlist link" aria-label="YouTube vagy YouTube Music playlist link"><button type="submit">Mentés</button></form>
-      <div class="mnote" id="mnote" aria-live="polite"></div>
-    </section>
   </div>
 
   <aside class="glass tr" aria-label="Ranglista és ajtó" tabindex="0">
@@ -650,7 +668,6 @@ footer strong{color:#fff}
   </div>
 </div>
 
-<div class="mslot" id="musicSlot"></div>
 <section id="szabalyok">
   <div class="wrap">
     <h2 class="sec">Hogyan működik</h2>
@@ -1409,6 +1426,18 @@ connect();
 // a 3D tisztásról „Blackjack”-kel jött: egyből a blackjack-nézet
 if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
 </script>
+<aside class="mdrawer" id="mdrawer" aria-label="Közös zene" aria-hidden="true">
+  <div class="mh"><b>🎵 Közös lejátszási lista</b><span class="mduck" id="mduck" hidden>halkítva (ajtó)</span><button type="button" id="mclose" aria-label="Bezárás">×</button></div>
+  <div class="mbody">
+    <div class="mplayer"><div id="ytp"></div><div class="mempty" id="mempty">Még üres a lista.<br>Tegyél be egy számot lent!</div></div>
+    <div class="mnow" id="mnow"></div><div class="mby" id="mby"></div>
+    <div class="mctl"><button type="button" class="c" id="mjoin">▶ Zene bekapcsolása</button><button type="button" class="c" id="mprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="c" id="mpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="c" id="mnext" title="Következő (mindenkinek)">⏭</button><input type="range" id="mvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
+    <form class="mform" id="mform"><input id="murl" type="text" inputmode="url" autocomplete="off" placeholder="YouTube- vagy YouTube Music-szám linkje" aria-label="YouTube- vagy YouTube Music-szám linkje"><button type="submit" class="c">+ Hozzáadás</button></form>
+    <div class="mnote" id="mnote" aria-live="polite"></div>
+    <h3 id="mcount">A lista</h3>
+    <ol id="mlist"></ol>
+  </div>
+</aside>
 <script src="/zene.js"></script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>

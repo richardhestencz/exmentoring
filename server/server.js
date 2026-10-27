@@ -422,16 +422,30 @@ wss.on('connection', (ws) => {
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
-    if (m.t === 'music-set' || m.t === 'music-track' || m.t === 'music-skip' || m.t === 'music-pause') {
+    if (m.t.startsWith('music-')) {
       const now = Date.now();
       let e = null;
-      if (m.t === 'music-set') {
-        if (!(e = music.setSource(S.music, m.input, ws.nick, now))) say(`🎵 ${ws.nick} új ${S.music.kind === 'playlist' ? 'playlistet' : 'számot'} tett fel.`);
-      } else if (m.t === 'music-track') { if (!music.trackChanged(S.music, m.rev, m.to, now)) return; }  // elavult vagy dupla jelentés
-      else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, m.len, now);
-      else e = music.setPaused(S.music, !!m.paused, now);
+      if (m.t === 'music-add') {   // a szám címét és beágyazhatóságát a YouTube-tól kérdezzük, utána kerül a listára
+        const v = music.parse(m.input), nick = ws.nick;
+        if (!v) return err('Ez nem YouTube- vagy YouTube Music-számlink (egy-egy számot lehet betenni).');
+        const reply = (msg) => { if (ws.readyState === 1) err(msg); };   // a válasz később jön, a kapcsolat közben bezárulhatott
+        music.info(v).then((inf) => {
+          if (!inf.ok) return reply(inf.error);
+          const e2 = music.add(S.music, v, inf.title, nick, Date.now());
+          if (e2) return reply(e2);
+          say(`🎵 ${nick} betette a listára: ${S.music.queue[S.music.queue.length - 1].title}`);
+          save(); broadcastMusic(); broadcast();
+        });
+        return;
+      }
+      if (m.t === 'music-ended') { if (!music.ended(S.music, m.rev, now)) return; }   // elavult vagy dupla jelentés
+      else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, now);
+      else if (m.t === 'music-play') e = music.play(S.music, Number(m.id), now);
+      else if (m.t === 'music-remove') e = music.remove(S.music, Number(m.id), now);
+      else if (m.t === 'music-pause') e = music.setPaused(S.music, !!m.paused, now);
+      else return err('Ismeretlen zene-művelet.');
       if (e) return err(e);
-      save(); broadcastMusic(); if (m.t === 'music-set') broadcast();
+      save(); broadcastMusic();
       return;
     }
     if (m.t === 'w-join' || m.t === 'w-move' || m.t === 'w-sit' || m.t === 'w-leave') {

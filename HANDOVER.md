@@ -116,11 +116,11 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 
 ## Közös zene
 
-A főoldalon, a bal oldali hírfolyam alatt (keskeny vagy alacsony ablakban a játéktér alatt) a **Közös zene** kártya: a hivatalos YouTube IFrame lejátszó (látható, 200 px magas), amit mindenki ugyanazon a helyen hallgat.
-- **Playlist:** bárki feltehet YouTube / YouTube Music playlist- vagy videólinket (`list=` azonosító; a hírfolyamba bekerül, ki tette fel). Következő, előző, szünet mindenkinek közös; a hangerő-csúszka csak a sajátod.
-- **Szinkron:** a szerver (`server/music.js`, a `state.json`-ban `music`) tárolja a listát, a szám indexét és kezdési idejét; a kliens csatlakozáskor oda teker, 15 másodpercenként 2 mp fölötti eltérésnél újraigazít. Számváltást az első jelentő léptet (rev-dedupe).
-- **Halkítás:** az ajtó nyitásakor (`/api/door`) a szerver `music-duck` üzenetet küld, mindenkinél 0,5 mp alatt 15%-ra halkul, legalább 15 mp-ig, zárás után 2 mp alatt visszajön.
-- **Korlátok:** a böngésző hanggal csak kattintás után indít („Zene bekapcsolása”); YouTube-hirdetések és a beágyazást tiltó számok (átugorja) maradnak; a Premium nem érvényesül a beágyazott lejátszóban.
+**Közös lejátszási lista**: a fejléc **🎵 Zene** gombja egy jobb oldali panelt nyit (telefonon teljes szélességben; mindennél felül, bezárva is szól). Bárki betehet egy YouTube- vagy YouTube Music-**számot** (linkkel); a lista sorban, magától megy, a végén újrakezdi. A listában kattintásra bármelyik szám indul, ✕-szel kivehető; ⏮ ⏸ ⏭ mindenkinek közös, a hangerő helyi. Ha szól a zene, a gombon kis hangszínjelző mozog.
+- **Szerver:** `server/music.js` (állapot a `state.json` `music` kulcsában: `queue` [{id, v, title, by, at}], `cur`, `startedAt`, `paused`, `pos`, `rev`). WS: `music-add` (a szerver a YouTube oEmbedből kéri le a címet, és visszadobja a nem beágyazható / privát számot; hálózati hibánál cím nélkül elfogadja; tesztben `MUSIC_OEMBED=0`), `music-play`, `music-remove`, `music-skip`, `music-pause`, `music-ended` (a szám vége vagy lejátszási hiba: a következő jön; a `rev` szűri a dupla jelentést). A régi „egy link” állapotból az egyes szám átjön, a YouTube-playlist nem.
+- **Kliens:** `server/public/zene.js` (YouTube IFrame Player a panelben; csatlakozáskor `now - startedAt`-ra ugrik, 15 s-onként igazít, ha 2 s-nál többet csúszott). Oldalbetöltés után egy kattintás kell a „Zene bekapcsolása” gombra (a böngészők nem engednek magától hangot).
+- **Ajtó:** `/api/door` nyitásra `music-duck`: mindenkinél 15%-ra halkul (0,5 s), legalább 15 s-ig és amíg nyitva; csukás után 2 s alatt vissza; 5 perc után magától feloldódik.
+- Korlátok: YouTube-hirdetések megjelenhetnek, Premium nem érvényes; egyszerre egy szám kerül be (playlist-import nincs); legfeljebb 200 szám.
 
 ## Napi üzemeltetés
 
