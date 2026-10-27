@@ -183,7 +183,23 @@ ul{list-style:none;margin:0;padding:0}
 .bjctl{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .bjctl .go{width:auto;padding:12px 18px;font-size:1rem}
 .bjctl .tool{margin-left:0}
+.seat .top{position:static;background:none;color:inherit;min-height:0}   /* nem a felső sáv */
 @media (max-width:760px){.bjpanel{bottom:8px;padding:10px}.pc{width:32px;height:46px;font-size:.85rem}.bjseats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+/* mobil blackjack: a vissza gomb ne takarja a sarkokat, a panel legyen tömör, hogy az asztal nagyobb lehessen */
+@media (max-width:760px){
+  .stage.view-bj .torl{top:8px;padding:6px 12px;font-size:.8rem}
+  .stage.view-bj .tl,.stage.view-bj .tr{top:48px}
+  .stage.view-bj .feed{display:none}
+  .bjpanel{width:calc(100% - 16px);padding:8px 10px}
+  .bjhead{grid-template-columns:1fr;gap:2px}.bjhead>b{display:none}.bjhead>span{font-size:.8rem;line-height:1.35}
+  .bjstats,.bjhead .bar{grid-column:1/-1}
+  .bjstats{gap:4px}.bjstats span{padding:2px 8px;font-size:.72rem}.bjstats b{font-size:.8rem}.bjstats .tok{width:14px;height:14px}
+  .bjseats{gap:6px;margin:6px 0}.bjseats:has(>p){display:none}
+  .seat{padding:5px 7px;border-radius:10px}.seat .top{font-size:.76rem;margin-bottom:3px}.seat .hand{min-height:0}
+  .bjctl{gap:6px}.bjchips{gap:5px}.bjchips button{padding:6px 10px;font-size:.82rem}
+  .bjctl .go{padding:9px 14px;font-size:.92rem}.bjctl .tool{padding:6px 9px}
+  .bjwait{font-size:.78rem}
+}
 .shade{position:absolute;inset:0;z-index:1;pointer-events:none;opacity:0;transition:opacity 1.2s;
   background:radial-gradient(65% 70% at 50% 46%,rgba(10,15,22,.15),rgba(10,15,22,.82))}
 #cv{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:2;pointer-events:none}   /* a kerék alatt az asztal kattintható */
@@ -204,7 +220,7 @@ ul{list-style:none;margin:0;padding:0}
 .tl{position:absolute;z-index:5;left:16px;top:16px;width:min(290px,30vw);display:flex;flex-direction:column;gap:8px}
 .me{display:flex;align-items:center;gap:10px;padding:8px 12px}
 .me svg{width:28px;height:25px;flex:none}
-.me b{font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.me b{flex:1;min-width:2.5em;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .me button+button{margin-left:0}
 .me button{margin-left:auto;background:none;border:0;color:var(--apricot);font-weight:600;font-size:.82rem;cursor:pointer;text-decoration:underline;padding:2px}
 .feed{padding:8px 12px;font-size:.84rem}
@@ -343,26 +359,30 @@ ul{list-style:none;margin:0;padding:0}
 /* mobil */
 @media (max-width:760px){
   .stage{min-height:660px}
-  .logo{top:8px}.logo small{display:none}
-  .tl{left:8px;top:58px;width:calc(52% - 12px)}
-  .tr{right:8px;top:58px;width:calc(48% - 8px);padding:8px 10px}
-  .tr li{font-size:.7rem;padding:1px 5px;grid-template-columns:16px minmax(0,1fr) auto;gap:4px}.tr ul#board{max-height:118px}.tr h2{font-size:.8rem;margin-bottom:2px}
-  .feed{font-size:.72rem;padding:5px 10px}.feed li:nth-child(n+2){display:none}
-  .me{padding:6px 10px;font-size:.88rem}.me svg{width:22px;height:20px}.me .rc{width:24px;height:24px}
-  .door{font-size:.72rem;margin-top:5px;padding-top:5px}.door b{font-size:.9rem}.door svg{width:16px;height:21px}
+  .logo{top:6px}.logo small{display:none}.wm{font-size:1.75rem}
+  .tl{left:8px;top:46px;width:calc(52% - 12px)}
+  .tr{right:8px;top:46px;width:calc(48% - 8px);padding:7px 10px}
+  .tr li{font-size:.7rem;padding:1px 5px;grid-template-columns:16px minmax(0,1fr) auto;gap:4px}.tr ul#board{max-height:71px}.tr h2{font-size:.8rem;margin-bottom:2px}
+  .feed{font-size:.72rem;padding:5px 10px}.feed li:nth-child(n+2){display:none}.feed li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .me{padding:6px 10px;font-size:.88rem;gap:6px}.me button{font-size:.72rem;flex:none}.me svg{width:22px;height:20px}.me .rc{width:24px;height:24px}
+  .door{font-size:.72rem;margin-top:5px;padding-top:5px;grid-template-columns:auto auto 1fr;gap:0 5px}.door b{font-size:.9rem}.door svg{width:16px;height:21px;grid-row:auto}.door>span:last-child{text-align:right}
   .dock{left:8px;right:8px;bottom:8px;gap:8px;grid-template-columns:1fr 1fr;grid-template-areas:"board board" "pills side"}
   .boardwrap{grid-area:board}.pills{grid-area:pills}.side{grid-area:side}
   .felt{padding:5px}
   .tbl{grid-auto-rows:30px;gap:2px}
   .cell{font-size:.7rem;border-radius:5px}.cell em{display:none}
   .ch{width:18px;height:18px;margin:-9px 0 0 -9px;font-size:.42rem}.ch.oth{width:13px;height:13px;font-size:0}
-  .pick{width:30px;height:30px;font-size:.58rem}.profbar{gap:4px;margin-bottom:5px}.profbar select{max-width:110px;font-size:.7rem;padding:4px 6px}.profbar .auto{font-size:.68rem}.chipbar small{display:none}.chipbar{margin-bottom:5px;gap:5px}.tool{padding:4px 8px;font-size:.7rem}
+  .pick{width:30px;height:30px;font-size:.58rem}.profbar{gap:4px;margin-bottom:5px;flex-wrap:nowrap}.profbar select{flex:1 1 auto;width:0;min-width:56px;max-width:none;font-size:.7rem;padding:4px 6px}.profbar .auto{font-size:.66rem;line-height:1.1;gap:3px;flex:none;max-width:62px}#rebet span{display:none}.chipbar small{display:none}.chipbar{margin-bottom:5px;gap:5px}.tool{padding:4px 8px;font-size:.7rem}
   .dia{width:18px;height:10px}
   .hint{display:none}
   .stage.overhead .boardwrap{transform:scale(.6)}
-  .pill{padding:6px 10px}.pill b{font-size:1.05rem}.pill .tok{width:22px;height:22px}
-  .go{padding:12px;font-size:1rem}
-  .status{padding:7px 10px}.status b{font-size:.85rem}
+  .pills,.side{gap:6px}
+  .pill{padding:4px 10px}.pill small{font-size:.66rem}.pill b{font-size:1rem}.pill .tok{width:20px;height:20px}
+  .go{padding:10px;font-size:.98rem}
+  .status{padding:5px 10px}.status b{font-size:.82rem}
+  .histrow{padding:4px 8px}.num{min-width:22px;height:22px;font-size:.7rem}.snd{padding:2px 7px}
+  .stage.nonick .tr{opacity:.5;filter:blur(1.5px);pointer-events:none}
+  .modal .card{padding:20px 18px}.modal .rc{width:64px;height:64px}
   .hist .num:nth-child(n+5){display:none}
 }
 
@@ -467,7 +487,7 @@ footer strong{color:#fff}
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
   </div>
 
-  <aside class="glass tr" aria-label="Ranglista és ajtó">
+  <aside class="glass tr" aria-label="Ranglista és ajtó" tabindex="0">
     <h2>Ranglista</h2>
     <ul id="board"></ul>
     <div class="door"><svg viewBox="0 0 44 56" aria-hidden="true"><use href="#door"/></svg><span><b id="dopens">0</b> ajtónyitás</span><span>nettó: <span id="dnet">0</span></span></div>
@@ -486,7 +506,7 @@ footer strong{color:#fff}
         <div class="chipbar" role="group" aria-label="Zseton"><small>Zseton:</small><span id="picks" style="display:contents"></span>
           <button class="tool" id="undo" type="button">Visszavonás</button><button class="tool" id="clear" type="button">Mind le</button></div>
         <div class="profbar" role="group" aria-label="Tét-profilok">
-          <button class="tool" id="rebet" type="button" title="Az előző köröd tétjei újra">↺ Ismétlés</button>
+          <button class="tool" id="rebet" type="button" title="Az előző köröd tétjei újra" aria-label="Ismétlés">↺<span> Ismétlés</span></button>
           <select id="prof" aria-label="Tét-profil"></select>
           <button class="tool" id="papply" type="button">Felrak</button>
           <button class="tool" id="psave" type="button" title="A mostani tétjeid mentése profilként">Mentés</button>
