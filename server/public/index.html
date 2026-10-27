@@ -1060,7 +1060,7 @@ function renderBjScene(B,me){
       const net=x.back-x.stake,res=x.result?`<span class="bjres ${x.result}">${RES[x.result]}${net?` ${net>0?'+':'−'}${fmt(Math.abs(net))}`:''}</span>`:'';
       // zsetonkupac a tétkörön (a tét összege), gyűrű a soron lévőn és a saját helyen
       const n=Math.min(6,Math.max(1,Math.round(Math.log10(Math.max(100,x.stake))*2-3)));
-      h+=`<div class="bjchipst" style="left:${p.x-58}px;top:${p.y+4}px">${'<i style="--cc:'+chipColor(x.stake)+'"></i>'.repeat(n)}<b>${fmt(x.stake)}${x.doubled?' ×2':''}</b></div>`;
+      h+=`<div class="bjchipst" style="left:${p.x-58}px;top:${p.y+4}px">${('<i style="--cc:'+chipColor(x.stake)+'"></i>').repeat(n)}<b>${fmt(x.stake)}${x.doubled?' ×2':''}</b></div>`;
       if(turn||x.nick===nick)rings+=`<ellipse class="ring${turn?' turn':''}${x.nick===nick&&!turn?' me':''}" cx="${p.x}" cy="${p.y}" rx="52" ry="27"/>`;
       h+=pt(p,'st up',`${res}${x.cards.length?`<span class="bjv">${x.value}</span>`:''}<div class="hand">${cardsHTML('v:'+x.nick,x.cards)}</div>`);
       h+=pt(p,'st down',`<div class="glass bjpl${turn?' turn':''}${x.nick===nick?' me':''}"><span class="nk">${esc(x.nick)}</span><small>${fmt(x.stake)}${x.doubled?' ×2':''}</small></div>`);
