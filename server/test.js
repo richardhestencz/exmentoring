@@ -350,9 +350,9 @@ test('3D tisztás: a mosómedve ott marad, ahol hagyták', () => {
 test('Chapter esemény: napok bejelölése', () => {
   const Ch = require('./chapter'), C = Ch.empty();
   assert.ok(Ch.setDays(C, '', ['2026-11-10'], '2026-10-27'), 'becenév nélkül nem');
-  assert.strictEqual(Ch.setDays(C, 'Ricsi', ['2026-11-12', '2026-11-10', '2026-11-10', 'x', '2027-05-01'], '2026-10-27'), null);
+  assert.strictEqual(Ch.setDays(C, 'Ricsi', ['2026-11-12', '2026-11-10', '2026-11-10', 'x', '2026-12-05'], '2026-10-27'), null);
   assert.deepStrictEqual(C.votes.Ricsi, ['2026-11-10', '2026-11-12'], 'rendezve, ismétlés és sávon kívüli nap nélkül');
-  Ch.setDays(C, 'Gabó', ['2026-10-28'], '2026-11-01');
+  Ch.setDays(C, 'Gabó', ['2026-11-02'], '2026-11-05');
   assert.strictEqual(C.votes.Gabó, undefined, 'elmúlt napot újonnan nem lehet bejelölni');
   Ch.setDays(C, 'Ricsi', [], '2026-10-27');
   assert.strictEqual(C.votes.Ricsi, undefined, 'üres lista: visszavonja');

@@ -1,6 +1,6 @@
 // Chapter esemény: naptáras időpont-szavazás. Mindenki bejelöli, mely napok jók neki; a legtöbbet jelölt nap vezet.
 const QUESTION = 'Mikor legyen az AI chapter nagyba?';
-const FROM = '2026-10-28', TO = '2026-12-31';   // ebből a sávból lehet választani
+const FROM = '2026-11-01', TO = '2026-11-30';   // egyelőre csak november; ebből a sávból lehet akárhány napot választani
 const DAY = /^\d{4}-\d{2}-\d{2}$/;
 const MAX_DAYS = 80;
 

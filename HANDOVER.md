@@ -140,7 +140,7 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 
 ## Chapter esemény (időpont-szavazás)
 
-`/chapter.html`: „Mikor legyen az AI chapter nagyba?” Naptár (2026-10-28 és 2026-12-31 között; `server/chapter.js`, `QUESTION`, `FROM`, `TO`), mindenki bejelöli az összes napot, ami jó neki (koppintásra azonnal mentődik, WS `chapter-set`). Alatta oszlopdiagram naponként (a vezető nap piros, 👑 a naptárban), top 5 a nevekkel, és kik vannak ma bent, de még nem jelöltek. A főoldal fejlécében villogó piros „📅 Jelöld be” gomb, amíg az adott becenévvel nincs jelölés. Az állapot a `state` üzenetben megy (`chapter`), a hírfolyamba első jelöléskor kerül üzenet.
+`/chapter.html`: „Mikor legyen az AI chapter nagyba?” Naptár (egyelőre csak november: 2026-11-01 – 2026-11-30, akárhány nap jelölhető; `server/chapter.js`, `QUESTION`, `FROM`, `TO`), mindenki bejelöli az összes napot, ami jó neki (koppintásra azonnal mentődik, WS `chapter-set`). Alatta oszlopdiagram naponként (a vezető nap piros, 👑 a naptárban), top 5 a nevekkel, és kik vannak ma bent, de még nem jelöltek. A főoldal fejlécében villogó piros „📅 Jelöld be” gomb, amíg az adott becenévvel nincs jelölés. Az állapot a `state` üzenetben megy (`chapter`), a hírfolyamba első jelöléskor kerül üzenet.
 
 ## 3D tisztás (BÉTA, élesben)
 

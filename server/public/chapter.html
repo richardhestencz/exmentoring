@@ -52,7 +52,7 @@ main{padding:24px 0 56px}
 .status.ok{color:var(--green)}
 @keyframes due{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.04)}}
 @media (prefers-reduced-motion:reduce){.status.due{animation:none}}
-.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:14px}
+.months{display:grid;grid-template-columns:minmax(0,560px);gap:22px;margin-top:14px}
 .month h3{margin:0 0 8px;color:var(--ink);font-size:1.05rem;text-transform:capitalize}
 .grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
 .dow{font-size:.72rem;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase}
@@ -102,7 +102,7 @@ main{padding:24px 0 56px}
 <div class="hero"><div class="wrap">
   <span class="kicker">CHAPTER ESEMÉNY</span>
   <h1 id="q">Mikor legyen az AI chapter nagyba?</h1>
-  <p class="lead">Jelöld be a naptárban az összes napot, ami jó neked (koppints a napra; újra koppintva visszavonod). Alul látszik, melyik nap áll vezetésre.</p>
+  <p class="lead">Jelöld be novemberben <b>az összes napot</b>, ami jó neked: <b>több napot is választhatsz</b> (koppints a napra; újra koppintva visszavonod). Alul látszik, melyik nap áll vezetésre.</p>
 </div></div>
 <main><div class="wrap">
   <div class="identity" id="ident">
@@ -111,7 +111,7 @@ main{padding:24px 0 56px}
     <span class="status" id="status"></span>
   </div>
   <section class="panel" aria-labelledby="calh">
-    <h2 id="calh">Mikor jó neked?</h2>
+    <h2 id="calh">Mely napok jók neked? <span class="muted" style="font-weight:600">(több is jelölhető)</span></h2>
     <div class="muted">A narancs napok a te jelöléseid; a kis szám azt mutatja, hányan jelölték az adott napot.</div>
     <div class="months" id="months"></div>
     <div class="legend"><span><i style="background:var(--orange);border-color:var(--orange)"></i>neked jó</span><span><i style="background:#faf6f3"></i>hétvége</span><span>👑 vezet</span></div>
