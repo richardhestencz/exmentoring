@@ -9,9 +9,12 @@
   const cv = document.createElement('canvas'), pc = document.createElement('canvas');
   cv.className = pc.className = 'fmo'; cv.setAttribute('aria-hidden', 'true'); pc.setAttribute('aria-hidden', 'true');
   bg.after(cv, pc);
-  const gl = cv.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false, powerPreference: 'low-power' });
+  // ha nincs WebGL2 (vagy a shader nem fordul), a kép áll, de a levelek, hangjegyek és fénypöttyök akkor is mozognak
+  let gl = null, glErr = '', lastErr = '', frames = 0;
+  try { gl = cv.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false, powerPreference: 'low-power' }); } catch (e) { glErr = String(e); }
+  if (!gl && !glErr) glErr = 'nincs webgl2';
   const ctx = pc.getContext('2d');
-  if (!gl || !ctx) { cv.remove(); pc.remove(); return; }
+  if (!ctx) { cv.remove(); pc.remove(); return; }
 
   const VS = `#version 300 es
 in vec2 a; void main(){ gl_Position = vec4(a, 0., 1.); }`;
@@ -68,18 +71,22 @@ void main(){
   o = vec4(c, 1.);
 }`;
   function sh(type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(s)); return s; }
-  let prog;
-  try { prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog)); }
-  catch (e) { console.warn('fokusz-mozgas:', e); cv.remove(); pc.remove(); return; }
+  let prog, U = {}, MAXTEX = 8192, texs = [];
+  if (gl) try { prog = gl.createProgram(); gl.attachShader(prog, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(prog, sh(gl.FRAGMENT_SHADER, FS)); gl.linkProgram(prog); if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog)); }
+  catch (e) { glErr = String(e && e.message || e).slice(0, 300); gl = null; }
+  if (gl) try {
   gl.useProgram(prog);
   gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
   gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
   const aLoc = gl.getAttribLocation(prog, 'a'); gl.enableVertexAttribArray(aLoc); gl.vertexAttribPointer(aLoc, 2, gl.FLOAT, false, 0, 0);
-  const U = {}; for (const n of ['uImg', 'uM1', 'uM2', 'uRes', 'uOff', 'uSize', 'uCrop', 'uT', 'uNight']) U[n] = gl.getUniformLocation(prog, n);
+  for (const n of ['uImg', 'uM1', 'uM2', 'uRes', 'uOff', 'uSize', 'uCrop', 'uT', 'uNight']) U[n] = gl.getUniformLocation(prog, n);
   gl.uniform1i(U.uImg, 0); gl.uniform1i(U.uM1, 1); gl.uniform1i(U.uM2, 2);
-  const MAXTEX = gl.getParameter(gl.MAX_TEXTURE_SIZE);
-  const texs = [gl.createTexture(), gl.createTexture(), gl.createTexture()];
+  MAXTEX = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+  texs = [gl.createTexture(), gl.createTexture(), gl.createTexture()];
+  } catch (e) { glErr = String(e && e.message || e).slice(0, 300); gl = null; }
+  if (!gl) { console.warn('fokusz-mozgas: WebGL nélkül megy:', glErr); cv.remove(); }
   function upload(unit, src, mip) {
+    if (!gl) return;
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, texs[unit]);
     gl.pixelStorei(gl.UNPACK_COLORSPACE_CONVERSION_WEBGL, mip ? gl.BROWSER_DEFAULT_WEBGL : gl.NONE);
     gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, src);
@@ -115,7 +122,7 @@ void main(){
       const d = x.getImageData(0, 0, 240, 135).data; S.leafPts = [];
       for (let i = 0; i < 240 * 135; i++) if (d[i * 4 + 1] > 200) S.leafPts.push([(i % 240) * 8 + 4, Math.floor(i / 240) * 8 + 4]);
       L = null; S.ready = true; return true;
-    })().catch((e) => { console.warn('fokusz-mozgas:', e); return false; }).finally(() => { loading = null; });
+    })().catch((e) => { lastErr = String(e && (e.message || e.type) || e).slice(0, 200); console.warn('fokusz-mozgas:', e); return false; }).finally(() => { loading = null; });
     loading = { key, p }; return p;
   }
   function layout() {
@@ -128,12 +135,14 @@ void main(){
     if (L && L.key === key) return true;
     // a kép pontosan a kirajzolt méretre kicsinyítve (a böngésző jó minőségű szűrőjével), így 1:1-ben mintavételezünk: éles marad
     const f = Math.min(1, MAXTEX / Math.max(dw, dh)); const tw = Math.round(dw * f), th = Math.round(dh * f);
-    const t = document.createElement('canvas'); t.width = tw; t.height = th;
-    const x = t.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(S.img, 0, 0, tw, th);
-    upload(0, t, true); t.width = t.height = 0;
+    if (gl) {
+      const t = document.createElement('canvas'); t.width = tw; t.height = th;
+      const x = t.getContext('2d'); x.imageSmoothingQuality = 'high'; x.drawImage(S.img, 0, 0, tw, th);
+      upload(0, t, true); t.width = t.height = 0;
+    }
     cv.width = pc.width = W; cv.height = pc.height = H;
     L = { key, W, H, dw, dh, ox: Math.round((W - dw) / 2), oy: H - dh, unit: dh / 1080 };   // egész pixelre: a texel a pixelre esik, nincs elmosás
-    gl.viewport(0, 0, W, H);
+    if (gl) gl.viewport(0, 0, W, H);
     return true;
   }
   // a fekvő kép 1920x1080-as koordinátáiból a vászon pixeleire
@@ -208,9 +217,12 @@ void main(){
     const dt = Math.min(.1, (now - (last || now)) / 1000); last = now;
     if (!S.ready || !layout()) return;
     const t = (now - t0) / 1000;
-    gl.uniform2f(U.uRes, L.W, L.H); gl.uniform2f(U.uOff, L.ox, L.oy); gl.uniform2f(U.uSize, L.dw, L.dh);
-    gl.uniform2f(U.uCrop, S.crop[0], S.crop[1]); gl.uniform1f(U.uT, t); gl.uniform1f(U.uNight, S.night);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    if (gl) {
+      gl.uniform2f(U.uRes, L.W, L.H); gl.uniform2f(U.uOff, L.ox, L.oy); gl.uniform2f(U.uSize, L.dw, L.dh);
+      gl.uniform2f(U.uCrop, S.crop[0], S.crop[1]); gl.uniform1f(U.uT, t); gl.uniform1f(U.uNight, S.night);
+      gl.drawArrays(gl.TRIANGLES, 0, 3);
+    }
+    frames++;
     spawn(t); particles(t, dt);
     view.classList.add('fmoon');
   }
@@ -231,6 +243,9 @@ void main(){
   new MutationObserver(() => { if (running || root.classList.contains('focus')) { const c = current(); if (c && c.url !== S.key) { S.ready = false; view.classList.remove('fmoon'); motes = []; } sync(); } })
     .observe(root, { attributes: true, attributeFilter: ['class', 'data-theme'] });
   addEventListener('resize', () => { if (!running) return; const c = current(); if (c && c.url !== S.key) { S.ready = false; motes = []; } sync(); });
-  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); cancelAnimationFrame(raf); running = false; cv.remove(); pc.remove(); });
+  cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); glErr = 'context lost'; gl = null; cv.remove(); });
+  // visszajelzés a szervernek (a szerver naplójába), hogy egy-egy gépen miért nem mozog: böngésző, WebGL, hiba, lefutott képkockák
+  const diag = (when) => { try { if (typeof send === 'function') send({ t: 'fmodiag', d: JSON.stringify({ v: 3, when, ua: navigator.userAgent, gl: !!gl, glErr, lastErr, focus: root.classList.contains('focus'), running, frames, live: view.classList.contains('fmoon'), dpr: devicePixelRatio, vw: view.clientWidth, vh: view.clientHeight, img: S.key.split('/').pop(), hidden: document.hidden }) }); } catch {} };
+  setTimeout(() => diag('8s'), 8000); setTimeout(() => diag('30s'), 30000);
   sync();
 })();
