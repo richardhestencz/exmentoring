@@ -16,6 +16,7 @@
     if (typeof send === 'function') send({ t: 'focus', on });
     if (!on && window.wheelDirty) window.wheelDirty();
     if (on) scrollTo(0, 0);
+    if (!on) zen(false);
     mirror();
   }
   function set(v) { on = v; store(on ? '1' : '0'); if (!on && location.hash === '#zene') history.replaceState(null, '', location.pathname); apply(); }
@@ -38,7 +39,20 @@
     $('fpause').textContent = $('mpause').textContent; $('fpause').title = $('mpause').title;
     for (const [f, m] of [['fprev', 'mprev'], ['fpause', 'mpause'], ['fnext', 'mnext']]) $(f).disabled = $(m).disabled;
     $('fvol').value = $('mvol').value;
+    if (!joined()) zen(false);
   }
+  // zen: ha itt kapcsolja be a zenét, minden kezelő eltűnik (csak a kép marad); kattintás, érintés vagy billentyű 5 mp-re visszahozza
+  let zenTimer = 0;
+  const joined = () => $('mjoin').classList.contains('on');
+  const zen = (z) => { clearTimeout(zenTimer); root.classList.toggle('zen', z && on && joined()); };
+  $('fjoin').addEventListener('click', () => setTimeout(() => zen(true), 400));
+  const wake = (e) => {
+    if (!root.classList.contains('zen') && !zenTimer) return;
+    if (e.type === 'keydown' && e.key === 'Escape') { zen(false); zenTimer = 0; return; }
+    zen(false); zenTimer = setTimeout(() => { zenTimer = 0; zen(true); }, 5000);
+  };
+  addEventListener('pointerdown', wake, true); addEventListener('keydown', wake, true);
+  view.addEventListener('pointermove', () => { if (zenTimer) wake({ type: 'pointermove' }); });
   new MutationObserver(mirror).observe($('mdrawer'), { subtree: true, childList: true, characterData: true, attributes: true, attributeFilter: ['class', 'disabled'] });
 
   // újracsatlakozáskor (és becenév után) a szerver újra megtudja, hogy fókuszban vagyok
