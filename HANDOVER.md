@@ -138,6 +138,10 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 - **„Ki van bent?”:** QR-kód az ajtón. Első beolvasáskor becenév (a telefonhoz kötve, HttpOnly süti, 400 nap), utána minden beolvasás bejelentkezés; az aznapi első +10 000 a potba; második beolvasás: „Elmegyek”; éjfélkor lejár. A céges hálózathoz nem nyúl (NIS2). A gazda a mester tokennel szabadít fel becenevet; 30 nap használat nélkül magától felszabadul.
 - **Mosómedve-animáció:** ha a három figura külön, átlátszó hátterű PNG-ben is meglesz, megmozdíthatók.
 
+## Chapter esemény (időpont-szavazás)
+
+`/chapter.html`: „Mikor legyen az AI chapter nagyba?” Naptár (2026-10-28 és 2026-12-31 között; `server/chapter.js`, `QUESTION`, `FROM`, `TO`), mindenki bejelöli az összes napot, ami jó neki (koppintásra azonnal mentődik, WS `chapter-set`). Alatta oszlopdiagram naponként (a vezető nap piros, 👑 a naptárban), top 5 a nevekkel, és kik vannak ma bent, de még nem jelöltek. A főoldal fejlécében villogó piros „📅 Jelöld be” gomb, amíg az adott becenévvel nincs jelölés. Az állapot a `state` üzenetben megy (`chapter`), a hírfolyamba első jelöléskor kerül üzenet.
+
 ## 3D tisztás (BÉTA, élesben)
 
 A főoldal fejlécében a **BÉTA** felirat (`#beta`) fehér áttűnéssel a **`/beta.html`** oldalra visz. Ez **ugyanaz az `index.html`** (a szerver `/beta`, `/beta.html` útvonalon is azt adja), csak béta módban (`BETA`, `html.beta3d`): a festett háttérkép helyett az élő 3D tisztás látszik egy iframe-ben (`/tisztas3d.html?embed=1`), a rulett, a blackjack, a ranglista, az üzenetek és minden más ugyanúgy működik. A főoldal változásai így a bétára is érvényesek.

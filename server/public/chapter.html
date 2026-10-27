@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="light">
+<script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
+<script src="/theme.js"></script>
+<title>Chapter esemény – Exmentoring</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ink:#202324;--ink-2:#45494b;--muted:#696e72;--line:#d5dadd;
+  --peach:#fbe4d7;--sand:#f4f0ed;--apricot:#f8c7a3;--orange:#eb772e;--red:#df312d;
+  --dark:#0a0f16;--green:#11845b;
+  --font:'Figtree',system-ui,-apple-system,'Segoe UI',sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:#fff;color:var(--ink-2);font-family:var(--font);font-size:16px;line-height:1.55}
+button,input{font:inherit;color:inherit}
+.wrap{max-width:1040px;margin:0 auto;padding:0 16px}
+.top{background:var(--dark);color:#fff;position:sticky;top:0;z-index:30}
+.top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
+.studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;white-space:nowrap}
+.studio .rc{width:26px;height:26px;border-radius:50%;object-fit:cover}
+.studio a{color:inherit;text-decoration:none}
+.themebtn{display:grid;place-items:center;padding:0;border:0;background:none;border-radius:50%;cursor:pointer}
+.top nav{display:flex;overflow-x:auto;scrollbar-width:none}
+.top nav a{color:#e9dcd3;text-decoration:none;font-weight:600;font-size:.88rem;padding:12px 11px;white-space:nowrap}
+.top nav a:hover,.top nav a:focus-visible{background:rgba(255,255,255,.1);color:#fff;outline:none}
+.top nav a[aria-current]{color:#fff;box-shadow:inset 0 -3px 0 var(--orange)}
+.conn{display:none;background:#dc2b2b;color:#fff;text-align:center;font-size:.85rem;padding:4px 12px}
+.hero{background:var(--sand);padding:40px 0 30px;border-bottom:1px solid var(--line)}
+.kicker{display:inline-block;background:var(--orange);color:#fff;font-weight:800;font-size:.75rem;letter-spacing:.12em;padding:3px 10px;border-radius:999px;margin-bottom:10px}
+h1{margin:0 0 8px;font-size:clamp(1.8rem,4vw,2.6rem);font-weight:800;letter-spacing:-.03em;color:var(--ink);line-height:1.1}
+.lead{margin:0;max-width:68ch}
+main{padding:24px 0 56px}
+.panel{background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px;margin-bottom:20px;box-shadow:0 8px 24px rgba(29,20,22,.05)}
+.panel h2{margin:0 0 6px;color:var(--ink);font-size:1.25rem}
+.muted{color:var(--muted);font-size:.92rem}
+.identity{display:flex;gap:12px;align-items:center;flex-wrap:wrap;background:var(--peach);border-radius:18px;padding:16px 20px;margin-bottom:20px}
+.identity b{color:var(--ink)}
+.identity form{display:flex;gap:8px;flex:1 1 300px}
+.identity input{flex:1;min-width:0;border:1px solid var(--line);border-radius:10px;background:#fff;padding:9px 12px}
+.btn{border:0;border-radius:999px;background:var(--orange);color:#fff;font-weight:800;padding:9px 18px;cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}
+.status{font-weight:700}
+.status.due{color:#fff;background:var(--red);padding:4px 12px;border-radius:999px;animation:due 1.1s ease-in-out infinite}
+.status.ok{color:var(--green)}
+@keyframes due{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.55;transform:scale(1.04)}}
+@media (prefers-reduced-motion:reduce){.status.due{animation:none}}
+.months{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:22px;margin-top:14px}
+.month h3{margin:0 0 8px;color:var(--ink);font-size:1.05rem;text-transform:capitalize}
+.grid{display:grid;grid-template-columns:repeat(7,1fr);gap:5px}
+.dow{font-size:.72rem;font-weight:800;color:var(--muted);text-align:center;text-transform:uppercase}
+.day{position:relative;aspect-ratio:1;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:0;font-weight:700;color:var(--ink);transition:background .15s,border-color .15s,transform .1s}
+.day:hover{border-color:var(--orange)}
+.day:active{transform:scale(.95)}
+.day.we{background:#faf6f3}
+.day.mine{background:var(--orange);border-color:var(--orange);color:#fff}
+.day.lead::after{content:'👑';position:absolute;top:-9px;right:-5px;font-size:.85rem}
+.day[disabled]{opacity:.35;cursor:default}
+.day .n{font-size:.68rem;font-weight:800;line-height:1;margin-top:2px;color:var(--muted)}
+.day.mine .n{color:#fff}
+.day .n:empty{display:none}
+.legend{display:flex;gap:16px;flex-wrap:wrap;margin-top:12px;font-size:.85rem;color:var(--muted)}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:4px;vertical-align:-2px;margin-right:5px;border:1px solid var(--line)}
+.leader{font-size:1.05rem;color:var(--ink);margin:6px 0 14px}
+.leader b{color:#c2531b}
+.chwrap{overflow-x:auto}
+.chart{display:flex;align-items:flex-end;gap:2px;height:190px;padding:8px 0 0;border-bottom:2px solid var(--line);min-width:760px}
+.chc{flex:1 0 9px;min-width:9px;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;position:relative}
+.bar{width:100%;background:var(--apricot);border-radius:5px 5px 0 0;min-height:2px;transition:height .3s}
+.chc.ctop .bar{background:var(--orange)}
+.chc.cfirst .bar{background:var(--red)}
+.chc .v{font-size:.68rem;font-weight:800;color:var(--ink);margin-bottom:2px}
+.chc .v:empty{display:none}
+.axis{display:flex;gap:2px;min-width:760px}
+.axis span{flex:1 0 9px;min-width:9px;overflow:visible;font-size:.62rem;color:var(--muted);text-align:center;white-space:nowrap}
+.toplist{margin:16px 0 0;padding:0;list-style:none;display:grid;gap:8px}
+.toplist li{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.toplist .rank{font-weight:900;color:#c2531b;min-width:1.6em}
+.toplist .d{font-weight:800;color:var(--ink)}
+.toplist .who{color:var(--muted);font-size:.88rem}
+.pending{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.pending span{background:#fdeceb;color:var(--red);font-weight:700;font-size:.85rem;padding:2px 10px;border-radius:999px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%) translateY(20px);opacity:0;background:var(--dark);color:#fff;padding:9px 16px;border-radius:999px;font-weight:700;transition:.25s;pointer-events:none;z-index:50}
+.toast.show{opacity:1;transform:translateX(-50%)}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="/">Mentoring szoba</a></span>
+    <nav aria-label="Oldalak"><a href="/#jatek">Játék</a><a href="/chapter.html" aria-current="page">📅 Chapter</a><a href="/aknakereso.html">Aknakereső</a><a href="/szavazas.html">Szavazás</a><a href="/#szabalyok">Hogyan működik</a><a href="/bent.html">Ki van bent?</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></nav>
+  </div>
+  <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
+</header>
+<div class="hero"><div class="wrap">
+  <span class="kicker">CHAPTER ESEMÉNY</span>
+  <h1 id="q">Mikor legyen az AI chapter nagyba?</h1>
+  <p class="lead">Jelöld be a naptárban az összes napot, ami jó neked (koppints a napra; újra koppintva visszavonod). Alul látszik, melyik nap áll vezetésre.</p>
+</div></div>
+<main><div class="wrap">
+  <div class="identity" id="ident">
+    <div><b id="who">Mi a beceneved?</b><div class="muted" id="whoSub">Ugyanaz, mint a rulettnél.</div></div>
+    <form id="nickform"><input id="nick" maxlength="16" placeholder="Becenév" autocomplete="nickname"><button class="btn" type="submit">Mentés</button></form>
+    <span class="status" id="status"></span>
+  </div>
+  <section class="panel" aria-labelledby="calh">
+    <h2 id="calh">Mikor jó neked?</h2>
+    <div class="muted">A narancs napok a te jelöléseid; a kis szám azt mutatja, hányan jelölték az adott napot.</div>
+    <div class="months" id="months"></div>
+    <div class="legend"><span><i style="background:var(--orange);border-color:var(--orange)"></i>neked jó</span><span><i style="background:#faf6f3"></i>hétvége</span><span>👑 vezet</span></div>
+  </section>
+  <section class="panel" aria-labelledby="chh">
+    <h2 id="chh">Melyik nap vezet?</h2>
+    <p class="leader" id="leader">Még senki nem jelölt.</p>
+    <div class="chwrap"><div class="chart" id="chart" role="img" aria-label="Szavazatok naponként"></div>
+    <div class="axis" id="axis" aria-hidden="true"></div></div>
+    <ol class="toplist" id="toplist"></ol>
+  </section>
+  <section class="panel" aria-labelledby="pdh">
+    <h2 id="pdh">Ma bent vannak, de még nem jelöltek</h2>
+    <div class="pending" id="pending"></div>
+  </section>
+</div></main>
+<div class="toast" id="toast"></div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const safeGet = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+  const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+  const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  let nick = safeGet('nick'), ws, C = null, seats = {}, mine = new Set(), toastT;
+  const today = new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' });
+  const toast = (m) => { const t = $('toast'); t.textContent = m; t.classList.add('show'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('show'), 2400); };
+  const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+  const D = (s) => new Date(s + 'T12:00:00');
+  const iso = (d) => d.toLocaleDateString('sv-SE');
+  const fmtDay = (s) => D(s).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', weekday: 'long' });
+  function connect() {
+    ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
+    ws.onopen = () => { $('conn').style.display = 'none'; if (nick) send({ t: 'hello', nick }); };
+    ws.onclose = () => { $('conn').style.display = 'block'; setTimeout(connect, 1500); };
+    ws.onmessage = (e) => {
+      const m = JSON.parse(e.data);
+      if (m.t === 'state' && m.chapter) { C = m.chapter; seats = m.seats || {}; if (nick) mine = new Set(C.votes[nick] || []); render(); }
+      else if (m.t === 'hello') { nick = m.nick; safeSet('nick', nick); if (C) mine = new Set(C.votes[nick] || []); render(); }
+      else if (m.t === 'err') toast(m.msg);
+    };
+  }
+  $('nickform').onsubmit = (e) => { e.preventDefault(); const n = $('nick').value.trim(); if (n.length < 2) return toast('A becenév legalább 2 karakter.'); send({ t: 'hello', nick: n }); };
+  $('nick').value = nick;
+  // napra koppintva: be- vagy kijelölés, azonnal mentjük
+  $('months').addEventListener('click', (e) => {
+    const b = e.target.closest('.day[data-d]'); if (!b || b.disabled) return;
+    if (!nick) { $('nick').focus(); return toast('Előbb add meg a beceneved.'); }
+    const d = b.dataset.d; mine.has(d) ? mine.delete(d) : mine.add(d);
+    send({ t: 'chapter-set', days: [...mine] }); render();
+  });
+  function counts() { const c = {}; for (const days of Object.values(C.votes)) for (const d of days) c[d] = (c[d] || 0) + 1; return c; }
+  function render() {
+    if (!C) return;
+    $('q').textContent = C.question;
+    const c = counts(), max = Math.max(0, ...Object.values(c)), voted = nick && C.votes[nick];
+    // ki vagyok, és bejelöltem-e már
+    $('who').textContent = nick ? `Szia, ${nick}!` : 'Mi a beceneved?';
+    $('whoSub').textContent = nick ? 'Ezzel a névvel jelölsz. Más név: írd be és Mentés.' : 'Ugyanaz, mint a rulettnél.';
+    const st = $('status'); st.className = 'status ' + (voted ? 'ok' : 'due');
+    st.textContent = voted ? `✓ Bejelölve: ${C.votes[nick].length} nap` : '● Még nem jelölted be, mikor jó neked!';
+    // naptár: hónaponként, hétfővel kezdve
+    const from = D(C.from), to = D(C.to), months = [];
+    for (let m = new Date(from.getFullYear(), from.getMonth(), 1); m <= to; m = new Date(m.getFullYear(), m.getMonth() + 1, 1)) months.push(m);
+    $('months').innerHTML = months.map((m) => {
+      const first = new Date(m.getFullYear(), m.getMonth(), 1), last = new Date(m.getFullYear(), m.getMonth() + 1, 0), pad = (first.getDay() + 6) % 7;
+      let h = `<div class="month"><h3>${m.toLocaleDateString('hu-HU', { year: 'numeric', month: 'long' })}</h3><div class="grid">` + ['H', 'K', 'Sze', 'Cs', 'P', 'Szo', 'V'].map((x) => `<span class="dow">${x}</span>`).join('') + '<span></span>'.repeat(pad);
+      for (let d = 1; d <= last.getDate(); d++) {
+        const s = iso(new Date(m.getFullYear(), m.getMonth(), d)), out = s < C.from || s > C.to, past = s < today && !mine.has(s), wd = (pad + d - 1) % 7;
+        const cls = ['day', wd >= 5 ? 'we' : '', mine.has(s) ? 'mine' : '', max && c[s] === max ? 'lead' : ''].join(' ');
+        h += `<button type="button" class="${cls}" data-d="${s}" ${out || past ? 'disabled' : ''} aria-pressed="${mine.has(s)}" aria-label="${fmtDay(s)}${c[s] ? `, ${c[s]} jelölés` : ''}">${d}<span class="n">${c[s] || ''}</span></button>`;
+      }
+      return h + '</div></div>';
+    }).join('');
+    // grafikon: minden nap a sávban, a legtöbbet jelöltek kiemelve
+    const days = []; for (let d = D(C.from); d <= to; d.setDate(d.getDate() + 1)) days.push(iso(d));
+    const sorted = Object.entries(c).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]));
+    $('chart').innerHTML = days.map((d) => `<div class="chc${max && c[d] === max ? ' cfirst' : ''}${c[d] && sorted.slice(0, 3).some(([x]) => x === d) ? ' ctop' : ''}" title="${fmtDay(d)}: ${c[d] || 0} fő"><span class="v">${c[d] || ''}</span><div class="bar" style="height:${max ? (c[d] || 0) / max * 88 : 0}%"></div></div>`).join('');
+    $('axis').innerHTML = days.map((d) => { const x = D(d); return `<span>${x.getDate() === 1 || x.getDay() === 1 ? `${x.getMonth() + 1}.${x.getDate()}` : ''}</span>`; }).join('');
+    const who = (d) => Object.entries(C.votes).filter(([, ds]) => ds.includes(d)).map(([n]) => n);
+    const voters = Object.keys(C.votes).length;
+    $('leader').innerHTML = sorted.length ? `Vezet: <b>${esc(fmtDay(sorted[0][0]))}</b> · ${sorted[0][1]} fő (összesen ${voters} ember jelölt)` : 'Még senki nem jelölt. Légy te az első!';
+    $('toplist').innerHTML = sorted.slice(0, 5).map(([d, n], i) => `<li><span class="rank">${i + 1}.</span><span class="d">${esc(fmtDay(d))}</span><span>${n} fő</span><span class="who">${who(d).map(esc).join(', ')}</span></li>`).join('');
+    // akik ma bent vannak, de még nem jelöltek
+    const pend = Object.keys(seats).filter((n) => !C.votes[n]).sort((a, b) => a.localeCompare(b, 'hu'));
+    $('pending').innerHTML = pend.length ? pend.map((n) => `<span>${esc(n)}</span>`).join('') : '<span class="muted" style="background:none;color:var(--green)">Mindenki jelölt, aki ma bent van. 🎉</span>';
+  }
+  connect();
+})();
+</script>
+</body>
+</html>

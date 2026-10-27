@@ -16,6 +16,7 @@ const world = require('./world');
 const bj = require('./blackjack');
 const rouletteHistory = require('./roulette-history');
 const polls = require('./polls');
+const chapter = require('./chapter');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -83,6 +84,7 @@ function normalizeMinesweeper(value) {
 }
 S.minesweeper = normalizeMinesweeper(S.minesweeper);
 S.polls = polls.normalize(S.polls);
+S.chapter = chapter.normalize(S.chapter);
 const LAST = {};
 // ---- blackjack időzítés és elszámolás ----
 let bjTimer = null, bjEndAt = 0;
@@ -290,7 +292,7 @@ function snapshot(withTrack) {
     gyros: S.gyros,
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
-    profiles: S.profiles, seats: seats.view(S.seats, today()),
+    profiles: S.profiles, seats: seats.view(S.seats, today()), chapter: chapter.view(S.chapter),
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper,
   };
@@ -482,6 +484,13 @@ wss.on('connection', (ws) => {
     if (m.t === 'profile-delete') {
       const e = profiles.deleteProfile(S.profiles, ws.nick, String(m.name || ''));
       if (e) return err(e);
+      save(); broadcast(); return;
+    }
+    if (m.t === 'chapter-set') {
+      const first = !S.chapter.votes[ws.nick];
+      const e = chapter.setDays(S.chapter, ws.nick, m.days, today());
+      if (e) return err(e);
+      if (first && S.chapter.votes[ws.nick]) say(`📅 ${ws.nick} bejelölte, mikor jó neki az AI chapter.`);
       save(); broadcast(); return;
     }
     if (m.t === 'poll-create') {
