@@ -18,7 +18,7 @@
   const WIDE = {
     trees: [[0, 0, 205, 440, 7.5], [185, 0, 165, 440, 9], [300, 10, 195, 440, 8.2], [1375, 0, 345, 430, 10], [1770, 0, 230, 420, 8.8]],
     hammock: [1560, 592, 370, 175], lake: [1280, 482, 680, 125], sun: [1030, 335, 330], moon: [690, 110, 120],
-    sky: [0, 0, 2000, 300], ground: [180, 520, 1640, 230], speakers: [[812, 550], [1188, 550]], wind: [0, 120, 2000, 380],
+    sky: [0, 0, 2000, 300], ground: [180, 520, 1640, 230], speakers: [[602, 540, 115, 'right'], [478, 790, 165, 'right'], [1392, 578, 118, 'left'], [1822, 492, 78, 'left']], wind: [0, 120, 2000, 380],
   };
   const TALL_TREES = [[0, 220, 115, 940, 8], [88, 240, 115, 830, 9.4], [165, 455, 105, 600, 7.6], [690, 0, 320, 1250, 10.5], [1012, 285, 104, 920, 8.6]];
   function geo(sc) {
@@ -26,7 +26,7 @@
     const m = ([x, y, w, h]) => [x * sc.k + sc.ox, y * sc.k + sc.oy, w * sc.k, h * sc.k];
     const p = ([x, y]) => [x * sc.k + sc.ox, y * sc.k + sc.oy];
     return { trees: TALL_TREES, hammock: m(WIDE.hammock), lake: m(WIDE.lake), sun: [...p(WIDE.sun), WIDE.sun[2] * sc.k * 1.4], moon: [...p(WIDE.moon), 120],
-      sky: [0, 0, sc.w, 900], ground: m(WIDE.ground), speakers: WIDE.speakers.map(p), wind: [0, 300, sc.w, 1000] };
+      sky: [0, 0, sc.w, 900], ground: m(WIDE.ground), speakers: WIDE.speakers.map(([x, y, h, f]) => [...p([x, y]), h * sc.k, f]), wind: [0, 300, sc.w, 1000] };
   }
   const pct = (v, of) => (v / of * 100).toFixed(3) + '%';
   const rnd = (a, b) => a + Math.random() * (b - a);
@@ -53,7 +53,7 @@
     // tó: csillanások
     { const [x, y, w, h] = G.lake; for (let i = 0; i < 12; i++) el('fxglint', x + rnd(0.08, 0.92) * w, y + rnd(0.15, 0.85) * h, null, null, sc, { animationDelay: rnd(0, 6) + 's', animationDuration: rnd(3.5, 6.5) + 's' }); }
     if (!night) {
-      const [x, y, r] = G.sun; el('fxsun', x - r, y - r, 2 * r, 2 * r, sc);
+      // nappal nincs külön napfény-réteg (a lassú „napfelkelte” zavaró volt)
     } else {
       const [mx, my, mr] = G.moon; el('fxmoon', mx - mr, my - mr, 2 * mr, 2 * mr, sc);
       const [sx, sy, sw, sh] = G.sky; for (let i = 0; i < 28; i++) el('fxstar', sx + rnd(0, sw), sy + rnd(0.05, 1) * sh, null, null, sc, { animationDelay: rnd(0, 5) + 's', animationDuration: rnd(2.5, 5) + 's' });
@@ -61,14 +61,13 @@
       for (let i = 0; i < 10; i++) el('fxfly', gx + rnd(0, gw), gy + rnd(0, gh), null, null, sc, { '--dx': rnd(-60, 60) + 'px', '--dy': rnd(-40, 20) + 'px', animationDelay: rnd(0, 8) + 's', animationDuration: rnd(7, 12) + 's' });
     }
     // hangfalak (csak ha szól a zene)
-    G.speakers.forEach(([x, y], i) => {
-      const s = el('fxspk', x - 38, y - 96, 76, 96, sc, { animationDelay: (i * 0.24) + 's' });
-      s.innerHTML = '<svg viewBox="0 0 60 80"><rect x="3" y="3" width="54" height="74" rx="8" fill="#3a2418" stroke="#1a0f0a" stroke-width="3"/><circle cx="30" cy="24" r="10" fill="#6b4630" stroke="#1a0f0a" stroke-width="2.5"/><circle cx="30" cy="24" r="4" fill="#1a0f0a"/><circle class="cone" cx="30" cy="54" r="16" fill="#6b4630" stroke="#1a0f0a" stroke-width="2.5"/><circle class="cone" cx="30" cy="54" r="7" fill="#1a0f0a"/></svg>';
-      s.dataset.i = i;
+    G.speakers.forEach(([x, y, h, face], i) => {
+      const w = h * 0.64, s = el('fxspk', x - w / 2, y - h, w, h, sc, { animationDelay: (i * 0.12) + 's' });
+      s.innerHTML = `<img src="/img/speaker-${face}.png" alt="" draggable="false">`;
     });
     // falevelek a szélben (nappal), hangjegyek a hangfalakból (zene alatt)
     timers.push(setInterval(() => { if (on && !night && document.visibilityState === 'visible') leaf(sc, G); }, 3200));
-    timers.push(setInterval(() => { if (on && musicOn && document.visibilityState === 'visible') G.speakers.forEach(([x, y], i) => setTimeout(() => note(sc, x, y - 100), i * 260)); }, 620));
+    timers.push(setInterval(() => { if (on && musicOn && document.visibilityState === 'visible') G.speakers.forEach(([x, y, h], i) => setTimeout(() => note(sc, x, y - h * 0.95, h / 115), i * 170)); }, 900));
     paint();
   }
   function leaf(sc, G) {
@@ -77,13 +76,14 @@
     d.textContent = Math.random() < 0.5 ? '🍂' : '🍃';
     d.addEventListener('animationend', () => d.remove());
   }
-  function note(sc, x, y) {
-    const d = el('fxnote', x + rnd(-20, 20), y, null, null, sc, { '--tx': rnd(-50, 50) * unit + 'px', animationDuration: rnd(2.2, 3.2) + 's' });
+  function note(sc, x, y, k = 1) {
+    const d = el('fxnote', x + rnd(-20, 20) * k, y, null, null, sc, { '--tx': rnd(-50, 50) * unit * k + 'px', '--k': k, animationDuration: rnd(2.2, 3.2) + 's' });
     d.textContent = ['♪', '♫', '♬', '♩'][Math.floor(rnd(0, 4))];
     d.addEventListener('animationend', () => d.remove());
   }
   function paint() {
     layer.classList.toggle('still', !on); layer.classList.toggle('music', musicOn);
+    document.documentElement.classList.toggle('fx-off', !on);   // a mosómedvék ringatózása is
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
     btn.title = on ? 'Mozgás kikapcsolása' : 'Mozgás bekapcsolása';
     if (!on) layer.querySelectorAll('.fxleaf,.fxnote').forEach((n) => n.remove());
