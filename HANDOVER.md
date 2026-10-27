@@ -137,3 +137,16 @@ A hozzájárulók teljes neve nem lehet a nyilvános repóban. A kezdő adat a M
 
 - **„Ki van bent?”:** QR-kód az ajtón. Első beolvasáskor becenév (a telefonhoz kötve, HttpOnly süti, 400 nap), utána minden beolvasás bejelentkezés; az aznapi első +10 000 a potba; második beolvasás: „Elmegyek”; éjfélkor lejár. A céges hálózathoz nem nyúl (NIS2). A gazda a mester tokennel szabadít fel becenevet; 30 nap használat nélkül magától felszabadul.
 - **Mosómedve-animáció:** ha a három figura külön, átlátszó hátterű PNG-ben is meglesz, megmozdíthatók.
+
+## 3D tisztás (BÉTA, élesben)
+
+A főoldal fejlécében a **BÉTA** felirat (`#beta`) fehér áttűnéssel a `/tisztas3d.html?belep=1` oldalra visz; ha van már becenév, egyből indul a belépő. A fejlesztés a `vilag3d` ágon folyik, élesbe squash-merge-dzsel kerül.
+
+`/tisztas3d.html`: a tisztás valódi 3D-ben, Tripo AI-jal generált modellekből (ingyenes csomag, CC BY 4.0, a forrás az oldalon feltüntetve). Be lehet lépni, és a saját mosómedvével járkálni.
+- **Belépés:** becenév, majd az Assassin's Creed-szerű belépő: fehér „Animus”-tér szürke szilánkokkal („SZINKRONIZÁLÁS”), fehér villanás, a világ ködből, a mosómedvénktől kifelé hullámzó sorrendben bukkan elő, a kamera sasszemből leereszkedik a mosómedve mögé.
+- **Irányítás:** WASD / nyilak, Shift futás, kattintás után az egér forgatja a kamerát (pointer lock, Esc elengedi), görgő közelítés, E leülés / felállás. A kamera a jobb váll mögül néz, középen **célzó**: a célzott szabad hely narancs gyűrűt kap, a célzó kivilágosodik. Mobilon joystick bal lent, Futás és cselekvés gomb jobb lent. A kamera nem megy be a fákba, tárgyakba (sugárvetés).
+- **Helyek:** a 16 hely a tárgyakból mérve (`buildSpots`, sugárvetés a tárgyak tetejére); ha a célzó a helyre mutat és a mosómedve 2,4 m-en belül áll (`aimSpot`): „E Leülés a rönkre” stb. Ütközés: fák, tűz, asztalok, rönkök, függőágy-oszlopok, a tó és a tisztás széle (`OBST`, `collide`).
+- **Közös állapot:** `server/world.js` (becenév -> x, z, irány, mozgás, hely, bent van-e), WS: `w-watch`, `w-join`, `w-move` (5/s), `w-sit`, `w-leave`, a szerver legfeljebb 10/s küld `world` üzenetet. **Kilépés után a mosómedve ott marad**, ahol hagyták (💤 a neve mellett); visszalépve onnan folytatja.
+- **Statiszták:** `?demo` esetén a páratlan helyeken mosómedve-statiszták ülnek (ezekre nem lehet leülni); alapból csak a valódi játékosok.
+- `img/m3d/raccoon-poses.glb`: a mosómedve zárt hálóval (a Tripo-varratok összehegesztve, a súlyok zárt voxel-proxyról), pózok (stand, sit, sit_ground, lie, paddle, fish) és ciklusok (idle, walk, run). Újraépítés: `tools3d/rebuild.py`, majd `tools3d/poses.py`.
+- `img/m3d/picnic.glb`, `pub.glb`, `log.glb`, `firering.glb`, `hammock.glb`, `canoe.glb`, `pine.glb`: a tárgyak (textúra 1024 px, Draco). A nyers Tripo-fájlok: `art3d/` (nincs a repóban).

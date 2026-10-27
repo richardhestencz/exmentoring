@@ -12,6 +12,7 @@ const presence = require('./presence');
 const cola = require('./cola');
 const profiles = require('./profiles');
 const seats = require('./seats');
+const world = require('./world');
 const bj = require('./blackjack');
 
 const PORT = process.env.PORT || 3000;
@@ -47,6 +48,7 @@ S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
 S.seats ||= seats.empty();
+S.world ||= world.empty();
 for (const v of Object.values(S.seats)) v.since ||= Date.now();   // a belépés ideje (a korábbi bejegyzésekben még nem volt)
 delete S.avatars;   // a régi skin-profilok (skin már nincs)
 // blackjack: a kör a memóriában él; ha a szerver kör közben újraindul, a feltett tétek visszajárnak a potba
@@ -268,6 +270,15 @@ function snapshot(withTrack) {
   }
   return snap;
 }
+let worldTimer = null;
+function broadcastWorld() {
+  if (worldTimer) return;
+  worldTimer = setTimeout(() => {
+    worldTimer = null;
+    const msg = JSON.stringify({ t: 'world', world: world.view(S.world) });
+    for (const c of wss.clients) if (c.readyState === 1 && c.wantsWorld) c.send(msg);
+  }, 100);
+}
 function broadcast(withTrack) {
   const msg = JSON.stringify(snapshot(withTrack));
   for (const c of wss.clients) if (c.readyState === 1) c.send(msg);
@@ -285,7 +296,11 @@ function addMinesweeperScore(nick, level, seconds) {
 wss.on('connection', (ws) => {
   ws.nick = ''; ws.budget = 10;
   const refill = setInterval(() => { ws.budget = 10; }, 1000);
-  ws.on('close', () => clearInterval(refill));
+  ws.on('close', () => {
+    clearInterval(refill);
+    // a tisztásról akkor lép ki, ha ezzel a becenévvel már senki nincs bent (más lapon sem)
+    if (ws.inWorld && ![...wss.clients].some((c) => c !== ws && c.inWorld && c.nick === ws.nick)) { world.leave(S.world, ws.nick); save(); broadcastWorld(); }
+  });
   ws.send(JSON.stringify(snapshot(true)));
   ws.on('message', (raw) => {
     if (--ws.budget < 0) return;
@@ -319,7 +334,17 @@ wss.on('connection', (ws) => {
       save(); broadcast();
       return;
     }
+    if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
     if (!ws.nick) return err('Előbb adj meg becenevet.');
+    if (m.t === 'w-join' || m.t === 'w-move' || m.t === 'w-sit' || m.t === 'w-leave') {
+      ws.wantsWorld = true;
+      if (m.t === 'w-leave') { ws.inWorld = false; world.leave(S.world, ws.nick); save(); return broadcastWorld(); }
+      const e = m.t === 'w-join' ? world.join(S.world, ws.nick) : m.t === 'w-move' ? world.move(S.world, ws.nick, m) : world.sit(S.world, ws.nick, m.spot);
+      if (e) return err(e);
+      if (m.t === 'w-join') { ws.inWorld = true; ws.send(JSON.stringify({ t: 'w-me', me: world.view(S.world)[ws.nick] })); }
+      if (m.t !== 'w-move') save(); else { clearTimeout(ws.moveSave); ws.moveSave = setTimeout(save, 2000); }
+      return broadcastWorld();
+    }
     if (m.t === 'minesweeper-score') {
       const e = addMinesweeperScore(ws.nick, String(m.difficulty || ''), Number(m.seconds));
       if (e) return err(e);

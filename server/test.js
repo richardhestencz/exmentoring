@@ -279,3 +279,18 @@ test('fizikai szimuláció: az eredmények nagyjából egyenletesek', () => {
   const exp = N / 37, chi = hist.reduce((a, c) => a + (c - exp) ** 2 / exp, 0);
   assert.ok(chi < 70, `khí-négyzet ${chi.toFixed(1)}`);
 });
+test('3D tisztás: a mosómedve ott marad, ahol hagyták', () => {
+  const Wd = require('./world'), W = Wd.empty();
+  assert.ok(Wd.move(W, 'Ricsi', { x: 1, z: 1, ry: 0 }), 'belépés nélkül nem mozoghat');
+  assert.strictEqual(Wd.join(W, 'Ricsi'), null);
+  assert.strictEqual(Wd.move(W, 'Ricsi', { x: 3, z: -2, ry: 1, act: 'run' }), null);
+  assert.strictEqual(Wd.move(W, 'Ricsi', { x: 50, z: 0, ry: 0 }), null);
+  assert.ok(W.Ricsi.x <= Wd.R, 'a tisztás szélén megáll');
+  assert.ok(Wd.move(W, 'Ricsi', { x: 'a', z: 0, ry: 0 }), 'hibás adat');
+  assert.strictEqual(Wd.sit(W, 'Ricsi', 4), null);
+  Wd.join(W, 'Gabó'); assert.match(Wd.sit(W, 'Gabó', 4), /Ricsi/, 'foglalt hely');
+  Wd.leave(W, 'Ricsi');
+  assert.strictEqual(W.Ricsi.on, false); assert.strictEqual(W.Ricsi.spot, 4, 'kilépés után is ott ül');
+  Wd.join(W, 'Ricsi'); assert.strictEqual(W.Ricsi.spot, 4, 'visszalépve ugyanott folytatja');
+  assert.strictEqual(Wd.move(W, 'Ricsi', { x: 0, z: 0, ry: 0 }), null); assert.strictEqual(W.Ricsi.spot, null, 'feláll, ha elindul');
+});

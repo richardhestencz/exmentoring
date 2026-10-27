@@ -1,0 +1,684 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tisztás 3D</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,sans-serif;background:#fbeee2}
+canvas{display:block}
+.hud{position:fixed;left:12px;top:12px;display:flex;gap:6px;flex-wrap:wrap;z-index:2}
+.hud button{padding:7px 12px;border-radius:999px;border:1px solid rgba(0,0,0,.15);background:rgba(255,255,255,.75);color:#2a1a12;font:inherit;font-weight:700;cursor:pointer}
+.hud button[aria-pressed="true"]{background:#eb772e;border-color:#eb772e;color:#fff}
+.note a{color:#c2531b;font-weight:700}
+.note{position:fixed;left:12px;bottom:12px;color:#5a3a2a;font-size:.78rem;background:rgba(255,255,255,.7);padding:6px 10px;border-radius:8px;z-index:2;max-width:min(560px,calc(100% - 24px))}
+.load{position:fixed;inset:0;display:grid;place-items:center;color:#5a3a2a;font-weight:700;z-index:3;background:#fbeee2;transition:opacity .6s}
+.load.done{opacity:0;pointer-events:none}
+.frombeta .load{background:#f3f3f3;color:#6b6b6b;font-family:ui-monospace,Menlo,monospace;letter-spacing:.3em}
+.load[hidden]{display:none}
+.tag{position:fixed;transform:translate(-50%,-100%);z-index:2;pointer-events:none;color:#fff;font-weight:800;font-size:12px;background:rgba(42,26,18,.7);border-radius:999px;padding:1px 8px;white-space:nowrap}
+.tag.off{background:rgba(42,26,18,.38);color:#eee}
+.tag.off::after{content:' 💤'}
+.entry{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);z-index:3;display:flex;gap:8px;align-items:center;background:rgba(255,255,255,.88);padding:10px 12px;border-radius:16px;box-shadow:0 6px 24px rgba(60,30,10,.18)}
+.entry input{font:inherit;padding:9px 12px;border-radius:10px;border:1px solid #d9c3b2;color:#2a1a12;background:#fff;width:150px}
+.entry button,.play button{font:inherit;font-weight:800;padding:9px 16px;border-radius:999px;border:0;background:#eb772e;color:#fff;cursor:pointer}
+.entry[hidden]{display:none}
+.play{display:none}
+body.playing .play{display:block}
+body.playing .hud,body.playing .note,body.intro .hud,body.intro .note,body.intro .entry,body.intro #tags{display:none}
+#exit{position:fixed;right:12px;top:12px;z-index:3}
+.keys{position:fixed;left:12px;top:12px;z-index:3;color:#5a3a2a;font-size:.8rem;background:rgba(255,255,255,.75);padding:6px 10px;border-radius:10px}
+#reticle{position:fixed;left:50%;top:50%;width:10px;height:10px;margin:-7px 0 0 -7px;border-radius:50%;border:2px solid rgba(255,255,255,.95);box-shadow:0 0 0 1.5px rgba(30,20,12,.55);z-index:3;pointer-events:none;transition:width .15s,height .15s,margin .15s,border-color .15s}
+#reticle[hidden],body:not(.playing) #reticle{display:none}
+#reticle.on{width:26px;height:26px;margin:-15px 0 0 -15px;border-color:#ff8a2a;box-shadow:0 0 0 1.5px rgba(30,20,12,.55),0 0 12px rgba(255,138,42,.7)}
+#reticle.busy{border-color:#bbb;box-shadow:0 0 0 1.5px rgba(30,20,12,.55)}
+#prompt{position:fixed;left:50%;top:calc(50% + 26px);transform:translateX(-50%);z-index:3;background:rgba(20,14,10,.78);color:#fff;font-weight:700;padding:8px 16px;border-radius:999px}
+#prompt[hidden]{display:none}
+kbd{display:inline-block;background:#fff;color:#2a1a12;border-radius:6px;padding:0 7px;margin-right:6px;font:inherit;font-weight:900;box-shadow:0 2px 0 #bbb}
+#joy,#actBtn,#runBtn{display:none}
+@media (pointer:coarse){
+  #joy{display:block;position:fixed;left:22px;bottom:28px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,.35);border:2px solid rgba(255,255,255,.7);z-index:3;touch-action:none}
+  #joy>div{position:absolute;left:35px;top:35px;width:50px;height:50px;border-radius:50%;background:rgba(255,255,255,.9)}
+  #actBtn,#runBtn{display:block;position:fixed;right:20px;z-index:3;min-width:84px}
+  #actBtn{bottom:30px} #runBtn{bottom:88px;background:rgba(255,255,255,.85);color:#2a1a12}
+  #runBtn[aria-pressed="true"]{background:#eb772e;color:#fff}
+  .keys{display:none}
+}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
+#sync{position:fixed;inset:0;z-index:5;pointer-events:none;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;color:#5b5b5b;letter-spacing:.35em;text-align:center}
+#sync[hidden]{display:none}
+#sync b{display:block;font-size:clamp(18px,4vw,30px);font-weight:700;animation:glitch 1.6s steps(1) infinite}
+#sync span{display:block;margin-top:10px;font-size:13px;letter-spacing:.25em}
+#sync i{display:block;margin:14px auto 0;width:min(320px,70vw);height:2px;background:linear-gradient(90deg,transparent,#8a8a8a,transparent)}
+@keyframes glitch{0%,100%{transform:none;opacity:1}12%{transform:translateX(3px) skewX(8deg);opacity:.7}14%{transform:none;opacity:1}61%{transform:translateX(-4px);opacity:.6}63%{transform:none;opacity:1}}
+#toast{position:fixed;left:50%;top:18px;transform:translate(-50%,-20px);opacity:0;transition:.3s;z-index:6;background:rgba(20,14,10,.85);color:#fff;font-weight:700;padding:8px 16px;border-radius:999px;pointer-events:none;max-width:calc(100% - 32px);text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+</style>
+</head>
+<body>
+<script>if(location.search.includes('belep'))document.documentElement.classList.add('frombeta')</script>
+<div class="load" id="load">A tisztás töltődik…</div>
+<div class="hud">
+  <button type="button" id="night" aria-pressed="false">🌙 Éjjel</button>
+  <button type="button" id="cam" aria-pressed="false">🎥 Körbe</button>
+  <button type="button" id="home">🔥 Tábortűz</button>
+  <button type="button" id="bj">🃏 Blackjack</button>
+  <button type="button" id="lake">🎣 Tó</button>
+</div>
+<p class="note"><b>BÉTA</b> · a tisztás 3D-ben, Tripo-modellekből (Tripo AI, CC BY 4.0). Lépj be, és mozgasd a saját mosómedvédet. <a href="/">← Vissza a megszokott oldalra</a></p>
+<div id="tags"></div>
+<div class="entry" id="entry" hidden><input id="nick" maxlength="20" placeholder="Beceneved" autocomplete="nickname"><button type="button" id="go">🦝 Belépés a tisztásra</button></div>
+<div class="play">
+  <button type="button" id="exit">Kilépés</button>
+  <div class="keys">WASD / nyilak: mozgás · Shift: futás · kattints, és az egér forgat · célozz egy helyre, E: leülés, felállás</div>
+  <div id="joy"><div></div></div>
+  <button type="button" id="runBtn" aria-pressed="false">Futás</button>
+  <button type="button" id="actBtn">E</button>
+</div>
+<div id="reticle" class="play-only" hidden></div>
+<div id="prompt" hidden></div>
+<div id="flash"></div>
+<div id="sync" hidden><div><b>SZINKRONIZÁLÁS</b><span id="syncNick"></span><i></i><span id="syncPct">0%</span></div></div>
+<div id="toast"></div>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
+import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+
+// ---------- alap: a textúrák saját színeivel (a Tripo-textúrákon az árnyalás már rajta van), fény nélkül ----------
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(35, innerWidth / innerHeight, 0.1, 300);
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true; controls.maxPolarAngle = 1.35; controls.minDistance = 3; controls.maxDistance = 45;
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+
+// háttér: világos, meleg színátmenet (mint a kép világos háttere)
+const bgTex = (top, bottom) => { const c = document.createElement('canvas'); c.width = 2; c.height = 256; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 256);
+  gr.addColorStop(0, top); gr.addColorStop(1, bottom); g.fillStyle = gr; g.fillRect(0, 0, 2, 256); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; };
+const BG_DAY = bgTex('#fff6ee', '#f6d9c2'), BG_NIGHT = bgTex('#1a1530', '#2b1d3a');
+scene.background = BG_DAY;
+
+// ---------- kontúr: a normál mentén kifelé tolt, hátoldalas sötét héj (csontvázas modellen is működik) ----------
+let night = false;
+const outlineMat = (w) => {
+  const m = new THREE.MeshBasicMaterial({ color: 0x24140c, side: THREE.BackSide });
+  m.onBeforeCompile = (sh) => { sh.vertexShader = sh.vertexShader.replace('#include <begin_vertex>', `#include <begin_vertex>\n transformed += normalize(normal) * ${w.toFixed(4)};`); };
+  return m;
+};
+const tinted = [];   // éjjel ezeknek az anyagoknak a színét szorozzuk
+const pops = [];     // a belépőnél ezek bukkannak elő (tárgyak, fák, mosómedvék)
+// a körvonalhoz egybeeső pontokon átlagolt normál kell, különben a UV-varratoknál szétnyílik
+const smoothCache = new Map();
+function smoothNormals(geo) {
+  if (smoothCache.has(geo)) return smoothCache.get(geo);
+  const g = geo.clone(), pos = g.attributes.position, nor = g.attributes.normal, acc = new Map(), key = (i) =>
+    `${Math.round(pos.getX(i) * 1e4)},${Math.round(pos.getY(i) * 1e4)},${Math.round(pos.getZ(i) * 1e4)}`;
+  for (let i = 0; i < pos.count; i++) { const k = key(i), a = acc.get(k) || [0, 0, 0]; a[0] += nor.getX(i); a[1] += nor.getY(i); a[2] += nor.getZ(i); acc.set(k, a); }
+  for (let i = 0; i < pos.count; i++) { const a = acc.get(key(i)), l = Math.hypot(...a) || 1; nor.setXYZ(i, a[0] / l, a[1] / l, a[2] / l); }
+  smoothCache.set(geo, g); return g;
+}
+function toonify(root, w) {
+  const add = [];
+  root.traverse((o) => {
+    if (!o.isMesh || o.userData.outline) return;
+    const old = o.material, mat = new THREE.MeshBasicMaterial({ map: old.map || null });
+    if (!old.map && old.color) mat.color.copy(old.color);
+    if (mat.map) mat.map.colorSpace = THREE.SRGBColorSpace;
+    o.material = mat; tinted.push(mat); if (night) mat.color.set(0x5a5c9a);
+    const g = o.isSkinnedMesh ? smoothNormals(o.geometry) : o.geometry;
+    const ol = o.isSkinnedMesh ? new THREE.SkinnedMesh(g, outlineMat(w)) : new THREE.Mesh(g, outlineMat(w));
+    if (o.isSkinnedMesh) ol.bind(o.skeleton, o.bindMatrix);
+    ol.userData.outline = true; add.push([o, ol]);
+  });
+  for (const [o, ol] of add) o.add(ol);
+}
+// puha árnyékfolt a tárgyak alatt
+const blobTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 10, 64, 64, 64);
+  gr.addColorStop(0, 'rgba(70,35,10,.45)'); gr.addColorStop(1, 'rgba(70,35,10,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })();
+function blob(x, z, rx, rz, rot = 0, y = 0.02) {
+  const m = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
+  m.rotation.set(-Math.PI / 2, 0, rot); m.scale.set(rx * 2, rz * 2, 1); m.position.set(x, y, z); scene.add(m);
+}
+
+// ---------- a tisztás talpa: kerek dioráma, festett felülettel (fű, földes kör a tűz körül, a tó hátul jobbra) ----------
+const R = 8, BASE_H = 0.9;
+const LAKE = { x: 4.2, z: -3.0, rx: 3.4, rz: 1.45, a: 0.62 };   // a tó: elforgatott ellipszis
+function groundTexture() {
+  const N = 2048, c = document.createElement('canvas'); c.width = c.height = N; const g = c.getContext('2d');
+  const P = (x, z) => [(x / R * 0.5 + 0.5) * N, (z / R * 0.5 + 0.5) * N];
+  const gr = g.createRadialGradient(N / 2, N / 2, N * 0.1, N / 2, N / 2, N * 0.5); gr.addColorStop(0, '#e7a843'); gr.addColorStop(1, '#c98a2c');
+  g.fillStyle = gr; g.fillRect(0, 0, N, N);
+  let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+  for (let i = 0; i < 9000; i++) {
+    const x = rnd() * N, y = rnd() * N, l = 8 + rnd() * 18, q = rnd(), col = q < 0.5 ? '#a8691f' : q < 0.8 ? '#f2c25c' : '#7f8a2e';
+    g.strokeStyle = col; g.lineWidth = 2 + rnd() * 2; g.beginPath(); g.moveTo(x, y); g.quadraticCurveTo(x + (rnd() - 0.5) * 8, y - l * 0.6, x + (rnd() - 0.5) * 10, y - l); g.stroke();
+  }
+  const [fx, fy] = P(0, 0.6), fr = (2.4 / R) * N * 0.5, dg = g.createRadialGradient(fx, fy, fr * 0.2, fx, fy, fr);
+  dg.addColorStop(0, '#f1b56a'); dg.addColorStop(0.7, '#e09a4e'); dg.addColorStop(1, 'rgba(224,154,78,0)'); g.fillStyle = dg; g.beginPath(); g.arc(fx, fy, fr, 0, 7); g.fill();
+  g.save(); const [lx, ly] = P(LAKE.x, LAKE.z); g.translate(lx, ly); g.rotate(LAKE.a);
+  const sx = (LAKE.rx / R) * N * 0.5, sy = (LAKE.rz / R) * N * 0.5;
+  g.fillStyle = '#8a5a2a'; g.beginPath(); g.ellipse(0, 0, sx * 1.07, sy * 1.12, 0, 0, 7); g.fill();
+  const wg = g.createRadialGradient(0, 0, 0, 0, 0, sx); wg.addColorStop(0, '#5aa2c0'); wg.addColorStop(1, '#8fc7d6');
+  g.fillStyle = wg; g.beginPath(); g.ellipse(0, 0, sx, sy, 0, 0, 7); g.fill();
+  g.strokeStyle = '#2a1a12'; g.lineWidth = 6; g.stroke();
+  g.strokeStyle = 'rgba(255,255,255,.55)'; g.lineWidth = 4;
+  for (let i = 0; i < 26; i++) { const a = rnd() * 6.28, r = rnd() * 0.8, x = Math.cos(a) * sx * r, y = Math.sin(a) * sy * r; g.beginPath(); g.moveTo(x - 14, y); g.lineTo(x + 14, y); g.stroke(); }
+  g.restore();
+  g.strokeStyle = '#2a1a12'; g.lineWidth = 10; g.beginPath(); g.arc(N / 2, N / 2, N / 2 - 6, 0, 7); g.stroke();
+  const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
+}
+{
+  const top = new THREE.Mesh(new THREE.CircleGeometry(R, 96), new THREE.MeshBasicMaterial({ map: groundTexture() }));
+  top.rotation.x = -Math.PI / 2; scene.add(top); tinted.push(top.material);
+  const sideTex = (() => { const c = document.createElement('canvas'); c.width = 4; c.height = 64; const g = c.getContext('2d'), gr = g.createLinearGradient(0, 0, 0, 64);
+    gr.addColorStop(0, '#6b3f22'); gr.addColorStop(0.15, '#8a5230'); gr.addColorStop(1, '#4a2a18'); g.fillStyle = gr; g.fillRect(0, 0, 4, 64); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+  const side = new THREE.Mesh(new THREE.CylinderGeometry(R, R * 0.97, BASE_H, 96, 1, true), new THREE.MeshBasicMaterial({ map: sideTex }));
+  side.position.y = -BASE_H / 2; scene.add(side); tinted.push(side.material);
+  const bottom = new THREE.Mesh(new THREE.CircleGeometry(R * 0.97, 96), new THREE.MeshBasicMaterial({ color: 0x3a2014 })); bottom.rotation.x = Math.PI / 2; bottom.position.y = -BASE_H; scene.add(bottom);
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(R, 0.04, 6, 128), new THREE.MeshBasicMaterial({ color: 0x24140c })); rim.rotation.x = Math.PI / 2; scene.add(rim);
+  const rim2 = rim.clone(); rim2.scale.setScalar(0.97); rim2.position.y = -BASE_H; scene.add(rim2);
+  blob(0, 0, R * 1.08, R * 1.08, 0, -BASE_H - 0.02);   // a talp árnyéka
+}
+// a víz csillogása (a festett tó fölött)
+const waterMat = new THREE.ShaderMaterial({ transparent: true, depthWrite: false, uniforms: { t: { value: 0 } },
+  vertexShader: 'varying vec3 wp; varying vec2 vu; void main(){ vu = uv; vec4 w = modelMatrix * vec4(position,1.); wp = w.xyz; gl_Position = projectionMatrix * viewMatrix * w; }',
+  fragmentShader: 'uniform float t; varying vec3 wp; varying vec2 vu; void main(){ float r = length(vu - .5) * 2.; float s = smoothstep(.93, 1., sin(wp.x * 4. + t * 1.3) * sin(wp.z * 5. - t)); gl_FragColor = vec4(1., 1., 1., s * .6 * step(r, .95)); }' });
+{ const w = new THREE.Mesh(new THREE.CircleGeometry(1, 48), waterMat); w.rotation.set(-Math.PI / 2, 0, -LAKE.a); w.scale.set(LAKE.rx, LAKE.rz, 1); w.position.set(LAKE.x, 0.03, LAKE.z); scene.add(w); }
+
+// ---------- tűz ----------
+const flames = new THREE.Group(); flames.position.set(0, 0.12, 0.6); scene.add(flames);
+for (let i = 0; i < 6; i++) { const f = new THREE.Mesh(new THREE.ConeGeometry(0.17 - i * 0.015, 0.75 - i * 0.07, 7), new THREE.MeshBasicMaterial({ color: i % 2 ? 0xffc23c : 0xff6a1c, transparent: true, opacity: 0.95 })); f.position.set(Math.cos(i * 1.9) * 0.14, 0.38, Math.sin(i * 1.9) * 0.14); flames.add(f); }
+const glow = new THREE.Mesh(new THREE.PlaneGeometry(1, 1), new THREE.MeshBasicMaterial({ map: (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'), gr = g.createRadialGradient(64, 64, 4, 64, 64, 64); gr.addColorStop(0, 'rgba(255,170,60,.9)'); gr.addColorStop(1, 'rgba(255,120,30,0)'); g.fillStyle = gr; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c); })(), transparent: true, depthWrite: false, blending: THREE.AdditiveBlending }));
+glow.rotation.x = -Math.PI / 2; glow.scale.set(7, 7, 1); glow.position.set(0, 0.05, 0.6); glow.visible = false; scene.add(glow);
+
+// ---------- modellek ----------
+const draco = new DRACOLoader().setDecoderPath('https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/libs/draco/gltf/');
+const loader = new GLTFLoader().setDRACOLoader(draco);
+const cache = {};
+const load = (u) => (cache[u] ||= new Promise((res, rej) => loader.load(u, res, undefined, rej)));
+// egy tárgy a talpon: a hosszabbik vízszintes mérete len (opt.height esetén a magassága), x, z helyen, rot elforgatással
+async function prop(url, x, z, len, rot = 0, opt = {}) {
+  try {
+    const g = (await load(url)).scene.clone(true);
+    const bb = new THREE.Box3().setFromObject(g), sz = bb.getSize(new THREE.Vector3()), long = Math.max(sz.x, sz.z), k = opt.height ? len / sz.y : len / long;
+    const pivot = new THREE.Group(), inner = new THREE.Group(); inner.add(g);
+    g.position.set(-(bb.min.x + sz.x / 2), -bb.min.y, -(bb.min.z + sz.z / 2)); inner.scale.setScalar(k);
+    if (opt.thick) { inner.scale.y *= opt.thick; if (sz.z > sz.x) inner.scale.x *= opt.thick; else inner.scale.z *= opt.thick; }
+    if (sz.z > sz.x && !opt.height) inner.rotation.y = Math.PI / 2;
+    pivot.add(inner); pivot.position.set(x, opt.y || 0, z); pivot.rotation.y = rot; scene.add(pivot); pops.push(pivot);
+    toonify(pivot, (opt.outline || 0.025) / k);
+    if (!opt.noBlob) { const w = opt.height ? sz.x * k : len; blob(x, z, w * 0.55, opt.blobW || w * 0.35, -rot); }
+    return pivot;
+  } catch (e) { console.warn('nincs modell', url, e); return null; }
+}
+
+// ---------- az elrendezés a jóváhagyott kép szerint (a kép eleje a +z irány, jobbra +x) ----------
+const FIRE = [0, 0.6], PUB = [0, -2.1], BJT = [-4.6, 1.5];
+const TREES = [[-7, -0.6, 7.2], [-6.6, 2.4, 6.4], [-6.1, -2.8, 7.8], [-4.9, -4.5, 7.4], [-3.4, -5.6, 8.2], [-1.8, -6.4, 7.6], [-0.2, -6.9, 8.4], [1.4, -6.9, 7.2],
+  [2.9, -7.3, 6.6], [5.2, -6.2, 7], [7.0, -4.3, 6.4], [7.6, -1.6, 6], [-5.8, 4.4, 6.2]];
+const NICKS = ['Mókus', 'Bandi', 'Csipke', 'Pötty', 'Bors', 'Málna', 'Zizi', 'Kópé', 'Tücsi', 'Szundi', 'Repkény', 'Pecás', 'Horog', 'Csali', 'Úszó', 'Evező'];
+const people = [];
+const P = {};   // a betöltött tárgyak (a helyek ezekhez igazodnak)
+
+// a tárgy felülete egy pontban: sugár felülről lefelé a tárgy hálóira (pl. a pad, a rönk, a sámli teteje)
+const ray = new THREE.Raycaster();
+function topAt(obj, x, z) {
+  ray.set(new THREE.Vector3(x, 30, z), new THREE.Vector3(0, -1, 0));
+  const hits = ray.intersectObject(obj, true).filter((h) => !h.object.userData.outline);
+  return hits.length ? hits[0].point.y : 0;
+}
+// a tárgy saját (forgatott, nem méretezett) koordinátáiból világ-koordináta: a hossztengely a helyi x
+const local = (pv, lx, lz) => new THREE.Vector3(lx, 0, lz).applyAxisAngle(new THREE.Vector3(0, 1, 0), pv.rotation.y).add(pv.position);
+const size = (pv) => new THREE.Box3().setFromObject(pv).getSize(new THREE.Vector3());
+
+// a 16 hely a tárgyakból számolva: hol ül (x, z), milyen magasan (y), merre néz (look), milyen pózban
+function buildSpots() {
+  const out = [], fire = new THREE.Vector3(FIRE[0], 0, FIRE[1]), lake = new THREE.Vector3(LAKE.x, 0, LAKE.z);
+  const put = (n, pos, look, pose, y) => out.push({ n, pos, look, pose, y });
+  // blackjack: a két játékos a pad egyik oldalán, az osztó szemben áll
+  { const pv = P.picnic, sz = size(pv), dz = sz.z * 0.36, len = sz.x;
+    for (const lx of [-len * 0.2, len * 0.2]) { const w = local(pv, lx, dz); put('', w, local(pv, lx, 0), 'sit', topAt(pv, w.x, w.z)); }
+    put('', local(pv, 0, -sz.z * 0.62), local(pv, 0, 0), 'stand', 0); }
+  // póker: két sámli a kocsmaasztal előtt (a legmagasabb pont 0,25 és 0,7 m közt, az asztal körül)
+  { const pv = P.pub, sz = size(pv), r = Math.max(sz.x, sz.z) * 0.36, found = [];
+    for (let a = 0; a < 360 && found.length < 4; a += 3) { const ar = a * Math.PI / 180, x = pv.position.x + Math.sin(ar) * r, z = pv.position.z + Math.cos(ar) * r, h = topAt(pv, x, z);
+      if (h > 0.25 && h < 0.7 && !found.some((f) => Math.hypot(f.x - x, f.z - z) < 0.6)) found.push({ x, z, h }); }
+    found.sort((p, q) => q.z - p.z).slice(0, 2).forEach((f) => put('', new THREE.Vector3(f.x, 0, f.z), pv.position, 'sit', f.h)); }
+  // a rönkök: két-két hely a tengelyük mentén, a tűz felé fordulva
+  for (const pv of [P.logL, P.logR]) for (const lx of [-0.45, 0.45]) { const w = local(pv, lx, 0); put('', w, fire, 'sit', topAt(pv, w.x, w.z)); }
+  // függőágy: a közepén fekszik
+  { const pv = P.hammock, w = local(pv, 0, 0); put('', w, local(pv, 1, 0), 'lie', topAt(pv, w.x, w.z)); }
+  // sárkányrepülő: még nincs modell (a hely üres marad)
+  out.push(null);
+  // HO: négy horgász a tó túlsó partján, a tó felé fordulva, és a kenu
+  for (const [x, z] of [[3.7, -5.85], [4.85, -5.05], [5.95, -4.25], [6.85, -3.2]]) put('', new THREE.Vector3(x, 0, z), lake, 'fish', 0);
+  { const pv = P.canoe, w = local(pv, 0, 0); put('', w, local(pv, 1, 0), 'paddle', topAt(pv, w.x, w.z)); }
+  return out;
+}
+// ---------- mosómedvék: egy közös modell (pózok + járás/futás/álldogálás ciklusok), mindenkinek saját példánya ----------
+const BASE = {};
+const CYCLE = new Set(['idle', 'walk', 'run']);
+async function loadRaccoon() {
+  const gltf = await load('/img/m3d/raccoon-poses.glb');
+  const bb = new THREE.Box3().setFromObject(gltf.scene);
+  BASE.scene = gltf.scene; BASE.clips = gltf.animations; BASE.sc = 0.95 / (bb.max.y - bb.min.y); BASE.foot = -bb.min.y * BASE.sc;
+}
+const avs = [];   // minden látható mosómedve (a nevük a fejük fölött)
+function makeAv(name) {
+  const r = SkeletonUtils.clone(BASE.scene); r.scale.setScalar(BASE.sc); r.rotation.order = 'YXZ'; scene.add(r);
+  toonify(r, 0.012 / BASE.sc);
+  const mixer = new THREE.AnimationMixer(r), actions = {};
+  for (const c of BASE.clips) {
+    const a = mixer.clipAction(c); actions[c.name] = a;
+    if (!CYCLE.has(c.name)) { a.setLoop(THREE.LoopOnce); a.clampWhenFinished = true; }   // a pózok egyetlen kockából állnak
+  }
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), new THREE.MeshBasicMaterial({ map: blobTex, transparent: true, depthWrite: false }));
+  sh.rotation.x = -Math.PI / 2; scene.add(sh);
+  const tag = document.createElement('div'); tag.className = 'tag'; tag.textContent = name; document.getElementById('tags').appendChild(tag);
+  const av = { name, r, mixer, actions, cur: '', tag, sh, made: [], spot: null, top: 1.15, pop: 1 };
+  avs.push(av); return av;
+}
+function dropAv(av) {
+  scene.remove(av.r); scene.remove(av.sh); av.made.forEach((o) => scene.remove(o)); av.tag.remove();
+  avs.splice(avs.indexOf(av), 1);
+}
+// mozgás-animáció váltása lágy átúsztatással
+function setAct(av, name, speed = 1) {
+  const a = av.actions[name]; if (!a) return;
+  a.timeScale = speed;
+  if (av.cur === name) return;
+  const prev = av.actions[av.cur];
+  a.reset().setEffectiveWeight(1).play();
+  if (prev && CYCLE.has(av.cur)) a.crossFadeFrom(prev, 0.22, false); else if (prev) prev.stop();
+  av.cur = name;
+}
+// leülés egy helyre: a póz a Blenderben készült, a csípő pontosan az ülés fölé kerül
+function seatOn(av, p) {
+  av.mixer.stopAllAction(); av.cur = p.pose; av.actions[p.pose].reset().play(); av.mixer.update(0);
+  av.r.rotation.set(p.pose === 'lie' ? -1.25 : 0, Math.atan2(p.look.x - p.pos.x, p.look.z - p.pos.z), 0);
+  av.r.position.set(p.pos.x, 0, p.pos.z); av.r.updateMatrixWorld(true);
+  const hp = av.r.getObjectByName('hips').getWorldPosition(new THREE.Vector3());
+  if (p.pose === 'stand') av.r.position.y = BASE.foot;
+  else { av.r.position.x += p.pos.x - hp.x; av.r.position.z += p.pos.z - hp.z; av.r.position.y += (p.y + 0.06) - hp.y; }
+  av.made.forEach((o) => scene.remove(o)); av.made = p.pose === 'fish' ? rod(av.r, p) : [];
+  av.sh.position.set(p.pos.x, Math.max(0.02, p.y > 0.3 ? 0.02 : p.y + 0.02), p.pos.z);
+  av.top = p.pose === 'stand' ? 1.15 : 0.85;
+}
+// felállás: talpra a megadott pontra
+function standAt(av, x, z, ry) {
+  av.made.forEach((o) => scene.remove(o)); av.made = [];
+  av.r.rotation.set(0, ry, 0); av.r.position.set(x, BASE.foot, z); av.top = 1.15;
+  av.mixer.stopAllAction(); av.cur = ''; setAct(av, 'idle');
+}
+
+// ---------- ütközés: fák, tűz, asztalok, rönkök, függőágy-oszlopok, a tó és a tisztás széle ----------
+const OBST = [];
+function buildObstacles() {
+  const c = (v, r) => OBST.push({ x: v.x, z: v.z, r });
+  for (const [x, z] of TREES) c({ x, z }, 0.42);
+  c({ x: FIRE[0], z: FIRE[1] }, 1.12);
+  { const sz = size(P.pub); c(P.pub.position, Math.max(sz.x, sz.z) * 0.44); }
+  { const sz = size(P.picnic); for (const lx of [-0.6, 0, 0.6]) c(local(P.picnic, lx, 0), sz.z * 0.42); }
+  for (const pv of [P.logL, P.logR]) for (const lx of [-0.65, 0, 0.65]) c(local(pv, lx, 0), 0.3);
+  for (const lx of [-1.35, 1.35]) c(local(P.hammock, lx, 0), 0.22);
+}
+const ME_R = 0.24;
+function lakeLocal(x, z) { const dx = x - LAKE.x, dz = z - LAKE.z, ca = Math.cos(LAKE.a), sa = Math.sin(LAKE.a); return [dx * ca + dz * sa, -dx * sa + dz * ca]; }
+function collide(p) {
+  for (let it = 0; it < 3; it++) {
+    for (const o of OBST) { const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz), m = o.r + ME_R; if (d < m && d > 1e-6) { p.x = o.x + dx / d * m; p.z = o.z + dz / d * m; } }
+    const [u, v] = lakeLocal(p.x, p.z), rx = LAKE.rx + ME_R, rz = LAKE.rz + ME_R, e = (u / rx) ** 2 + (v / rz) ** 2;
+    if (e < 1) { const k = 1 / Math.sqrt(e || 1e-6), nu = u * k, nv = v * k, ca = Math.cos(LAKE.a), sa = Math.sin(LAKE.a);
+      p.x = LAKE.x + nu * ca - nv * sa; p.z = LAKE.z + nu * sa + nv * ca; }
+    const d = Math.hypot(p.x, p.z), lim = R - 0.45; if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
+  }
+}
+// horgászbot a kezekben, damillal a vízbe
+function rod(r, p) {
+  const made = [];
+  r.updateMatrixWorld(true);
+  const hand = r.getObjectByName('forearmR').getWorldPosition(new THREE.Vector3()).lerp(r.getObjectByName('forearmL').getWorldPosition(new THREE.Vector3()), 0.5);
+  const dir = new THREE.Vector3(p.look.x - p.pos.x, 0, p.look.z - p.pos.z).normalize();
+  const tip = hand.clone().addScaledVector(dir, 1.6).add(new THREE.Vector3(0, 0.9, 0));
+  const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.012, 0.022, hand.distanceTo(tip), 6), new THREE.MeshBasicMaterial({ color: 0x5a3418 }));
+  stick.position.copy(hand).lerp(tip, 0.5); stick.lookAt(tip); stick.rotateX(Math.PI / 2); scene.add(stick); tinted.push(stick.material); made.push(stick);
+  const end = tip.clone().addScaledVector(dir, 0.35); end.y = 0.03;
+  const line = new THREE.Line(new THREE.BufferGeometry().setFromPoints([tip, end]), new THREE.LineBasicMaterial({ color: 0x24140c })); scene.add(line); made.push(line);
+  return made;
+}
+
+// ---------- kamera ----------
+const VIEWS = { home: [[0, 14, 21.5], [0, 1.2, -0.8]], bj: [[-2.4, 3.2, 5.6], [-4.6, 0.8, 1.4]], lake: [[1.2, 5.5, 2.5], [4.4, 0, -3.2]] };
+const v3 = (a) => new THREE.Vector3(...a);
+camera.position.copy(v3(VIEWS.home[0])); controls.target.copy(v3(VIEWS.home[1]));
+let fly = null;
+const flyTo = (k) => { fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: v3(VIEWS[k][0]), t1: v3(VIEWS[k][1]), k: 0 }; };
+for (const k of ['home', 'bj', 'lake']) document.getElementById(k).onclick = () => flyTo(k);
+document.getElementById('cam').onclick = (e) => { controls.autoRotate = !controls.autoRotate; controls.autoRotateSpeed = 0.5; e.currentTarget.setAttribute('aria-pressed', controls.autoRotate); };
+
+// ---------- napszak ----------
+function setNight(on) {
+  night = on; document.getElementById('night').setAttribute('aria-pressed', on);
+  scene.background = on ? BG_NIGHT : BG_DAY; glow.visible = on;
+  for (const m of tinted) m.color.set(on ? 0x5a5c9a : 0xffffff);
+}
+document.getElementById('night').onclick = () => setNight(!night);
+
+// ---------- betöltés ----------
+const DEMO = new URLSearchParams(location.search).has('demo');   // ?demo: mosómedve-statiszták ülnek a páratlan helyeken (bemutatóhoz)
+let SPOTS = [];
+const SPOT_NAMES = ['a blackjack-padra', 'a blackjack-padra', 'az osztó helyére', 'a sámlira', 'a sámlira', 'a rönkre', 'a rönkre', 'a rönkre', 'a rönkre',
+  'a függőágyba', '', 'horgászni', 'horgászni', 'horgászni', 'horgászni', 'a kenuba'];
+const VERB = { sit: 'Leülés', stand: 'Beállás', lie: 'Lefekvés', fish: 'Horgászás', paddle: 'Beszállás' };
+const npcAt = {};   // hely -> statiszta neve
+let ready = false;
+(async () => {
+  await Promise.all([
+    prop('/img/m3d/firering.glb', FIRE[0], FIRE[1], 2.2, 0, { y: -0.26 }),
+    prop('/img/m3d/log.glb', -2.5, 0.65, 2.1, 0.95, { thick: 0.45 }).then((o) => (P.logL = o)),
+    prop('/img/m3d/log.glb', 2.5, 0.65, 2.1, -0.95, { thick: 0.45 }).then((o) => (P.logR = o)),
+    prop('/img/m3d/picnic.glb', BJT[0], BJT[1], 2.1, 0).then((o) => (P.picnic = o)),
+    prop('/img/m3d/pub.glb', PUB[0], PUB[1], 2.4, 0).then((o) => (P.pub = o)),
+    prop('/img/m3d/hammock.glb', 4.5, 3.4, 3.0, -0.55, { blobW: 0.6 }).then((o) => (P.hammock = o)),
+    prop('/img/m3d/canoe.glb', 4.5, -2.75, 2.2, -0.6, { y: -0.08, noBlob: true }).then((o) => (P.canoe = o)),
+    ...TREES.map(([x, z, h]) => prop('/img/m3d/pine.glb', x, z, h, (x * 7 + z) % 6.28, { height: true, blobW: 0.9 })),
+    loadRaccoon(),
+  ]);
+  SPOTS = buildSpots(); buildObstacles();
+  if (DEMO) SPOTS.forEach((p, i) => { if (p && i % 2) { const av = makeAv(NICKS[i]); av.npc = true; seatOn(av, p); npcAt[i] = NICKS[i]; } });
+  ready = true;
+  const fromBeta = new URLSearchParams(location.search).has('belep');
+  document.getElementById('load').classList.add('done'); setTimeout(() => (document.getElementById('load').hidden = true), 700); document.getElementById('entry').hidden = false;
+  connect();
+  // a főoldal BÉTA gombjáról jött: ha van már beceneve, egyből indul a belépő
+  if (fromBeta && safeGet('nick').length >= 2) { document.getElementById('flash').style.opacity = 1; enter(); }
+})();
+
+// ---------- kapcsolat: a tisztás közös állapota a szerveren ----------
+let ws = null, myNick = '', pendingJoin = false;
+const safeGet = (k) => { try { return localStorage.getItem(k) || ''; } catch { return ''; } };
+const safeSet = (k, v) => { try { localStorage.setItem(k, v); } catch {} };
+const send = (o) => ws && ws.readyState === 1 && ws.send(JSON.stringify(o));
+function connect() {
+  ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
+  ws.onopen = () => { send({ t: 'w-watch' }); if (myNick) send({ t: 'hello', nick: myNick }); if (mode === 'play') { send({ t: 'w-join' }); lastSent = ''; } };
+  ws.onclose = () => setTimeout(connect, 1500);
+  ws.onmessage = (e) => {
+    const m = JSON.parse(e.data);
+    if (m.t === 'world') onWorld(m.world);
+    else if (m.t === 'hello' && pendingJoin) send({ t: 'w-join' });
+    else if (m.t === 'w-me' && pendingJoin) { pendingJoin = false; startIntro(m.me); }
+    else if (m.t === 'err') toast(m.msg);
+  };
+}
+const players = new Map();   // becenév -> mosómedve (a szerver szerint)
+let occ = {};                // hely -> ki ül ott (játékos)
+function onWorld(W) {
+  occ = {};
+  for (const [n, v] of Object.entries(W)) {
+    if (v.spot !== null) occ[v.spot] = n;
+    if (n === myNick && mode !== 'view') continue;           // a saját mosómedvénket játék közben helyben irányítjuk
+    let av = players.get(n);
+    if (!av) { av = makeAv(n); players.set(n, av); av.r.position.set(v.x, BASE.foot, v.z); av.r.rotation.y = v.ry; if (v.spot === null) setAct(av, 'idle'); }
+    av.want = v;
+  }
+  for (const [n, av] of players) if (!W[n] || (n === myNick && mode !== 'view')) { dropAv(av); players.delete(n); }
+}
+function syncRemote(av, dt) {
+  const w = av.want; if (!w) return;
+  av.tag.classList.toggle('off', !w.on);
+  if (w.spot !== null && SPOTS[w.spot]) { if (av.spot !== w.spot) { av.spot = w.spot; seatOn(av, SPOTS[w.spot]); } return; }
+  if (av.spot !== null) { av.spot = null; standAt(av, w.x, w.z, w.ry); }
+  const k = 1 - Math.exp(-8 * dt);
+  av.r.position.x += (w.x - av.r.position.x) * k; av.r.position.z += (w.z - av.r.position.z) * k;
+  av.r.rotation.y += angDiff(w.ry, av.r.rotation.y) * k;
+  setAct(av, w.on ? w.act : 'idle', w.act === 'run' ? 1.1 : 1);
+  av.sh.position.set(av.r.position.x, 0.02, av.r.position.z);
+}
+const angDiff = (a, b) => ((a - b + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
+
+// ---------- a játékos ----------
+let mode = 'view';   // view: körbenézés, intro: belépő, play: a saját mosómedvénk
+const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 4.3, near: null };
+let lastSent = '', sendAt = 0;
+function enter() {
+  const nick = (document.getElementById('nick').value || '').trim();
+  if (nick.length < 2) { toast('A becenév legalább 2 karakter.'); return; }
+  myNick = nick; safeSet('nick', nick); pendingJoin = true;
+  document.getElementById('entry').hidden = true;
+  if (ws && ws.readyState === 1) send({ t: 'hello', nick });
+}
+function leave() {
+  send({ t: 'w-leave' }); mode = 'view'; controls.enabled = true;
+  if (me.av) { dropAv(me.av); me.av = null; }
+  lastSent = ''; document.body.classList.remove('playing'); document.getElementById('entry').hidden = false; document.getElementById('prompt').hidden = true; mark.visible = false; document.exitPointerLock?.();
+  fly = { p0: camera.position.clone(), t0: controls.target.clone(), p1: v3(VIEWS.home[0]), t1: v3(VIEWS.home[1]), k: 0 };
+}
+function myPose() {
+  if (me.spot !== null) return;
+  me.av.r.position.set(me.x, BASE.foot, me.z); me.av.r.rotation.y = me.ry; me.av.sh.position.set(me.x, 0.02, me.z);
+}
+function sitDown(i) {
+  const p = SPOTS[i]; me.spot = i; seatOn(me.av, p); send({ t: 'w-sit', spot: i });
+  me.yaw = Math.atan2(p.look.x - p.pos.x, p.look.z - p.pos.z) + 0.3; me.pitch = 0.5; lastSent = '';   // ülve szemből, kicsit felülről (a szomszédok így nem takarnak)
+}
+function standUp() {
+  const p = SPOTS[me.spot], back = new THREE.Vector3(p.pos.x - p.look.x, 0, p.pos.z - p.look.z).normalize();
+  const q = { x: p.pos.x + back.x * 0.75, z: p.pos.z + back.z * 0.75 }; collide(q);
+  me.x = q.x; me.z = q.z; me.ry = Math.atan2(back.x, back.z); me.spot = null; me.yaw = me.ry + Math.PI; me.pitch = 0.3; standAt(me.av, me.x, me.z, me.ry); myPose();
+  lastSent = ''; sendMove('idle', true);
+}
+function sendMove(act, force) {
+  const k = `${me.x.toFixed(2)},${me.z.toFixed(2)},${me.ry.toFixed(2)},${act}`, now = performance.now();
+  if (k === lastSent || (!force && now - sendAt < 200)) return;
+  lastSent = k; sendAt = now; send({ t: 'w-move', x: me.x, z: me.z, ry: me.ry, act });
+}
+// célzás: a képernyő közepéből induló sugárhoz legközelebbi hely, ha a mosómedve elég közel áll hozzá
+const aimRay = new THREE.Raycaster(), CENTER = new THREE.Vector2(0, 0), _p = new THREE.Vector3();
+function aimSpot() {
+  aimRay.setFromCamera(CENTER, camera);
+  const o = aimRay.ray.origin, d = aimRay.ray.direction; let best = null, bs = 1e9;
+  SPOTS.forEach((p, i) => {
+    if (!p || Math.hypot(p.pos.x - me.x, p.pos.z - me.z) > 2.4) return;
+    _p.set(p.pos.x, Math.max(p.y, 0) + 0.45, p.pos.z).sub(o);
+    const along = _p.dot(d); if (along < 0.5) return;
+    const off = _p.addScaledVector(d, -along).length();
+    if (off < 0.35 + along * 0.05 && off < bs) { bs = off; best = i; }
+  });
+  return best;
+}
+// a célzott hely jelölése a földön
+const mark = new THREE.Mesh(new THREE.RingGeometry(0.32, 0.42, 40), new THREE.MeshBasicMaterial({ color: 0xff8a2a, transparent: true, depthWrite: false, side: THREE.DoubleSide }));
+mark.rotation.x = -Math.PI / 2; mark.visible = false; scene.add(mark);
+const taken = (i) => npcAt[i] || (occ[i] && occ[i] !== myNick ? occ[i] : '');
+
+// ---------- bemenet: billentyű, egér, érintés ----------
+const keys = new Set(); let runLock = false;
+addEventListener('keydown', (e) => {
+  if (mode !== 'play' || e.target.tagName === 'INPUT') return;
+  keys.add(e.code);
+  if (e.code === 'KeyE' || e.code === 'Enter') act();
+  if (e.code.startsWith('Arrow') || e.code === 'Space') e.preventDefault();
+});
+addEventListener('keyup', (e) => keys.delete(e.code));
+addEventListener('blur', () => keys.clear());
+function act() {
+  if (me.spot !== null) return standUp();
+  const i = me.near; if (i === null) return toast('Célozz a középső célzóval egy helyre (pad, rönk, sámli, függőágy, horgászhely, kenu).');
+  const who = taken(i); if (who) return toast(`Ezen a helyen már ${who} ül.`);
+  sitDown(i);
+}
+let drag = null;
+const locked = () => document.pointerLockElement === renderer.domElement;
+renderer.domElement.addEventListener('click', (e) => { if (mode === 'play' && e.pointerType !== 'touch' && !matchMedia('(pointer:coarse)').matches && !locked()) renderer.domElement.requestPointerLock?.(); });
+addEventListener('mousemove', (e) => { if (!locked() || mode !== 'play') return;
+  me.yaw -= e.movementX * 0.0035; me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + e.movementY * 0.0028)); });
+renderer.domElement.addEventListener('pointerdown', (e) => { if (mode === 'play' && !locked() && !(e.pointerType === 'touch' && e.clientX < innerWidth * 0.45)) drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
+addEventListener('pointermove', (e) => {
+  if (!drag || e.pointerId !== drag.id) return;
+  me.yaw -= (e.clientX - drag.x) * 0.006; me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + (e.clientY - drag.y) * 0.004));
+  drag.x = e.clientX; drag.y = e.clientY;
+});
+addEventListener('pointerup', (e) => { if (drag && e.pointerId === drag.id) drag = null; });
+renderer.domElement.addEventListener('wheel', (e) => { if (mode === 'play') me.dist = Math.min(9, Math.max(2.5, me.dist + e.deltaY * 0.004)); }, { passive: true });
+// mobilon: virtuális joystick bal lent, gombok jobb lent
+const joy = { x: 0, y: 0, id: null };
+{
+  const pad = document.getElementById('joy'), knob = pad.firstElementChild;
+  const upd = (e) => { const b = pad.getBoundingClientRect(), cx = b.left + b.width / 2, cy = b.top + b.height / 2, r = b.width / 2;
+    let x = (e.clientX - cx) / r, y = (e.clientY - cy) / r; const l = Math.hypot(x, y); if (l > 1) { x /= l; y /= l; }
+    joy.x = x; joy.y = -y; knob.style.transform = `translate(${x * r * 0.6}px,${y * r * 0.6}px)`; };
+  pad.addEventListener('pointerdown', (e) => { joy.id = e.pointerId; pad.setPointerCapture(e.pointerId); upd(e); });
+  pad.addEventListener('pointermove', (e) => { if (e.pointerId === joy.id) upd(e); });
+  const end = () => { joy.id = null; joy.x = joy.y = 0; knob.style.transform = ''; };
+  pad.addEventListener('pointerup', end); pad.addEventListener('pointercancel', end);
+  document.getElementById('actBtn').onclick = act;
+  document.getElementById('runBtn').onclick = (e) => { runLock = !runLock; e.currentTarget.setAttribute('aria-pressed', runLock); };
+  document.getElementById('exit').onclick = leave;
+  document.getElementById('go').onclick = enter;
+  document.getElementById('nick').value = safeGet('nick');
+  document.getElementById('nick').addEventListener('keydown', (e) => { if (e.key === 'Enter') enter(); });
+}
+let toastT;
+function toast(msg) { const t = document.getElementById('toast'); t.textContent = msg; t.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => t.classList.remove('on'), 2600); }
+
+// ---------- belépő („Animus”): fehér űr szürke szilánkokkal, aztán a világ előbukkan és a kamera lecsap a mosómedvénk mögé ----------
+const animus = new THREE.Scene(); animus.background = new THREE.Color(0xf3f3f3); animus.fog = new THREE.FogExp2(0xf3f3f3, 0.045);
+const shards = new THREE.Group(); animus.add(shards);
+{
+  const tri = new THREE.BufferGeometry().setAttribute('position', new THREE.Float32BufferAttribute([0, 0.6, 0, -0.5, -0.3, 0, 0.5, -0.35, 0.05], 3));
+  const mats = [0xb9b9b9, 0xa3a3a3, 0xd2d2d2, 0x8e8e8e, 0xe0e0e0].map((c) => new THREE.MeshBasicMaterial({ color: c, side: THREE.DoubleSide, transparent: true }));
+  for (let i = 0; i < 320; i++) {
+    const m = new THREE.Mesh(i % 7 ? tri : new THREE.TetrahedronGeometry(0.35), mats[i % mats.length]);
+    const a = Math.random() * 6.28, r = 2 + Math.random() * 12;
+    m.position.set(Math.cos(a) * r, Math.sin(a) * r * 0.6, -Math.random() * 90); m.rotation.set(Math.random() * 6, Math.random() * 6, 0);
+    m.scale.setScalar(0.4 + Math.random() * 1.6); m.userData.spin = (Math.random() - 0.5) * 2; shards.add(m);
+  }
+  const grid = new THREE.GridHelper(200, 100, 0xcfcfcf, 0xdddddd); grid.position.y = -5; animus.add(grid);
+}
+const acam = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200);
+let intro = null;
+const A_LEN = 2.6, B_LEN = 3.8;
+function startIntro(state) {
+  me.av = makeAv(myNick); me.x = state.x; me.z = state.z; me.ry = state.ry; me.spot = null; me.yaw = state.ry + Math.PI; me.pitch = 0.3;
+  if (state.spot !== null && SPOTS[state.spot] && !npcAt[state.spot]) sitDown(state.spot); else { standAt(me.av, me.x, me.z, me.ry); myPose(); }
+  const pl = new THREE.Vector3(me.x, 0, me.z);
+  intro = { t0: clock.getElapsedTime(), items: [...pops, ...avs.map((a) => a.r)].map((o) => ({ o, s: o.scale.clone(), d: Math.hypot(o.position.x - pl.x, o.position.z - pl.z) })) };
+  for (const it of intro.items) it.o.scale.setScalar(1e-4);
+  mode = 'intro'; controls.enabled = false; fly = null; controls.autoRotate = false;
+  document.body.classList.add('intro');
+  document.getElementById('sync').hidden = false; document.getElementById('syncNick').textContent = myNick;
+}
+const ease = (x) => (x < 0.5 ? 4 * x * x * x : 1 - (-2 * x + 2) ** 3 / 2);
+const back = (x) => 1 + 2.2 * (x - 1) ** 3 + 1.2 * (x - 1) ** 2;
+function runIntro(t, dt) {
+  const k = t - intro.t0, flash = document.getElementById('flash');
+  if (k < A_LEN) {   // A: az Animus-tér
+    acam.position.set(Math.sin(k * 0.7) * 0.6, Math.cos(k * 0.5) * 0.3, -k * 9); acam.lookAt(0, 0, acam.position.z - 10);
+    for (const s of shards.children) { s.rotation.x += s.userData.spin * dt; s.rotation.y += s.userData.spin * 0.7 * dt; }
+    document.getElementById('syncPct').textContent = Math.min(100, Math.floor((k / A_LEN) ** 0.7 * 100)) + '%';
+    flash.style.opacity = Math.max(0, (k - A_LEN + 0.35) / 0.35);
+    renderer.render(animus, acam); return;
+  }
+  // B: a világ előbukkan a mosómedvénk körül, a kamera sasszemből leereszkedik a háta mögé
+  document.getElementById('sync').hidden = true;
+  const b = Math.min(1, (k - A_LEN) / B_LEN), e = ease(b);
+  flash.style.opacity = Math.max(0, 1 - (k - A_LEN) / 0.6);
+  scene.fog = scene.fog || new THREE.FogExp2(0xfbf3ec, 0.3); scene.fog.density = 0.16 * (1 - Math.min(1, b * 2.2)) ** 2;
+  for (const it of intro.items) { const x = Math.min(1, Math.max(0, ((k - A_LEN) - 0.15 - it.d * 0.17) / 0.55)); it.o.scale.copy(it.s).multiplyScalar(Math.max(1e-4, back(x))); }
+  const tgt = new THREE.Vector3(me.av.r.position.x, 1.05, me.av.r.position.z).addScaledVector(new THREE.Vector3(Math.cos(me.yaw), 0, -Math.sin(me.yaw)), 0.65 * e);
+  const yaw = me.yaw + (1 - e) * 2.4, dist = 16 + (me.dist - 16) * e, hgt = 17 + (Math.sin(me.pitch) * me.dist + 1.05 - 17) * e;
+  camera.position.set(tgt.x + Math.sin(yaw) * dist * Math.cos(me.pitch * e), hgt, tgt.z + Math.cos(yaw) * dist * Math.cos(me.pitch * e)); camera.lookAt(tgt);
+  if (b >= 1) {
+    for (const it of intro.items) it.o.scale.copy(it.s);
+    scene.fog = null; intro = null; mode = 'play'; document.body.classList.remove('intro'); document.body.classList.add('playing');
+    toast('Szinkronizálva. Jó szórakozást a tisztáson!'); lastSent = '';
+  }
+  renderer.render(scene, camera);
+}
+
+// ---------- futás ----------
+const clock = new THREE.Clock(), v = new THREE.Vector3();
+const UP = new THREE.Vector3(0, 1, 0);
+function playStep(dt) {
+  // mozgás a kamera irányához képest
+  let ix = joy.x, iy = joy.y;
+  if (keys.has('KeyW') || keys.has('ArrowUp')) iy += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) iy -= 1;
+  if (keys.has('KeyD') || keys.has('ArrowRight')) ix += 1; if (keys.has('KeyA') || keys.has('ArrowLeft')) ix -= 1;
+  const l = Math.hypot(ix, iy), moving = l > 0.15;
+  if (moving && me.spot !== null) standUp();
+  if (me.spot === null) {
+    const run = runLock !== (keys.has('ShiftLeft') || keys.has('ShiftRight')) || (joy.id !== null && l > 0.92);
+    let act = 'idle';
+    if (moving) {
+      const fx = -Math.sin(me.yaw), fz = -Math.cos(me.yaw), rx = Math.cos(me.yaw), rz = -Math.sin(me.yaw);
+      let mx = fx * iy + rx * ix, mz = fz * iy + rz * ix; const ml = Math.hypot(mx, mz); mx /= ml; mz /= ml;
+      const speed = (run ? 3.4 : 1.35) * Math.min(1, l);
+      const q = { x: me.x + mx * speed * dt, z: me.z + mz * speed * dt }; collide(q); me.x = q.x; me.z = q.z;
+      me.ry += angDiff(Math.atan2(mx, mz), me.ry) * (1 - Math.exp(-12 * dt));
+      act = run ? 'run' : 'walk';
+      setAct(me.av, act, run ? 1.15 : Math.max(0.6, speed / 1.35));
+    } else setAct(me.av, 'idle');
+    myPose(); sendMove(act);
+    me.near = aimSpot();
+  } else me.near = null;
+  // a cselekvés-felirat
+  const pr = document.getElementById('prompt');
+  if (me.spot !== null) { pr.innerHTML = '<kbd>E</kbd> Felállás'; pr.hidden = false; }
+  else if (me.near !== null) { const p = SPOTS[me.near], who = taken(me.near);
+    pr.innerHTML = who ? `Foglalt: ${who}` : `<kbd>E</kbd> ${VERB[p.pose]} ${SPOT_NAMES[me.near]}`; pr.hidden = false; }
+  else pr.hidden = true;
+  document.getElementById('actBtn').textContent = me.spot !== null ? 'Felállás' : me.near !== null ? VERB[SPOTS[me.near].pose] : 'E';
+  // harmadik személyű kamera
+  // ülve a csípő fölé nézünk (a modell gyökere ilyenkor a föld alatt lehet); állva a jobb váll mögül, így a célzó a világba mutat
+  const seated = me.spot !== null, cp = Math.cos(me.pitch), sp = Math.sin(me.pitch);
+  const off = new THREE.Vector3(Math.sin(me.yaw) * cp, sp, Math.cos(me.yaw) * cp), right = new THREE.Vector3(Math.cos(me.yaw), 0, -Math.sin(me.yaw));
+  const tgt = seated ? me.av.r.getObjectByName('hips').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.35, 0))
+    : new THREE.Vector3(me.av.r.position.x, 1.05, me.av.r.position.z).addScaledVector(right, 0.65);
+  const cd = seated ? Math.min(me.dist, 2.6) : me.dist;   // ülve közelebbről
+  const want = tgt.clone().addScaledVector(off, cd);
+  // a kamera nem mehet be a fákba, tárgyakba: ha valami a mosómedve és a kamera közt van, elé áll
+  const dir = off.clone(); camRay.set(tgt, dir); camRay.far = cd;
+  const hit = camRay.intersectObjects(pops, true).find((h) => !h.object.userData.outline);
+  if (hit) want.copy(tgt).addScaledVector(dir, Math.max(0.6, hit.distance - 0.25));
+  const rr = Math.hypot(want.x, want.z); if (rr > R * 1.15) { want.x *= R * 1.15 / rr; want.z *= R * 1.15 / rr; }
+  want.y = Math.max(want.y, 0.25);
+  camera.position.lerp(want, 1 - Math.exp(-(hit ? 18 : 10) * dt));
+  camera.lookAt(seated ? tgt : camera.position.clone().addScaledVector(off, -10));
+  // célzó és a jelölő gyűrű
+  const aimOn = !seated && me.near !== null, free = aimOn && !taken(me.near);
+  const ret = document.getElementById('reticle'); ret.hidden = seated; ret.classList.toggle('on', aimOn); ret.classList.toggle('busy', aimOn && !free);
+  mark.visible = aimOn; if (aimOn) { const p = SPOTS[me.near]; mark.position.set(p.pos.x, Math.max(0.03, p.y + 0.03), p.pos.z); mark.material.color.set(free ? 0xff8a2a : 0x9a9a9a); mark.scale.setScalar(1 + Math.sin(clock.getElapsedTime() * 6) * 0.08); }
+}
+const camRay = new THREE.Raycaster();
+renderer.setAnimationLoop(() => {
+  const dt = Math.min(0.05, clock.getDelta()), t = clock.getElapsedTime();
+  waterMat.uniforms.t.value = t;
+  flames.children.forEach((f, i) => { f.scale.y = 0.8 + Math.sin(t * 9 + i * 2) * 0.22; f.rotation.y = t * (i % 2 ? 1 : -1); });
+  glow.material.opacity = 0.75 + Math.sin(t * 11) * 0.12;
+  for (const av of players.values()) syncRemote(av, dt);
+  for (const av of avs) av.mixer.update(dt);
+  if (mode === 'intro') return runIntro(t, dt);
+  if (mode === 'play') playStep(dt);
+  else {
+    if (fly) { fly.k = Math.min(1, fly.k + 0.012); const e = fly.k * fly.k * (3 - 2 * fly.k); camera.position.lerpVectors(fly.p0, fly.p1, e); controls.target.lerpVectors(fly.t0, fly.t1, e); if (fly.k >= 1) fly = null; }
+    controls.update();
+  }
+  renderer.render(scene, camera);
+  for (const p of avs) { v.copy(p.r.position); v.y += p.top; v.project(camera); const on = v.z < 1 && v.z > -1;
+    p.tag.style.display = on && !(mode === 'play' && p === me.av) ? '' : 'none'; p.tag.style.left = (v.x * 0.5 + 0.5) * innerWidth + 'px'; p.tag.style.top = (-v.y * 0.5 + 0.5) * innerHeight + 'px'; }
+});
+addEventListener('resize', () => { acam.aspect = innerWidth / innerHeight; acam.updateProjectionMatrix(); });
+window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave };
+</script>
+</body>
+</html>
