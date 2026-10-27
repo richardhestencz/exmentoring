@@ -103,6 +103,42 @@ function vote(poll, nick, value) {
   return null;
 }
 
+function edit(poll, editor, input) {
+  if (cleanNick(editor) !== poll.creator) return 'Ezt a szavazást csak a létrehozó szerkesztheti.';
+  const title = cleanText(input?.title, MAX_TITLE);
+  const options = uniqueOptions(input?.options);
+  if (title.length < 2) return 'A cím legalább 2 karakter legyen.';
+  if (options.length < 2) return 'Legalább két különböző opció szükséges.';
+  const nextByLabel = new Map(options.map((option, index) => [option.toLocaleLowerCase('hu-HU'), index]));
+  const votes = {};
+  for (const [nick, choices] of Object.entries(poll.votes)) {
+    const remapped = [...new Set(choices
+      .map((choice) => poll.options[choice])
+      .map((option) => nextByLabel.get(String(option || '').toLocaleLowerCase('hu-HU')))
+      .filter((choice) => Number.isInteger(choice)))].sort((a, b) => a - b);
+    if (!poll.multiple && remapped.length > 1) remapped.splice(1);
+    if (remapped.length) votes[nick] = remapped;
+  }
+  poll.title = title;
+  poll.options = options;
+  poll.votes = votes;
+  poll.updatedAt = Date.now();
+  return null;
+}
+
+function list(value, viewer = '') {
+  const player = cleanNick(viewer);
+  return (Array.isArray(value) ? value : []).map((poll) => ({
+    id: poll.id,
+    title: poll.title,
+    creator: poll.creator,
+    multiple: poll.multiple,
+    voters: Object.keys(poll.votes).length,
+    createdAt: poll.createdAt,
+    editable: !!player && player === poll.creator,
+  }));
+}
+
 function view(poll, viewer = '') {
   const counts = poll.options.map(() => 0);
   for (const choices of Object.values(poll.votes)) {
@@ -123,4 +159,4 @@ function view(poll, viewer = '') {
   };
 }
 
-module.exports = { MAX_OPTIONS, MAX_OPTION, normalize, create, find, vote, view };
+module.exports = { MAX_OPTIONS, MAX_OPTION, normalize, create, find, vote, edit, list, view };

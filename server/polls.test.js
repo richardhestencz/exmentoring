@@ -29,6 +29,15 @@ test('egyválasztós szavazásnál a válasz lecserélhető', () => {
   assert.deepStrictEqual(polls.view(poll, 'Ricsi').choices, [1]);
 });
 
+test('a létrehozó a főoldalon szerkesztheti a címet és az opciókat', () => {
+  const { poll } = polls.create([], { creator: 'Ricsi', title: 'Régi cím', options: ['A', 'B'] });
+  assert.strictEqual(polls.vote(poll, 'Matyi', [1]), null);
+  assert.strictEqual(polls.edit(poll, 'Ricsi', { title: 'Új cím', options: ['A', 'B', 'C'] }), null);
+  assert.strictEqual(poll.title, 'Új cím');
+  assert.deepStrictEqual(polls.view(poll, 'Matyi').choices, [1]);
+  assert.match(polls.edit(poll, 'Dani', { title: 'Más', options: ['X', 'Y'] }), /létrehozó/);
+});
+
 test('hibás szavazás és túl rövid cím visszautasítása', () => {
   assert.match(polls.create([], { title: 'x', options: ['A', 'B'] }).error, /legalább 2/);
   const { poll } = polls.create([], { title: 'Rendben', options: ['A', 'B'] });

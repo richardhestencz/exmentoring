@@ -41,6 +41,9 @@ h1{margin:0 0 10px;font-size:clamp(1.9rem,4vw,2.8rem);font-weight:800;letter-spa
 .lead{margin:0;max-width:68ch;font-size:1.06rem}
 main{min-height:calc(100vh - 44px)}
 .workspace{padding-top:28px;padding-bottom:56px}
+.focus-view .hero,.focus-view #createPanel,.focus-view .recent-panel,.focus-view footer{display:none}
+.focus-view .workspace{max-width:760px}
+.focus-view .columns{display:block}
 .identity,.panel{background:var(--peach);border-radius:18px;padding:20px;margin-bottom:20px}
 .identity{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
 .identity .identity-copy{flex:1 1 240px}
@@ -80,6 +83,12 @@ label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0
 .link-input{flex:1;font:500 .85rem var(--mono);color:var(--ink);min-width:0}
 .copy{border:0;background:var(--dark);color:#fff;white-space:nowrap}
 .poll-panel[hidden],.created[hidden],#loginForm[hidden]{display:none}
+.poll-list{display:grid;gap:8px}
+.poll-list-empty{margin:0;color:var(--muted);font-size:.92rem}
+.poll-list-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:11px 12px;border:1px solid var(--line);border-radius:12px;background:var(--sand)}
+.poll-list-item strong{display:block;color:var(--ink);overflow-wrap:anywhere}
+.poll-list-item small{display:block;color:var(--muted);font-size:.82rem}
+.poll-list-item .secondary{flex:none;padding:7px 11px}
 .poll-head{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;margin-bottom:16px}
 .poll-head h2{margin:0}
 .poll-meta{color:var(--muted);font-size:.86rem;text-align:right;white-space:nowrap}
@@ -94,6 +103,15 @@ label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0
 .result-bar i{display:block;height:100%;border-radius:inherit;background:var(--grad);transition:width .35s ease}
 .option-count{font-variant-numeric:tabular-nums;color:var(--ink);min-width:34px;text-align:right}
 .poll-footer{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:18px;padding-top:16px;border-top:1px solid var(--line)}
+.edit-box{margin:-2px 0 18px;padding:12px 14px;border:1px dashed var(--apricot);border-radius:13px;background:var(--sand)}
+.edit-box summary{cursor:pointer;color:var(--ink);font-weight:800}
+.edit-form{margin-top:14px}
+.edit-form .field{margin-bottom:12px}
+.edit-option-list{display:grid;gap:8px;margin-bottom:9px}
+.edit-option{display:flex;align-items:center;gap:8px}
+.edit-option input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:#fff}
+.edit-option button{width:34px;height:34px;border:1px solid var(--line);border-radius:9px;background:transparent;color:var(--muted);cursor:pointer}
+.edit-form .form-actions{margin-top:14px}
 .poll-status{color:var(--muted);font-size:.9rem}
 .poll-status strong{color:var(--ink)}
 .loading{color:var(--muted);padding:24px 0}
@@ -135,6 +153,12 @@ footer p{margin:0;font-size:.92rem}
       <div id="identityCurrent" hidden><strong id="currentNick"></strong><small>ezzel a névvel lesz elmentve a válaszod</small></div>
       <form id="loginForm"><input id="nickInput" maxlength="16" autocomplete="nickname" placeholder="Beceneved" aria-label="Beceneved" required><button class="btn" type="submit">Belépek</button></form>
       <button class="secondary" id="changeNick" type="button" hidden>Másik becenév</button>
+    </section>
+
+    <section class="panel recent-panel" id="recentPanel">
+      <h2>Meglévő szavazások</h2>
+      <p class="intro">A főoldalon megnyithatod őket; a létrehozójuk innen szerkesztheti a címet és az opciókat.</p>
+      <div class="poll-list" id="pollList"><p class="poll-list-empty">Szavazások betöltése…</p></div>
     </section>
 
     <div class="columns">
@@ -179,6 +203,8 @@ footer p{margin:0;font-size:.92rem}
   const esc = (value) => String(value).replace(/[&<>\"]/g, (c) => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '\"':'&quot;' }[c]));
   const query = new URLSearchParams(location.search);
   let pollId = query.get('id') || '';
+  const focusView = !!pollId;
+  document.body.classList.toggle('focus-view', focusView);
   let nick = safeGet('nick'), socket, reconnect = 0, currentPoll = null, toastTimer;
 
   function toast(message) {
@@ -201,37 +227,70 @@ footer p{margin:0;font-size:.92rem}
       reconnect = 0; $('conn').style.display = 'none';
       if (nick) send({ t: 'hello', nick });
       if (pollId) send({ t: 'poll-get', id: pollId });
+      else send({ t: 'poll-list' });
     };
     socket.onclose = () => { $('conn').style.display = 'block'; setTimeout(connect, Math.min(8000, 1000 * ++reconnect)); };
     socket.onmessage = (event) => {
       const message = JSON.parse(event.data);
       if (message.t === 'hello') { nick = message.nick; safeSet('nick', nick); setIdentity(); renderPoll(currentPoll); }
+      else if (message.t === 'poll-list') renderPollList(message.polls || []);
       else if (message.t === 'poll-state') { currentPoll = message.poll; pollId = message.poll.id; showPoll(); renderPoll(currentPoll); }
       else if (message.t === 'poll-created') {
         pollId = message.poll.id; currentPoll = message.poll;
         const url = new URL(message.url, location.href).href;
-        history.replaceState(null, '', message.url);
         $('created').hidden = false; $('createdLink').value = url;
         showPoll(); renderPoll(currentPoll); toast('A szavazás elkészült.');
       } else if (message.t === 'err') {
-        const error = $('voteError') || $('createError');
+        const error = $('pollError') || $('voteError') || $('createError');
         if (error) error.textContent = message.msg;
         toast(message.msg);
       }
     };
   }
   function showPoll() { $('pollPanel').hidden = false; }
+  function renderPollList(items) {
+    const list = $('pollList');
+    if (!list) return;
+    if (!items.length) { list.innerHTML = '<p class="poll-list-empty">Még nincs létrehozott szavazás.</p>'; return; }
+    list.innerHTML = items.map((poll) => `<div class="poll-list-item"><div><strong>${esc(poll.title)}</strong><small>${esc(poll.creator || '–')} · ${poll.voters} válaszadó · ${poll.multiple ? 'több válasz' : 'egy válasz'}</small></div><button class="secondary" type="button" data-poll-id="${esc(poll.id)}">Megnyitás</button></div>`).join('');
+  }
+  function setupEditForm(poll) {
+    const list = $('editOptionList');
+    const renumber = () => [...list.children].forEach((row, index) => {
+      row.querySelector('.edit-option-number').textContent = `${index + 1}.`;
+      row.querySelector('.edit-remove').disabled = list.children.length <= 2;
+    });
+    const addRow = (value = '') => {
+      if (list.children.length >= 20) return;
+      const row = document.createElement('div'); row.className = 'edit-option';
+      row.innerHTML = `<span class="edit-option-number"></span><input class="edit-option-value" maxlength="160" value="${esc(value)}" aria-label="Opció"><button class="edit-remove" type="button" aria-label="Opció törlése">×</button>`;
+      row.querySelector('.edit-remove').onclick = () => { if (list.children.length > 2) { row.remove(); renumber(); } };
+      list.append(row); renumber();
+    };
+    list.querySelectorAll('.edit-remove').forEach((button) => { button.onclick = () => { if (list.children.length > 2) { button.closest('.edit-option').remove(); renumber(); } }; });
+    $('editAddOption').onclick = () => addRow();
+    $('editForm').onsubmit = (event) => {
+      event.preventDefault(); $('pollError').textContent = '';
+      const options = [...list.querySelectorAll('.edit-option-value')].map((input) => input.value.trim()).filter(Boolean);
+      send({ t: 'poll-edit', id: poll.id, title: $('editTitle').value.trim(), options });
+    };
+    renumber();
+  }
   function renderPoll(poll) {
     if (!poll) return;
     const total = poll.voters || 0;
     const choices = new Set(poll.choices || []);
     const inputType = poll.multiple ? 'checkbox' : 'radio';
+    const canEdit = !focusView && nick && nick === poll.creator;
     const optionHtml = poll.options.map((option, index) => {
       const count = poll.counts[index] || 0;
       const percentage = total ? Math.round(count / total * 100) : 0;
       return `<label class="poll-option"><input type="${inputType}" name="poll-choice" value="${index}"${choices.has(index) ? ' checked' : ''}${nick ? '' : ' disabled'}><span class="option-copy"><span class="option-label">${esc(option)}</span><span class="result-bar"><i style="width:${percentage}%"></i></span></span><b class="option-count">${count}</b></label>`;
     }).join('');
-    $('pollContent').innerHTML = `<div class="poll-head"><div><h2>${esc(poll.title)}</h2><span class="poll-type">${poll.multiple ? 'Több válasz választható' : 'Egy válasz választható'}</span></div><span class="poll-meta">Létrehozta: ${esc(poll.creator || '–')}</span></div><form id="voteForm"><div class="poll-options">${optionHtml}</div><div class="poll-footer"><span class="poll-status"><strong>${total}</strong> válaszadó · az eredmények mindenki számára láthatók</span><button class="btn" type="submit">${choices.size ? 'Válasz módosítása' : 'Szavazok'}</button></div><p class="error" id="voteError" role="alert"></p></form>`;
+    const editOptions = poll.options.map((option) => `<div class="edit-option"><span class="edit-option-number"></span><input class="edit-option-value" maxlength="160" value="${esc(option)}" aria-label="Opció"><button class="edit-remove" type="button" aria-label="Opció törlése">×</button></div>`).join('');
+    const editHtml = canEdit ? `<details class="edit-box" open><summary>Szavazás szerkesztése</summary><form class="edit-form" id="editForm"><div class="field"><label for="editTitle">Cím</label><input id="editTitle" maxlength="120" value="${esc(poll.title)}" required></div><label>Opciók</label><div class="edit-option-list" id="editOptionList">${editOptions}</div><button class="secondary" id="editAddOption" type="button">+ Opció hozzáadása</button><div class="form-actions"><button class="btn" type="submit">Módosítások mentése</button></div></form></details>` : '';
+    $('pollContent').innerHTML = `${editHtml}<div class="poll-head"><div><h2>${esc(poll.title)}</h2><span class="poll-type">${poll.multiple ? 'Több válasz választható' : 'Egy válasz választható'}</span></div><span class="poll-meta">Létrehozta: ${esc(poll.creator || '–')}</span></div><form id="voteForm"><div class="poll-options">${optionHtml}</div><div class="poll-footer"><span class="poll-status"><strong>${total}</strong> válaszadó · az eredmények mindenki számára láthatók</span><button class="btn" type="submit">${choices.size ? 'Válasz módosítása' : 'Szavazok'}</button></div><p class="error" id="pollError" role="alert"></p></form>`;
+    if (canEdit) setupEditForm(poll);
     $('voteForm').onsubmit = (event) => {
       event.preventDefault();
       if (!nick) { setIdentity(true); toast('A szavazáshoz add meg a beceneved.'); return; }
@@ -239,6 +298,13 @@ footer p{margin:0;font-size:.92rem}
       send({ t: 'poll-vote', id: poll.id, choices: selected });
     };
   }
+  $('pollList').onclick = (event) => {
+    const button = event.target.closest('[data-poll-id]');
+    if (!button) return;
+    pollId = button.dataset.pollId;
+    showPoll(); send({ t: 'poll-get', id: pollId });
+    $('pollPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
   function addOption(value = '') {
     const items = $('optionList').querySelectorAll('.option-input');
     if (items.length >= 20) { $('addOption').disabled = true; return; }
@@ -261,7 +327,7 @@ footer p{margin:0;font-size:.92rem}
     event.preventDefault();
     const value = $('nickInput').value.trim();
     if (value.length < 2) return toast('A becenév legalább 2 karakter legyen.');
-    nick = value; safeSet('nick', nick); send({ t: 'hello', nick }); setIdentity();
+    nick = value; safeSet('nick', nick); send({ t: 'hello', nick }); if (!focusView) send({ t: 'poll-list' }); setIdentity();
     if (currentPoll) renderPoll(currentPoll);
   };
   $('changeNick').onclick = () => { nick = ''; safeSet('nick', ''); setIdentity(true); };

@@ -330,10 +330,19 @@ function sendPollState(ws, id) {
   ws.pollId = poll.id;
   ws.send(JSON.stringify({ t: 'poll-state', poll: polls.view(poll, ws.nick) }));
 }
+function sendPollList(ws) {
+  ws.wantsPollList = true;
+  ws.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, ws.nick) }));
+}
 function broadcastPoll(poll) {
   for (const c of wss.clients) {
     if (c.readyState !== 1 || c.pollId !== poll.id) continue;
     c.send(JSON.stringify({ t: 'poll-state', poll: polls.view(poll, c.nick) }));
+  }
+}
+function broadcastPollList() {
+  for (const c of wss.clients) {
+    if (c.readyState === 1 && c.wantsPollList) c.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, c.nick) }));
   }
 }
 let worldTimer = null;
@@ -401,6 +410,7 @@ wss.on('connection', (ws) => {
       return;
     }
     if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
+    if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
     if (!ws.nick) return err('Előbb adj meg becenevet.');
     if (m.t === 'w-join' || m.t === 'w-move' || m.t === 'w-sit' || m.t === 'w-leave') {
@@ -481,6 +491,7 @@ wss.on('connection', (ws) => {
       save();
       ws.send(JSON.stringify({ t: 'poll-created', url: `/szavazas.html?id=${encodeURIComponent(result.poll.id)}`, poll: polls.view(result.poll, ws.nick) }));
       broadcastPoll(result.poll);
+      broadcastPollList();
       return;
     }
     if (m.t === 'poll-vote') {
@@ -491,6 +502,17 @@ wss.on('connection', (ws) => {
       ws.pollId = poll.id;
       save();
       broadcastPoll(poll);
+      return;
+    }
+    if (m.t === 'poll-edit') {
+      const poll = polls.find(S.polls, m.id);
+      if (!poll) return err('Ez a szavazás nem található.');
+      const e = polls.edit(poll, ws.nick, { title: m.title, options: m.options });
+      if (e) return err(e);
+      ws.pollId = poll.id;
+      save();
+      broadcastPoll(poll);
+      broadcastPollList();
       return;
     }
     const e = m.t === 'bet' ? addBet(ws.nick, m.kind, m.amount) : m.t === 'undo' ? undoBet(ws.nick, false) : m.t === 'clear' ? undoBet(ws.nick, true)
