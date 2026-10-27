@@ -152,19 +152,23 @@
   let changing = false;
   function paint() {
     const s = M.st, it = cur(), has = !!(s && s.list);
-    $('mempty').innerHTML = has ? 'A lista még üres, vagy most töltődik.<br>Tegyél bele egy számot a YouTube-on!' : 'Még nincs bekötve közös lista.<br>Illeszd be lent egy YouTube-lejátszási lista linkjét!';
+    $('mempty').innerHTML = 'Még üres a lista.<br>Tegyél be egy számot a linkjével!';
     $('mempty').hidden = !!it;
     $('mnow').textContent = it ? it.title : '';
     $('mby').textContent = it ? `${s.cur + 1}. / ${s.items.length}` : '';
     $('mlinkbox').hidden = !has || changing;
-    $('mform').hidden = has && !changing;
+    $('mform').hidden = !changing;
+    $('mlbind').hidden = has || changing;
     if (has) { $('mltitle').textContent = s.title || 'YouTube-lista'; $('mlopen').href = s.link; }
     if (s && s.err) note('A lista frissítése nem sikerült: ' + s.err, 0);
     else if ($('mnote').textContent.startsWith('A lista frissítése')) note('');
-    $('mcount').textContent = s && s.items.length ? `A lista (${s.items.length} szám, a végén újrakezdi)` : 'A lista';
+    $('mcount').textContent = s && s.items.length ? `A lista (${s.items.length} szám, ${s.shuffle ? 'véletlen sorrendben' : 'a végén újrakezdi'})` : 'A lista';
     $('mlist').innerHTML = s && s.items.length ? s.items.map((x, i) => `<li class="${i === s.cur ? 'cur' : ''}"><span class="n">${i === s.cur ? '▶' : i + 1}</span>`
-      + `<button type="button" class="t" data-play="${i}" title="Lejátszás most (mindenkinek)"><b>${esc(x.title)}</b></button></li>`).join('')
-      : `<li class="mlempty">${has ? 'Még nincs szám a listában.' : 'Nincs bekötött lista.'}</li>`;
+      + `<button type="button" class="t" data-play="${i}" title="Lejátszás most (mindenkinek)"><b>${esc(x.title)}</b></button>`
+      + (x.by != null ? `<span class="by" title="Az oldalon tette be">+ ${esc(x.by)}</span><button type="button" class="x" data-rm="${esc(x.v)}" title="Kivétel a listából" aria-label="Kivétel a listából">✕</button>` : '') + '</li>').join('')
+      : `<li class="mlempty">${has ? 'Még nincs szám a listában. Tegyél be egyet fent!' : 'Még üres: tegyél be egy számot fent a linkjével!'}</li>`;
+    $('mshuf').setAttribute('aria-pressed', s && s.shuffle ? 'true' : 'false');
+    $('mshuf').title = s && s.shuffle ? 'Véletlen sorrend: be (mindenkinek)' : 'Véletlen sorrend: ki (mindenkinek)';
     paintPlay();
   }
   function paintPlay() {
@@ -176,13 +180,24 @@
     for (const b of ['mprev', 'mnext', 'mpause']) $(b).disabled = !has;
     $('mbtn').classList.toggle('playing', M.joined && has && !(s && s.paused));
   }
-  $('mlist').onclick = (e) => { const p = e.target.closest('[data-play]'); if (p) send({ t: 'music-play', i: Number(p.dataset.play) }); };
+  $('mlist').onclick = (e) => {
+    const r = e.target.closest('[data-rm]'); if (r) { send({ t: 'music-remove', v: r.dataset.rm }); return; }
+    const p = e.target.closest('[data-play]'); if (p) send({ t: 'music-play', i: Number(p.dataset.play) });
+  };
+  $('mshuf').onclick = () => { if (!nick) { note('Előbb adj meg becenevet.'); return; } send({ t: 'music-shuffle', on: !(M.st && M.st.shuffle) }); };
+  $('madd').onsubmit = (e) => {
+    e.preventDefault();
+    const v = $('maddurl').value.trim(); if (!v) return;
+    if (!nick) { note('Előbb adj meg becenevet.'); return; }
+    send({ t: 'music-add', input: v }); $('maddurl').value = '';
+    note('A szám betétele…', 3000);
+  };
   $('mlcopy').onclick = async () => {
     try { await navigator.clipboard.writeText(M.st.link); note('A lista linkje a vágólapon.', 3000); }
     catch { prompt('A lista linkje:', M.st.link); }
   };
   $('mlrefresh').onclick = () => { send({ t: 'music-refresh' }); note('Frissítés…', 2000); };
-  $('mlchange').onclick = () => { changing = true; paint(); $('murl').focus(); };
+  $('mlchange').onclick = $('mlbind').onclick = () => { changing = true; paint(); $('murl').focus(); };
   $('mjoin').onclick = () => {
     M.joined = !M.joined;
     if (!M.joined) { try { M.player.stopVideo(); } catch {} M.loadedV = ''; M.loadedRev = -1; sync(false); paintPlay(); return; }

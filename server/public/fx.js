@@ -1,6 +1,5 @@
-// Apró, kellemes mozgás a festett tisztáson: a fák lombja leng a szélben, hintázik a függőágy, csillog a tó, nappal falevelek
-// sodródnak és lüktet a nap fénye, éjjel pislákolnak a csillagok és szentjánosbogarak szállnak. Ha szól a közös zene, két hangfal
-// ugrál a tisztáson, és hangjegyek szállnak ki belőlük. A „✨” gombbal ki-be kapcsolható (megjegyzi; csökkentett mozgásnál alapból ki).
+// A festett tisztás egyetlen mozgása: ha szól a közös zene, három hangfal finoman lüktet, és néha egy hangjegy száll ki belőlük.
+// Minden más áll (a fák, a tó, a mosómedvék is). A „✨” gombbal ki-be kapcsolható (megjegyzi; csökkentett mozgásnál alapból ki).
 // A réteg a háttérképpel együtt méreteződik és nagyít (a főoldal hívja: FxLayout, FxCam).
 (() => {
   const bg = document.getElementById('bg'), btn = document.getElementById('fxbtn');
@@ -8,26 +7,13 @@
   const store = (k, v) => { try { v === undefined ? 0 : localStorage.setItem(k, v); return localStorage.getItem(k); } catch { return null; } };
   const saved = store('motion');
   let on = saved === null ? !matchMedia('(prefers-reduced-motion: reduce)').matches : saved === '1';
-  let musicOn = false, cur = null, unit = 1, timers = [];
+  let musicOn = false, cur = null, unit = 1, timer = null, turn = 0;
   const layer = document.createElement('div'); layer.className = 'fx'; layer.setAttribute('aria-hidden', 'true');
   (document.getElementById('bgNight') || bg).after(layer);   // a nappali és az éjszakai kép fölé
-  let nightV = 0, nightSrc = '';
 
-  // a festett képek részei (a kép saját képpontjaiban). A tall (álló) kép középső része a széles kép kicsinyítve (k, ox, oy),
-  // a fák viszont mások rajta, azokat külön adjuk meg.
-  const WIDE = {
-    trees: [[0, 0, 205, 440, 7.5], [185, 0, 165, 440, 9], [300, 10, 195, 440, 8.2], [1375, 0, 345, 430, 10], [1770, 0, 230, 420, 8.8]],
-    hammock: [1560, 592, 370, 175], lake: [1280, 482, 680, 125], sun: [1030, 335, 330], moon: [690, 110, 120],
-    sky: [0, 0, 2000, 300], ground: [180, 520, 1640, 230], speakers: [[602, 540, 115, 'right'], [478, 790, 165, 'right'], [1392, 578, 118, 'left'], [1822, 492, 78, 'left']], wind: [0, 120, 2000, 380],
-  };
-  const TALL_TREES = [[0, 220, 115, 940, 8], [88, 240, 115, 830, 9.4], [165, 455, 105, 600, 7.6], [690, 0, 320, 1250, 10.5], [1012, 285, 104, 920, 8.6]];
-  function geo(sc) {
-    if (sc.w > sc.h) return WIDE;
-    const m = ([x, y, w, h]) => [x * sc.k + sc.ox, y * sc.k + sc.oy, w * sc.k, h * sc.k];
-    const p = ([x, y]) => [x * sc.k + sc.ox, y * sc.k + sc.oy];
-    return { trees: TALL_TREES, hammock: m(WIDE.hammock), lake: m(WIDE.lake), sun: [...p(WIDE.sun), WIDE.sun[2] * sc.k * 1.4], moon: [...p(WIDE.moon), 120],
-      sky: [0, 0, sc.w, 900], ground: m(WIDE.ground), speakers: WIDE.speakers.map(([x, y, h, f]) => [...p([x, y]), h * sc.k, f]), wind: [0, 300, sc.w, 1000] };
-  }
+  // a hangfalak helye a széles kép saját képpontjaiban: [x, talppont y, magasság, merre néz]. Az álló kép közepe a széles kép kicsinyítve (k, ox, oy).
+  const SPEAKERS = [[602, 540, 115, 'right'], [478, 790, 165, 'right'], [1392, 578, 118, 'left']];
+  const geo = (sc) => (sc.w > sc.h ? SPEAKERS : SPEAKERS.map(([x, y, h, f]) => [x * sc.k + sc.ox, y * sc.k + sc.oy, h * sc.k, f]));
   const pct = (v, of) => (v / of * 100).toFixed(3) + '%';
   const rnd = (a, b) => a + Math.random() * (b - a);
   function el(cls, x, y, w, h, sc, extra = {}) {
@@ -35,74 +21,45 @@
     Object.assign(d.style, { left: pct(x, sc.w), top: pct(y, sc.h), width: w == null ? '' : pct(w, sc.w), height: h == null ? '' : pct(h, sc.h) }, extra);
     layer.appendChild(d); return d;
   }
-  // a kép egy részének mozgó másolata (az eredeti alatta marad; a mozgás csak néhány képpont, a szélek elmosva)
-  function piece(cls, [x, y, w, h], sc, origin, extra = {}) {
-    const bgOf = (src) => ({ backgroundImage: `url("${src}")`, backgroundSize: `${pct(sc.w, w)} ${pct(sc.h, h)}`,
-      backgroundPosition: `${(x / (sc.w - w) * 100).toFixed(3)}% ${(y / (sc.h - h) * 100).toFixed(3)}%`, backgroundRepeat: 'no-repeat' });
-    const d = el(cls, x, y, w, h, sc, { ...bgOf(sc.src), transformOrigin: origin, ...extra });
-    if (nightSrc && nightSrc !== sc.src) { const n = document.createElement('div'); n.className = 'fxnight'; Object.assign(n.style, bgOf(nightSrc)); d.appendChild(n); }   // éjjel az éjszakai kép darabja
-    return d;
-  }
 
   function build(sc) {
-    timers.forEach(clearInterval); timers = [];
+    clearInterval(timer);
     layer.replaceChildren();
-    const G = geo(sc), night = nightV >= 0.42;
-    G.trees.forEach(([x, y, w, h, d], i) => piece('fxsway', [x, y, w, h], sc, '50% 100%', { animationDuration: d + 's', animationDelay: (-i * 1.7) + 's' }));
-    piece('fxswing', G.hammock, sc, '50% 0%');
-    // tó: csillanások
-    { const [x, y, w, h] = G.lake; for (let i = 0; i < 12; i++) el('fxglint', x + rnd(0.08, 0.92) * w, y + rnd(0.15, 0.85) * h, null, null, sc, { animationDelay: rnd(0, 6) + 's', animationDuration: rnd(3.5, 6.5) + 's' }); }
-    if (!night) {
-      // nappal nincs külön napfény-réteg (a lassú „napfelkelte” zavaró volt)
-    } else {
-      const [mx, my, mr] = G.moon; el('fxmoon', mx - mr, my - mr, 2 * mr, 2 * mr, sc);
-      const [sx, sy, sw, sh] = G.sky; for (let i = 0; i < 28; i++) el('fxstar', sx + rnd(0, sw), sy + rnd(0.05, 1) * sh, null, null, sc, { animationDelay: rnd(0, 5) + 's', animationDuration: rnd(2.5, 5) + 's' });
-      const [gx, gy, gw, gh] = G.ground;
-      for (let i = 0; i < 10; i++) el('fxfly', gx + rnd(0, gw), gy + rnd(0, gh), null, null, sc, { '--dx': rnd(-60, 60) + 'px', '--dy': rnd(-40, 20) + 'px', animationDelay: rnd(0, 8) + 's', animationDuration: rnd(7, 12) + 's' });
-    }
-    // hangfalak (csak ha szól a zene)
-    G.speakers.forEach(([x, y, h, face], i) => {
-      const w = h * 0.64, s = el('fxspk', x - w / 2, y - h, w, h, sc, { animationDelay: (i * 0.12) + 's' });
+    const S = geo(sc);
+    S.forEach(([x, y, h, face], i) => {
+      const w = h * 0.64, s = el('fxspk', x - w / 2, y - h, w, h, sc, { animationDelay: (i * 0.16) + 's' });
       s.innerHTML = `<img src="/img/speaker-${face}.png" alt="" draggable="false">`;
     });
-    // falevelek a szélben (nappal), hangjegyek a hangfalakból (zene alatt)
-    timers.push(setInterval(() => { if (on && !night && document.visibilityState === 'visible') leaf(sc, G); }, 3200));
-    timers.push(setInterval(() => { if (on && musicOn && document.visibilityState === 'visible') G.speakers.forEach(([x, y, h], i) => setTimeout(() => note(sc, x, y - h * 0.95, h / 115), i * 170)); }, 900));
+    // hangjegy ritkán, mindig csak egy hangfalból (sorban váltakozva)
+    timer = setInterval(() => {
+      if (!on || !musicOn || document.visibilityState !== 'visible') return;
+      const [x, y, h] = S[turn++ % S.length]; note(sc, x, y - h * 0.95, h / 115);
+    }, 2500);
     paint();
   }
-  function leaf(sc, G) {
-    const [x, y, w, h] = G.wind, fromLeft = Math.random() < 0.6;
-    const d = el('fxleaf', fromLeft ? x - 30 : x + w + 30, y + rnd(0, h), null, null, sc, { '--tx': (fromLeft ? 1 : -1) * rnd(500, 900) * unit + 'px', '--ty': rnd(120, 320) * unit + 'px', animationDuration: rnd(9, 14) + 's' });
-    d.textContent = Math.random() < 0.5 ? '🍂' : '🍃';
-    d.addEventListener('animationend', () => d.remove());
-  }
   function note(sc, x, y, k = 1) {
-    const d = el('fxnote', x + rnd(-20, 20) * k, y, null, null, sc, { '--tx': rnd(-50, 50) * unit * k + 'px', '--k': k, animationDuration: rnd(2.2, 3.2) + 's' });
+    const d = el('fxnote', x + rnd(-20, 20) * k, y, null, null, sc, { '--tx': rnd(-40, 40) * unit * k + 'px', '--k': k * 0.8, animationDuration: rnd(2.6, 3.4) + 's' });
     d.textContent = ['♪', '♫', '♬', '♩'][Math.floor(rnd(0, 4))];
     d.addEventListener('animationend', () => d.remove());
   }
   function paint() {
     layer.classList.toggle('still', !on); layer.classList.toggle('music', musicOn);
-    document.documentElement.classList.toggle('fx-off', !on);   // a mosómedvék ringatózása is
     btn.setAttribute('aria-pressed', on ? 'true' : 'false');
-    btn.title = on ? 'Mozgás kikapcsolása' : 'Mozgás bekapcsolása';
-    if (!on) layer.querySelectorAll('.fxleaf,.fxnote').forEach((n) => n.remove());
+    btn.title = on ? 'Hangfalak mozgásának kikapcsolása' : 'Hangfalak mozgásának bekapcsolása';
+    if (!on) layer.querySelectorAll('.fxnote').forEach((n) => n.remove());
   }
   btn.onclick = () => { on = !on; store('motion', on ? '1' : '0'); paint(); };
   document.addEventListener('music:playing', (e) => { musicOn = !!e.detail; paint(); });
 
-  // a főoldal hívja: a réteg a háttérkép helyén, ugyanakkora; a kép cseréjekor (nappal/éjjel, álló/fekvő) újraépül
+  // a főoldal hívja: a réteg a háttérkép helyén, ugyanakkora; a kép cseréjekor (álló/fekvő) újraépül
+  let last = null;
   window.FxLayout = (sc, s, left, top) => {
     Object.assign(layer.style, { width: sc.w * s + 'px', height: sc.h * s + 'px', left: left + 'px', top: top + 'px' });
     unit = s; layer.style.setProperty('--u', s);
-    last = sc; rebuild();
+    last = sc; if (sc.src !== cur) { cur = sc.src; build(sc); }
   };
-  let last = null;
-  function rebuild() { if (!last) return; const key = last.src + '|' + nightSrc + '|' + (nightV >= 0.42 ? 'n' : 'd'); if (key !== cur) { cur = key; build(last); } }
-  // a főoldal hívja a napszak változásakor: 0 nappal, 1 éjjel (közte átúszik); éjjel csillagok, szentjánosbogarak
-  window.FxNight = (v, src) => { nightV = v; nightSrc = src || ''; layer.style.setProperty('--night', v.toFixed(3)); rebuild(); };
+  window.FxNight = () => {};   // a napszak már nem változtat a rétegen (nincs csillag, szentjánosbogár)
   window.FxCam = (t, f) => { layer.style.transform = t; layer.style.filter = f; };
-  if (window.__fxNight) window.FxNight(...window.__fxNight);
   if (window.__fxArgs) window.FxLayout(...window.__fxArgs);   // a háttér már elrendeződött, mire ez a fájl betöltött
   paint();
 })();

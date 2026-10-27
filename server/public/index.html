@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="color-scheme" content="light">
 <script>try{document.documentElement.dataset.theme=localStorage.getItem('theme')||(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light')}catch(e){}</script>
-<script src="/theme.js"></script>
+<script src="/theme.js"></script><script src="/nav-badge.js" defer></script>
 <title>Exmentoring</title>
 <script>if(/^\/beta/.test(location.pathname))document.documentElement.classList.add('beta3d')</script>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
@@ -36,15 +36,13 @@ ul{list-style:none;margin:0;padding:0}
 .top .wrap{display:flex;align-items:center;justify-content:space-between;gap:12px;min-height:44px;max-width:none}
 .studio{display:flex;align-items:center;gap:8px;font-weight:700;font-size:.9rem;color:#fff;text-decoration:none;white-space:nowrap}
 .studio svg{width:26px;height:23px}
-.beta{margin-left:12px;display:inline-flex;align-items:center;gap:6px;background:#eb772e;color:#fff;font-weight:800;font-size:.78rem;padding:4px 12px 4px 5px;border-radius:999px;text-decoration:none;animation:betaPulse 2.4s ease-in-out infinite;white-space:nowrap;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.25)}
+.beta{margin-left:12px;display:inline-flex;align-items:center;gap:6px;background:#eb772e;color:#fff;font-weight:800;font-size:.78rem;padding:4px 12px 4px 5px;border-radius:999px;text-decoration:none;white-space:nowrap;cursor:pointer;box-shadow:0 2px 0 rgba(0,0,0,.25)}
 .beta b{background:#fff;color:#c2531b;font-size:.62rem;font-weight:900;letter-spacing:.12em;padding:2px 7px;border-radius:999px}
 .beta i{font-style:normal;font-weight:900;transition:transform .2s}
 .beta .cta-s{display:none}
 .beta:hover,.beta:focus-visible{background:#ff8a2a;outline:none;transform:translateY(-1px)}
 .beta:hover i,.beta:focus-visible i{transform:translateX(3px)}
 @media (max-width:760px){.beta .cta{display:none}.beta .cta-s{display:inline}}
-@keyframes betaPulse{0%,100%{box-shadow:0 0 0 0 rgba(235,119,46,.55)}50%{box-shadow:0 0 0 6px rgba(235,119,46,0)}}
-@media (prefers-reduced-motion:reduce){.beta{animation:none}}
 .tobeta{position:fixed;inset:0;z-index:99;background:#f3f3f3;opacity:0;pointer-events:none;transition:opacity .55s;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;letter-spacing:.35em;color:#6b6b6b;font-weight:700}
 .tobeta.on{opacity:1;pointer-events:auto}
 .chdue{margin-left:10px;display:inline-flex;align-items:center;gap:4px;background:#df312d;color:#fff;font-weight:800;font-size:.78rem;padding:4px 12px;border-radius:999px;text-decoration:none;white-space:nowrap;animation:chdue 1.1s ease-in-out infinite}
@@ -87,8 +85,7 @@ ul{list-style:none;margin:0;padding:0}
 /* a generált jelenet: méretét és helyét a JS állítja, hogy a kőkör pont a kerék alá essen */
 .land{position:absolute;left:0;top:0;max-width:none;z-index:1;transform-origin:0 0;will-change:transform,filter;user-select:none;pointer-events:none;
   -webkit-mask-image:linear-gradient(180deg,#000 88%,transparent);mask-image:linear-gradient(180deg,#000 88%,transparent)}
-.land-night{opacity:0;transition:opacity 12s linear}
-@media (prefers-reduced-motion:reduce){.land-night{transition:none}}
+.land-night{opacity:0}   /* a világos/sötét váltás azonnali, átúszás nélkül */
 .land.narrow{-webkit-mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);
   -webkit-mask-composite:source-in;mask-image:linear-gradient(90deg,transparent,#000 7%,#000 93%,transparent),linear-gradient(180deg,#000 88%,transparent);mask-composite:intersect}
 /* helyválasztás közben a felső panelek ne takarják a helyeket */
@@ -98,13 +95,7 @@ ul{list-style:none;margin:0;padding:0}
 @media (max-width:760px){.stage.view-bj .tr ul#board{max-height:56px}.stage.view-bj .door{display:none}}
 .crowd{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none}
 .crowd .rcw{position:absolute}
-.crowd .rcw img{position:absolute;left:0;top:0;width:100%;height:100%;user-select:none;transform-origin:50% 92%;animation:rcbreathe 3.6s ease-in-out infinite}
-/* a mosómedvék finoman lélegeznek / ringatóznak (a ✨ gombbal kikapcsolható) */
-.crowd .rcw:nth-child(3n+1) img{animation-duration:4.1s;animation-delay:-1.3s}
-.crowd .rcw:nth-child(3n+2) img{animation-name:rcsway;animation-duration:5.2s;animation-delay:-2.1s}
-@keyframes rcbreathe{0%,100%{transform:scale(1,1)}50%{transform:scale(1.012,1.028) translateY(-.6%)}}
-@keyframes rcsway{0%,100%{transform:rotate(-1.4deg)}50%{transform:rotate(1.4deg) translateY(-.5%)}}
-.fx-off .crowd .rcw img{animation:none}
+.crowd .rcw img{position:absolute;left:0;top:0;width:100%;height:100%;user-select:none}
 /* a saját név mellett: felállás (egérrel ráállva; érintőképernyőn mindig látszik) */
 .crowd .rcn.mine{pointer-events:auto;background:rgba(235,119,46,.9);display:inline-flex;align-items:center;gap:.3em}
 .crowd .rcn .up{display:none;border:0;padding:0 .35em;border-radius:999px;background:rgba(10,15,22,.6);color:#fff;font:inherit;font-weight:800;cursor:pointer;line-height:1.3}
@@ -114,10 +105,8 @@ ul{list-style:none;margin:0;padding:0}
 /* ide lehet ülni: + a szabad helyeken */
 .crowd .plus{position:absolute;transform:translate(-50%,-50%);width:var(--pz,34px);height:var(--pz,34px);border-radius:50%;border:2px solid #fff;padding:0;
   background:rgba(235,119,46,.88);color:#fff;font:inherit;font-weight:800;font-size:calc(var(--pz,34px)*.62);line-height:1;cursor:pointer;pointer-events:auto;z-index:1000;
-  box-shadow:0 2px 10px rgba(0,0,0,.45);display:grid;place-items:center;animation:plus 1.6s ease-in-out infinite}
+  box-shadow:0 2px 10px rgba(0,0,0,.45);display:grid;place-items:center}
 .crowd .plus:hover,.crowd .plus:focus-visible{background:#df312d;outline:none;transform:translate(-50%,-50%) scale(1.15)}
-@keyframes plus{50%{box-shadow:0 0 0 6px rgba(255,255,255,.25),0 2px 10px rgba(0,0,0,.45)}}
-@media (prefers-reduced-motion:reduce){.crowd .plus{animation:none}}
 .crowd .rcn{position:absolute;transform:translate(-50%,-100%);z-index:2;white-space:nowrap;font-weight:700;color:#fff;background:rgba(10,15,22,.55);
   border-radius:999px;padding:.1em .55em;line-height:1.3;text-shadow:0 1px 2px rgba(0,0,0,.5)}
 .stage{perspective:1100px}
@@ -314,6 +303,9 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .top nav{min-width:0;flex:0 1 auto}
 @media (max-width:760px){.mbtn .ml{display:none}.mbtn{padding:4px 9px;margin-left:6px}.chdue .s{display:none}.chdue{padding:4px 9px;margin-left:6px}.beta{margin-left:8px}}
 @media (max-width:420px){.studio>a[href="#jatek"]{display:none}}
+.nav-dropdown a.nav-m{display:none}
+/* telefonon is látsszon a Szavazás (és a sárga száma) meg a „…” menü: a Gyros és a Kóla oda kerül */
+@media (max-width:480px){.beta .cta-s,.beta i{display:none}.beta{padding:4px 8px 4px 5px}.top nav a{padding:12px 7px}.nav-primary a:not([href="/szavazas.html"]){display:none}.nav-dropdown a.nav-m{display:block}}
 .mdrawer{visibility:hidden;transition:transform .3s ease,visibility 0s .3s;position:fixed;top:44px;right:0;bottom:0;width:min(400px,100vw);z-index:95;background:#1c1119;color:#f4e8e2;box-shadow:-12px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column;transform:translateX(105%);font-size:.88rem}
 .mdrawer.open{transform:none;visibility:visible;transition:transform .3s ease}
 .mdrawer .mh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
@@ -327,11 +319,12 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .mdrawer [hidden]{display:none!important}
 .mdrawer .mnow{margin:10px 0 2px;font-weight:800;color:#fff;line-height:1.3}
 .mdrawer .mby{font-size:.76rem;color:#e9b9a3}
-.mdrawer .mctl{display:flex;align-items:center;gap:6px;margin-top:10px}
+.mdrawer .mctl{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:10px}
+.mdrawer .mctl #mvol{flex:1;min-width:60px}
 .mdrawer button.c{border:0;border-radius:9px;background:rgba(255,255,255,.12);color:#fff;font:inherit;font-weight:700;cursor:pointer;padding:7px 11px}
 .mdrawer button.c:hover:not(:disabled){background:rgba(255,255,255,.22)}
 .mdrawer button.c:disabled{opacity:.4;cursor:default}
-.mdrawer #mjoin{flex:1;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553)}
+.mdrawer #mjoin{flex:1 1 100%;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553)}
 .mdrawer #mjoin.on{background:rgba(255,255,255,.12)}
 .mdrawer input[type=range]{width:70px;accent-color:#eb772e}
 .mdrawer .mform{display:flex;gap:6px;margin-top:14px}
@@ -358,6 +351,10 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .mdrawer li .x{border:0;background:none;color:#b8aaa3;cursor:pointer;font-size:1rem;padding:2px 6px;border-radius:6px}
 .mdrawer li .x:hover{background:rgba(255,255,255,.12);color:#fff}
 .mdrawer .mlempty{color:#b8aaa3;font-size:.84rem}
+.mdrawer .madd{margin-top:12px}
+.mdrawer .madd .go2{background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);white-space:nowrap}
+.mdrawer #mshuf[aria-pressed="true"]{background:#eb772e}
+.mdrawer li .by{color:#ffb27a;font-size:.72rem;white-space:nowrap}
 
 /* eredmény-szalag (mint az élő kaszinóban: szomszédok + nyerő szám) */
 .banner{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);display:flex;flex-direction:column;align-items:center;gap:12px;
@@ -448,35 +445,44 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .num:hover,.num:focus-visible{filter:brightness(1.18);outline:2px solid #fff;outline-offset:1px}
 .c-red{background:var(--red)}.c-black{background:#05080c;outline:1px solid rgba(255,255,255,.3)}.c-green{background:var(--green)}
 .fxbtn[aria-pressed="false"]{opacity:.45}
-/* apró mozgás a festett tisztáson (fx.js) */
+/* napi ebédszavazás (ebed.js): nagy ablak 10:00 után, eredmény-kártya bal oldalt az üzenetek alatt */
+.lunchcard{padding:9px 12px;font-size:.84rem;color:#f3e6de}
+.lunchcard .lch{display:flex;align-items:baseline;justify-content:space-between;gap:8px;margin-bottom:3px}
+.lunchcard .lch b{color:#fff;font-size:.92rem}.lunchcard small{color:#e9b9a3;font-size:.72rem}
+.lunchcard .lcr{line-height:1.45}.lunchcard .lcr b{color:#fff}
+.lunchcard .lcedit{margin-top:4px;border:0;background:none;color:#ffb27a;font:inherit;font-size:.76rem;font-weight:700;text-decoration:underline;cursor:pointer;padding:0}
+.lunchmodal{position:fixed;inset:0;z-index:120;display:grid;place-items:center;padding:16px;background:rgba(10,15,22,.55);overflow-y:auto}
+.lunchmodal[hidden]{display:none}
+.lunchbox{width:min(820px,100%);background:#1c1119;color:#f4e8e2;border:1px solid rgba(255,255,255,.14);border-radius:20px;padding:26px 26px 20px;box-shadow:0 24px 60px rgba(0,0,0,.5)}
+.lunchbox h1{margin:0;font-size:clamp(1.6rem,4vw,2.3rem);font-weight:800;letter-spacing:-.02em;color:#fff}
+.lunchbox .lsub{margin:4px 0 18px;color:#e9b9a3;font-size:.9rem}
+.lunchbody{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.lunchbody section{background:rgba(255,255,255,.05);border-radius:16px;padding:16px}
+.lunchbody h2{margin:0 0 12px;font-size:1.25rem;color:#fff}
+.lbig{display:grid;gap:10px}
+.ltimes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.ltimes .lopt:last-child{grid-column:1/-1}
+.lopt{position:relative;border:2px solid rgba(255,255,255,.16);border-radius:12px;background:rgba(255,255,255,.06);color:#fff;font:inherit;font-weight:800;font-size:1rem;padding:12px 10px;cursor:pointer}
+.lopt.big{font-size:1.15rem;padding:18px 12px}
+.lopt:hover{background:rgba(255,255,255,.12)}
+.lopt.on{border-color:#eb772e;background:rgba(235,119,46,.28)}
+.lopt small{position:absolute;right:8px;top:6px;font-size:.7rem;color:#ffb27a}
+.lopt:focus-visible,.llater:focus-visible{outline:3px solid #fff;outline-offset:2px}
+.lfoot{display:flex;justify-content:flex-end;align-items:center;gap:14px;margin-top:18px}
+.lfoot .go{width:auto;padding:12px 30px}
+.llater{border:0;background:none;color:#e9b9a3;font:inherit;text-decoration:underline;cursor:pointer}
+@media (max-width:640px){.lunchbody{grid-template-columns:1fr}.lunchbox{padding:20px 16px 16px}.lopt.big{padding:14px 10px}}
+/* zene alatt lüktető hangfalak a tisztáson (fx.js) */
 .fx{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none;overflow:hidden}
 .beta3d .fx{display:none}
 .fx>div{position:absolute}
-.fxnight{position:absolute;inset:0;opacity:var(--night,0)}
-.fxsway,.fxswing{-webkit-mask-image:radial-gradient(ellipse 60% 55% at 50% 45%,#000 55%,transparent 100%);mask-image:radial-gradient(ellipse 60% 55% at 50% 45%,#000 55%,transparent 100%);background-repeat:no-repeat}
-.fxsway{animation:fxsway 9s ease-in-out infinite alternate}
-@keyframes fxsway{0%{transform:rotate(-.75deg) skewX(-.8deg)}100%{transform:rotate(.75deg) skewX(.8deg)}}
-.fxswing{animation:fxswing 4.2s ease-in-out infinite alternate;-webkit-mask-image:radial-gradient(ellipse 58% 70% at 50% 50%,#000 60%,transparent 100%);mask-image:radial-gradient(ellipse 58% 70% at 50% 50%,#000 60%,transparent 100%)}
-@keyframes fxswing{0%{transform:rotate(-2deg)}100%{transform:rotate(2deg)}}
-.fxglint{width:calc(var(--u)*22px);height:calc(var(--u)*3px);border-radius:3px;background:rgba(255,255,255,.85);opacity:0;animation:fxglint 5s ease-in-out infinite}
-@keyframes fxglint{0%,100%{opacity:0;transform:translateX(0)}45%{opacity:.75}70%{opacity:0;transform:translateX(calc(var(--u)*14px))}}
-.fxsun{border-radius:50%;background:radial-gradient(closest-side,rgba(255,236,190,.55),rgba(255,214,150,.18) 55%,transparent);animation:fxpulse 9s ease-in-out infinite alternate}
-.fxmoon{border-radius:50%;background:radial-gradient(closest-side,rgba(220,225,255,.45),rgba(200,205,255,.12) 55%,transparent);animation:fxpulse 11s ease-in-out infinite alternate}
-@keyframes fxpulse{0%{opacity:.35;transform:scale(.96)}100%{opacity:.85;transform:scale(1.04)}}
-.fxstar{width:calc(var(--u)*4px);height:calc(var(--u)*4px);border-radius:50%;background:#fff;box-shadow:0 0 calc(var(--u)*6px) #fff;opacity:.2;animation:fxtw 4s ease-in-out infinite}
-@keyframes fxtw{0%,100%{opacity:.15}50%{opacity:.95}}
-.fxfly{width:calc(var(--u)*6px);height:calc(var(--u)*6px);border-radius:50%;background:#fff6a8;box-shadow:0 0 calc(var(--u)*10px) calc(var(--u)*3px) rgba(255,240,140,.7);opacity:0;animation:fxfly 9s ease-in-out infinite}
-@keyframes fxfly{0%{opacity:0;transform:translate(0,0)}20%{opacity:.9}50%{transform:translate(var(--dx),var(--dy))}80%{opacity:.8}100%{opacity:0;transform:translate(calc(var(--dx)*-.4),calc(var(--dy)*.5))}}
-.fxleaf{font-size:calc(var(--u)*30px);opacity:0;animation:fxleaf 11s linear forwards}
-@keyframes fxleaf{0%{opacity:0;transform:translate(0,0) rotate(0)}10%{opacity:.9}50%{transform:translate(calc(var(--tx)*.5),calc(var(--ty)*.4)) rotate(200deg)}90%{opacity:.85}100%{opacity:0;transform:translate(var(--tx),var(--ty)) rotate(420deg)}}
 .fxspk{display:none;transform-origin:50% 100%;filter:drop-shadow(0 calc(var(--u)*6px) calc(var(--u)*5px) rgba(0,0,0,.35))}
 .fxspk img{width:100%;height:100%;display:block;object-fit:contain;object-position:50% 100%}
-.fx.music .fxspk{display:block;animation:fxbeat .48s ease-in-out infinite}
-@keyframes fxbeat{0%,100%{transform:scale(1,1)}18%{transform:scale(1.07,.93)}40%{transform:scale(.97,1.05) translateY(calc(var(--u)*-5px))}}
+.fx.music .fxspk{display:block;animation:fxbeat .96s ease-in-out infinite}
+@keyframes fxbeat{0%,100%{transform:scale(1,1)}25%{transform:scale(1.03,.97)}}
 .fxnote{font-size:calc(var(--u)*44px*var(--k,1));font-weight:900;color:#fff3c4;text-shadow:0 0 calc(var(--u)*8px) rgba(255,160,60,.9),0 calc(var(--u)*2px) 0 #4a2a14;opacity:0;animation:fxnote 2.6s ease-out forwards}
 @keyframes fxnote{0%{opacity:0;transform:translate(0,0) scale(.6) rotate(-10deg)}15%{opacity:1}100%{opacity:0;transform:translate(var(--tx),calc(var(--u)*-170px)) scale(1.15) rotate(12deg)}}
 .fx.still *{animation-play-state:paused!important}
-.fx.still .fxleaf,.fx.still .fxnote,.fx.still .fxfly{display:none}
 .fx.still.music .fxspk{animation:none}
 @media (prefers-reduced-motion:reduce){.fx:not(.forced) .fxleaf{display:none}}
 .snd{flex:none;padding:4px 9px;border-radius:999px;border:1px solid rgba(255,255,255,.3);background:transparent;color:#fff;font-size:.78rem;font-weight:600;cursor:pointer}
@@ -611,7 +617,7 @@ footer strong{color:#fff}
 <header class="top">
   <div class="wrap">
     <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="Közös zene: lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> Zene</span></button></span>
-    <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
+    <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a class="nav-m" href="/gyros.html">Gyros</a><a class="nav-m" href="/cola.html">Kóla</a><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="#szabalyok">Hogyan működik</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
 </header>
@@ -649,6 +655,7 @@ footer strong{color:#fff}
   <div class="tl">
     <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
+    <div class="glass lunchcard" id="lunchcard" hidden aria-live="polite"></div>
   </div>
 
   <aside class="glass tr" aria-label="Ranglista és ajtó" tabindex="0">
@@ -685,7 +692,7 @@ footer strong{color:#fff}
     <div class="side">
       <div class="glass status"><b id="phase">Csatlakozás…</b><div class="bar"><i id="barfill"></i></div></div>
       <button class="go" id="spinbtn" type="button" disabled>Pörgetés</button>
-      <div class="glass histrow"><div class="hist" id="hist" aria-label="Utolsó számok"></div><button class="snd" id="snd" type="button" aria-pressed="false">🔇</button><button class="snd fxbtn" id="fxbtn" type="button" aria-pressed="true" title="Mozgás ki/be">✨</button></div>
+      <div class="glass histrow"><div class="hist" id="hist" aria-label="Utolsó számok"></div><button class="snd" id="snd" type="button" aria-pressed="false">🔇</button><button class="snd fxbtn" id="fxbtn" type="button" aria-pressed="true" title="Hangfalak mozgása ki/be">✨</button></div>
     </div>
   </div>
 
@@ -775,6 +782,7 @@ function connect(){
   ws.onmessage=e=>{
     const m=JSON.parse(e.data);
     if(window.MusicHook)MusicHook(m);
+    if(window.LunchHook)LunchHook(m);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render();$('chdue').hidden=!m.chapter||!!(nick&&m.chapter.votes[nick])}
     else if(m.t==='roulette-user-history')renderUserHistory(m)
     else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
@@ -1482,20 +1490,31 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
   <div class="mbody">
     <div class="mplayer"><div id="ytp"></div><div class="mempty" id="mempty">Még üres a lista.<br>Tegyél be egy számot lent!</div></div>
     <div class="mnow" id="mnow"></div><div class="mby" id="mby"></div>
-    <div class="mctl"><button type="button" class="c" id="mjoin">▶ Zene bekapcsolása</button><button type="button" class="c" id="mprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="c" id="mpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="c" id="mnext" title="Következő (mindenkinek)">⏭</button><input type="range" id="mvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
+    <div class="mctl"><button type="button" class="c" id="mjoin">▶ Zene bekapcsolása</button><button type="button" class="c" id="mprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="c" id="mpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="c" id="mnext" title="Következő (mindenkinek)">⏭</button><button type="button" class="c" id="mshuf" aria-pressed="false" title="Véletlen sorrend (mindenkinek)">🔀</button><input type="range" id="mvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
+    <form class="mform madd" id="madd"><input id="maddurl" type="text" inputmode="url" autocomplete="off" placeholder="Bármelyik YouTube-szám linkje" aria-label="YouTube-szám linkje"><button type="submit" class="c go2">+ Szám</button></form>
+    <div class="mlhelp">Bármelyik YouTube vagy YouTube Music szám linkje jó: a lista végére kerül, mindenkinek szól.</div>
     <div class="mlink" id="mlinkbox" hidden>
       <div class="mltitle">Közös lista: <b id="mltitle"></b></div>
       <div class="mlrow"><a class="c" id="mlopen" href="#" target="_blank" rel="noopener">Megnyitás a YouTube-on ↗</a><button type="button" class="c" id="mlcopy">Link másolása</button><button type="button" class="c" id="mlrefresh" title="Lista frissítése most">↻</button></div>
       <div class="mlhelp">Zenét a YouTube-on, ebbe a listába tudsz tenni (a linkkel csatlakozz szerkesztőként); kb. egy percen belül itt is megjelenik.</div>
       <button type="button" class="mlchange" id="mlchange">Másik lista bekötése</button>
     </div>
+    <button type="button" class="mlchange" id="mlbind" hidden>Közös YouTube-lejátszási lista bekötése (nem kötelező)</button>
     <form class="mform" id="mform"><input id="murl" type="text" inputmode="url" autocomplete="off" placeholder="YouTube-lejátszási lista linkje" aria-label="YouTube-lejátszási lista linkje"><button type="submit" class="c">Bekötés</button></form>
     <div class="mnote" id="mnote" aria-live="polite"></div>
     <h3 id="mcount">A lista</h3>
     <ol id="mlist"></ol>
   </div>
 </aside>
-<script src="/zene.js"></script>
+<div class="lunchmodal" id="lunchmodal" hidden role="dialog" aria-modal="true" aria-labelledby="lunchh">
+  <div class="lunchbox">
+    <h1 id="lunchh">🍽️ Ebéd</h1>
+    <p class="lsub" id="lunchsub"></p>
+    <div class="lunchbody" id="lunchbody"></div>
+    <div class="lfoot"><button type="button" class="llater" id="lunchlater">Most nem</button><button type="button" class="go ldone" id="lunchdone" disabled>Kész</button></div>
+  </div>
+</div>
+<script src="/zene.js"></script><script src="/ebed.js"></script>
 <script src="/fx.js"></script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>

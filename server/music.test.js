@@ -109,3 +109,44 @@ test('szerver: lista bekötése, közös léptetés, ajtós halkítás két klie
   server.closeAllConnections?.(); server.close();
   setTimeout(() => process.exit(), 50).unref();
 });
+
+test('szám betétele linkkel: watch, youtu.be, shorts, music; dupla nem; kivehető; lista nélkül is szól', () => {
+  for (const u of ['https://www.youtube.com/watch?v=dQw4w9WgXcQ&t=3', 'youtu.be/dQw4w9WgXcQ?si=x', 'https://music.youtube.com/watch?v=dQw4w9WgXcQ&list=RDAMVM', 'https://www.youtube.com/shorts/dQw4w9WgXcQ', 'dQw4w9WgXcQ'])
+    assert.strictEqual(music.parseVideo(u), 'dQw4w9WgXcQ', u);
+  for (const u of ['https://example.com/watch?v=dQw4w9WgXcQ', 'hello', 'https://www.youtube.com/playlist?list=PLabcdefghij']) assert.strictEqual(music.parseVideo(u), null, u);
+  const m = music.empty();
+  assert.strictEqual(music.addSong(m, 'dQw4w9WgXcQ', 'Rick – Never', 'Ricsi', 100), null);
+  assert.deepStrictEqual([m.items.length, m.curV, m.startedAt, m.items[0].by], [1, 'dQw4w9WgXcQ', 100, 'Ricsi'], 'üres listán azonnal indul');
+  assert.match(music.addSong(m, 'dQw4w9WgXcQ', '', 'Anna', 200), /már a listán/);
+  music.addSong(m, 'aaaaaaaaaaa', '', 'Anna', 300);
+  assert.deepStrictEqual([m.items[1].title, m.curV], ['YouTube-szám', 'dQw4w9WgXcQ'], 'a szóló szám szól tovább');
+  assert.strictEqual(music.removeSong(m, 'dQw4w9WgXcQ', 400), null);
+  assert.deepStrictEqual([m.items.length, m.curV], [1, 'aaaaaaaaaaa'], 'a kivett szóló helyén a következő');
+  const back = music.sanitize(JSON.parse(JSON.stringify(m)));
+  assert.deepStrictEqual([back.items.length, back.extra[0].by], [1, 'Anna'], 'mentés után is megmarad');
+});
+
+test('a lista frissítése nem viszi el az oldalon betett számokat; új lista bekötésekor is megmaradnak', () => {
+  const m = music.empty(); music.setList(m, L); music.updateItems(m, '', [A, B], 1000);
+  music.addSong(m, 'zzzzzzzzzzz', 'Z', 'Ricsi', 1100);
+  assert.deepStrictEqual(m.items.map((x) => x.v), [A.v, B.v, 'zzzzzzzzzzz']);
+  music.updateItems(m, '', [B], 1200);
+  assert.deepStrictEqual(m.items.map((x) => x.v), [B.v, 'zzzzzzzzzzz']);
+  assert.match(music.removeSong(m, B.v, 1300), /YouTube-listában/);
+  music.setList(m, 'PLzyxwvutsrqp987');
+  assert.deepStrictEqual(m.items.map((x) => x.v), ['zzzzzzzzzzz']);
+});
+
+test('véletlen sorrend: egy körön belül nincs ismétlés, a kör végén újrakezdi', () => {
+  const m = music.empty();
+  'abcdefghijk'.split('').forEach((c, i) => music.addSong(m, c.repeat(11), c, 'X', i));
+  music.setShuffle(m, true);
+  const seen = new Set([m.curV]);
+  for (let i = 0; i < 10; i++) { music.ended(m, m.rev, 100 + i); seen.add(m.curV); }
+  assert.strictEqual(seen.size, 11, 'mind a 11 szám szólt, ismétlés nélkül');
+  music.ended(m, m.rev, 200);
+  assert.ok(m.curV, 'új kör indul');
+  music.setShuffle(m, false);
+  const at = m.cur; music.skip(m, 1, 300);
+  assert.strictEqual(m.cur, (at + 1) % 11, 'kikapcsolva sorban jön');
+});

@@ -329,15 +329,48 @@ function sendSpinHistory(ws, id) {
   if (!spin) return ws.send(JSON.stringify({ t: 'err', msg: 'Ehhez a régi húzáshoz nincs részletes napló.' }));
   ws.send(JSON.stringify({ t: 'roulette-spin-history', spin: publicSpin(spin) }));
 }
+// budapesti idő: a nap hányadik másodperce (TEST_CLOCK_OFFSET_MS csak a helyi teszthez tolja el az órát)
+function bpSecond(now = Date.now()) {
+  const p = new Intl.DateTimeFormat('en-GB', { timeZone: 'Europe/Budapest', hour: '2-digit', minute: '2-digit', second: '2-digit', hourCycle: 'h23' })
+    .formatToParts(new Date(now + (Number(process.env.TEST_CLOCK_OFFSET_MS) || 0)));
+  const g = (t) => Number(p.find((x) => x.type === t).value);
+  return g('hour') * 3600 + g('minute') * 60 + g('second');
+}
+// kinek mi látszik a szavazásokból: a 'bent' közönségűt csak az látja, aki ma helyben lépett be
+const pollCtx = (nick) => { const x = S.seats[nick]; return { bent: !!x && x.day === today() && x.mode === 'bent' }; };
+function pendingMsg(nick) {
+  const ctx = pollCtx(nick), L = ctx.bent ? polls.lunch(S.polls, today()) : null;
+  return { t: 'pending', n: polls.pending(S.polls, nick, ctx), lunch: L && { closesAt: L[0].closesAt, polls: L.map((p) => polls.view(p, nick)) } };
+}
+function pushPending(only) {
+  for (const c of wss.clients) {
+    if (c.readyState !== 1 || !c.nick || (only && c !== only)) continue;
+    const out = JSON.stringify(pendingMsg(c.nick));
+    if (out !== c.lastPending) { c.lastPending = out; c.send(out); }
+  }
+}
+// percenként: 10:00 után létrejönnek a napi ebédszavazások; a lejáratok miatt a számlálók is frissülnek
+function lunchTick() {
+  const sec = bpSecond(), made = polls.ensureLunch(S.polls, today(), Math.floor(sec / 60), Date.now() + (polls.LUNCH_TO * 60 - sec) * 1000);
+  if (made.length) { save(); broadcastPollList(); }
+  pushPending();
+}
+setInterval(lunchTick, 20 * 1000).unref();
+setTimeout(lunchTick, 1000).unref();
+app.get('/api/pending', (req, res) => {
+  const nick = cleanNick(req.query.nick);
+  res.json({ n: nick.length >= 2 ? polls.pending(S.polls, nick, pollCtx(nick)) : 0 });
+});
 function sendPollState(ws, id) {
   const poll = polls.find(S.polls, id);
+  if (poll && !polls.canSee(poll, pollCtx(ws.nick))) return ws.send(JSON.stringify({ t: 'err', msg: 'Ez a szavazás csak a ma helyben lévőknek látszik.' }));
   if (!poll) return ws.send(JSON.stringify({ t: 'err', msg: 'Ez a szavazás nem található.' }));
   ws.pollId = poll.id;
   ws.send(JSON.stringify({ t: 'poll-state', poll: polls.view(poll, ws.nick) }));
 }
 function sendPollList(ws) {
   ws.wantsPollList = true;
-  ws.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, ws.nick) }));
+  ws.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, ws.nick, pollCtx(ws.nick)) }));
 }
 function broadcastPoll(poll) {
   for (const c of wss.clients) {
@@ -347,7 +380,7 @@ function broadcastPoll(poll) {
 }
 function broadcastPollList() {
   for (const c of wss.clients) {
-    if (c.readyState === 1 && c.wantsPollList) c.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, c.nick) }));
+    if (c.readyState === 1 && c.wantsPollList) c.send(JSON.stringify({ t: 'poll-list', polls: polls.list(S.polls, c.nick, pollCtx(c.nick)) }));
   }
 }
 let worldTimer = null;
@@ -412,6 +445,7 @@ wss.on('connection', (ws) => {
       if (nick.length < 2) return err('A becenév legalább 2 karakter.');
       if (nick.toLowerCase() === DOOR) return err('Az „ajtó” becenév foglalt.');
       ws.nick = nick; ws.send(JSON.stringify({ t: 'hello', nick }));
+      ws.lastPending = ''; pushPending(ws);
       return;
     }
     if (m.t === 'cola-add' || m.t === 'cola-used' || m.t === 'cola-unused') {
@@ -448,10 +482,27 @@ wss.on('connection', (ws) => {
         return e ? err(e) : undefined;
       }
       if (m.t === 'music-refresh') { refreshMusic(false); return; }
+      if (m.t === 'music-add') {   // egy szám betétele linkkel; a cím a YouTube oEmbedjéből jön
+        const v = music.parseVideo(m.input);
+        if (!v) return err('Ez nem YouTube-szám linkje (pl. youtube.com/watch?v=… vagy youtu.be/…).');
+        if (S.music.items.some((x) => x.v === v)) return err('Ez a szám már a listán van.');
+        if (now - (ws.lastAdd || 0) < 3000) return err('Várj egy pillanatot a következő számmal.');
+        ws.lastAdd = now;
+        const nick = ws.nick;
+        (process.env.MUSIC_FETCH === '0' ? Promise.resolve('') : music.fetchTitle(v)).then((title) => {
+          const e2 = music.addSong(S.music, v, title, nick, Date.now());
+          if (e2) return err(e2);
+          say(`🎵 ${nick} betett egy számot: ${S.music.items.find((x) => x.v === v).title}`);
+          save(); broadcastMusic(); broadcast();
+        }, (x) => { ws.lastAdd = 0; err(String(x.message || x).slice(0, 160)); });
+        return;
+      }
       if (m.t === 'music-ended') { if (!music.ended(S.music, m.rev, now)) return; }   // elavult vagy dupla jelentés
       else if (m.t === 'music-skip') e = music.skip(S.music, m.dir, now);
       else if (m.t === 'music-play') e = music.play(S.music, Number(m.i), now);
       else if (m.t === 'music-pause') e = music.setPaused(S.music, !!m.paused, now);
+      else if (m.t === 'music-remove') e = music.removeSong(S.music, String(m.v || ''), now);
+      else if (m.t === 'music-shuffle') { e = music.setShuffle(S.music, !!m.on); if (!e) say(`🎵 ${ws.nick} ${m.on ? 'bekapcsolta' : 'kikapcsolta'} a véletlen sorrendet.`); }
       else return err('Ismeretlen zene-művelet.');
       if (e) return err(e);
       save(); broadcastMusic();
@@ -510,6 +561,7 @@ wss.on('connection', (ws) => {
           : m.t === 'stand' ? seats.stand(S.seats, ws.nick, today()) : seats.leave(S.seats, ws.nick, today());
       if (e) return err(e);
       if (m.t === 'leave') say(`👋 ${ws.nick} kilépett.`);
+      setImmediate(() => { pushPending(); broadcastPollList(); });
       // aznapi első bejelentkezés: helyben +10 000, home office-ból +5 000 a közös potba (egy becenév naponta egyszer kaphat)
       if (m.t === 'where' && !had) {
         const amount = m.mode === 'ho' ? HO_CREDIT : DAILY_CREDIT;
@@ -536,23 +588,24 @@ wss.on('connection', (ws) => {
       save(); broadcast(); return;
     }
     if (m.t === 'poll-create') {
-      const result = polls.create(S.polls, { creator: ws.nick, title: m.title, options: m.options, multiple: m.multiple });
+      const sec = bpSecond(), TTL = { today: 86400 - sec, '1d': 86400, '3d': 3 * 86400, '7d': 7 * 86400 };
+      const result = polls.create(S.polls, { creator: ws.nick, title: m.title, options: m.options, multiple: m.multiple, closesAt: Date.now() + (TTL[m.ttl] || TTL['7d']) * 1000 });
       if (result.error) return err(result.error);
       ws.pollId = result.poll.id;
       save();
       ws.send(JSON.stringify({ t: 'poll-created', url: `/szavazas.html?id=${encodeURIComponent(result.poll.id)}`, poll: polls.view(result.poll, ws.nick) }));
       broadcastPoll(result.poll);
-      broadcastPollList();
+      broadcastPollList(); pushPending();
       return;
     }
     if (m.t === 'poll-vote') {
       const poll = polls.find(S.polls, m.id);
-      if (!poll) return err('Ez a szavazás nem található.');
+      if (!poll || !polls.canSee(poll, pollCtx(ws.nick))) return err('Ez a szavazás nem található.');
       const e = polls.vote(poll, ws.nick, m.choices);
       if (e) return err(e);
-      ws.pollId = poll.id;
+      if (!m.quiet) ws.pollId = poll.id;
       save();
-      broadcastPoll(poll);
+      broadcastPoll(poll); broadcastPollList(); pushPending();
       return;
     }
     if (m.t === 'poll-edit') {

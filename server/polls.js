@@ -4,6 +4,15 @@ const MAX_POLLS = 500;
 const MAX_TITLE = 120;
 const MAX_OPTIONS = 20;
 const MAX_OPTION = 160;
+const DEFAULT_TTL = 7 * 24 * 3600 * 1000;   // a lejárat nélküli (régi) szavazás a létrehozása után egy héttel jár le
+const AUDIENCES = ['', 'bent'];            // 'bent': csak aki aznap helyben lépett be
+
+// az automatikus napi ebédszavazás (10:00 és 12:30 között, csak a helyben lévőknek)
+const LUNCH = [
+  { key: 'lunch-brought', title: '🍱 Hoztál ma ebédet?', options: ['Igen, hoztam', 'Nem hoztam'] },
+  { key: 'lunch-time', title: '🕛 Mikor megyünk ebédelni?', options: ['11:30', '11:45', '12:00', '12:15', '12:30', '13:00', 'Ma nem jövök'] },
+];
+const LUNCH_FROM = 10 * 60, LUNCH_TO = 12 * 60 + 30;   // percben, budapesti idő szerint
 
 const cleanText = (value, max) => String(value ?? '')
   .replace(/[\u0000-\u001f<>]/g, '')
@@ -47,6 +56,9 @@ function normalize(value) {
       votes,
       createdAt: Number.isFinite(raw?.createdAt) ? raw.createdAt : Date.now(),
       updatedAt: Number.isFinite(raw?.updatedAt) ? raw.updatedAt : Date.now(),
+      closesAt: Number.isFinite(raw?.closesAt) && raw.closesAt > 0 ? raw.closesAt : 0,
+      audience: AUDIENCES.includes(raw?.audience) ? raw.audience : '',
+      auto: cleanText(raw?.auto, 40),
     });
   }
   return out;
@@ -72,7 +84,9 @@ function create(polls, input) {
   const options = uniqueOptions(input?.options);
   if (title.length < 2) return { error: 'A cím legalább 2 karakter legyen.' };
   if (options.length < 2) return { error: 'Legalább két különböző opció szükséges.' };
-  const now = Date.now();
+  const now = input?.now || Date.now();
+  const closesAt = Number(input?.closesAt);
+  if (closesAt && !(closesAt > now && closesAt <= now + 31 * 24 * 3600 * 1000)) return { error: 'Érvénytelen lejárat.' };
   const poll = {
     id: newId(polls),
     creator: cleanNick(input?.creator),
@@ -82,6 +96,9 @@ function create(polls, input) {
     votes: {},
     createdAt: now,
     updatedAt: now,
+    closesAt: closesAt || 0,
+    audience: AUDIENCES.includes(input?.audience) ? input.audience : '',
+    auto: cleanText(input?.auto, 40),
   };
   polls.unshift(poll);
   return { poll };
@@ -92,9 +109,15 @@ function find(polls, id) {
   return (Array.isArray(polls) ? polls : []).find((poll) => poll.id === target) || null;
 }
 
-function vote(poll, nick, value) {
+const closesAt = (poll) => poll.closesAt || poll.createdAt + DEFAULT_TTL;
+const isOpen = (poll, now = Date.now()) => now < closesAt(poll);
+// látja-e: a 'bent' közönségű szavazást csak az, aki aznap helyben lépett be
+const canSee = (poll, ctx = {}) => !poll.audience || (poll.audience === 'bent' && !!ctx.bent);
+
+function vote(poll, nick, value, now = Date.now()) {
   const player = cleanNick(nick);
   if (player.length < 2) return 'Előbb adj meg becenevet.';
+  if (!isOpen(poll, now)) return 'Ez a szavazás már lezárult.';
   const choices = normalizeChoices(value, poll.options.length, poll.multiple);
   if (!choices.length) return 'Válassz legalább egy opciót.';
   if (!poll.multiple && choices.length !== 1) return 'Itt pontosan egy opciót választhatsz.';
@@ -104,6 +127,7 @@ function vote(poll, nick, value) {
 }
 
 function edit(poll, editor, input) {
+  if (poll.auto) return 'Az automatikus szavazás nem szerkeszthető.';
   if (cleanNick(editor) !== poll.creator) return 'Ezt a szavazást csak a létrehozó szerkesztheti.';
   const title = cleanText(input?.title, MAX_TITLE);
   const options = uniqueOptions(input?.options);
@@ -126,16 +150,19 @@ function edit(poll, editor, input) {
   return null;
 }
 
-function list(value, viewer = '') {
-  const player = cleanNick(viewer);
-  return (Array.isArray(value) ? value : []).map((poll) => ({
+function list(value, viewer = '', ctx = {}) {
+  const player = cleanNick(viewer), now = ctx.now || Date.now();
+  return (Array.isArray(value) ? value : []).filter((poll) => canSee(poll, ctx)).map((poll) => ({
     id: poll.id,
     title: poll.title,
     creator: poll.creator,
     multiple: poll.multiple,
     voters: Object.keys(poll.votes).length,
     createdAt: poll.createdAt,
-    editable: !!player && player === poll.creator,
+    closesAt: closesAt(poll),
+    open: isOpen(poll, now),
+    voted: !!poll.votes[player],
+    editable: !!player && player === poll.creator && !poll.auto,
   }));
 }
 
@@ -163,7 +190,37 @@ function view(poll, viewer = '') {
     choices: poll.votes[player] || [],
     createdAt: poll.createdAt,
     updatedAt: poll.updatedAt,
+    closesAt: closesAt(poll),
+    open: isOpen(poll),
+    audience: poll.audience,
+    auto: poll.auto,
   };
 }
 
-module.exports = { MAX_OPTIONS, MAX_OPTION, normalize, create, find, vote, edit, list, view };
+// hány érvényes (le nem járt, neki látható) szavazásra nem válaszolt még
+function pending(value, viewer, ctx = {}) {
+  const player = cleanNick(viewer), now = ctx.now || Date.now();
+  if (player.length < 2) return 0;
+  return (Array.isArray(value) ? value : []).filter((poll) => canSee(poll, ctx) && isOpen(poll, now) && !poll.votes[player]).length;
+}
+
+// a mai ebédszavazások: 10:00 és 12:30 között létrehozza őket, ha még nincsenek (minute: a budapesti idő percben, closeAt: 12:30 időbélyege)
+function ensureLunch(value, day, minute, closeAt, now = Date.now()) {
+  if (minute < LUNCH_FROM || minute >= LUNCH_TO) return [];
+  const made = [];
+  for (const l of [...LUNCH].reverse()) {   // fordítva, hogy a listában a „Hoztál ebédet?” legyen elöl
+    const auto = `${l.key}:${day}`;
+    if (value.some((p) => p.auto === auto)) continue;
+    const r = create(value, { creator: 'Exmentoring', title: l.title, options: l.options, closesAt: closeAt, audience: 'bent', auto, now });
+    if (r.poll) made.push(r.poll);
+  }
+  return made;
+}
+// a mai ebédszavazások (a nagy ablakhoz és a bal oldali kártyához), ha még érvényesek
+function lunch(value, day, now = Date.now()) {
+  const found = LUNCH.map((l) => value.find((p) => p.auto === `${l.key}:${day}`));
+  if (found.some((p) => !p) || !found.every((p) => isOpen(p, now))) return null;
+  return found;
+}
+
+module.exports = { MAX_OPTIONS, MAX_OPTION, LUNCH, LUNCH_FROM, LUNCH_TO, normalize, create, find, vote, edit, list, view, isOpen, canSee, pending, ensureLunch, lunch };
