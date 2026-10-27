@@ -141,8 +141,14 @@ function list(value, viewer = '') {
 
 function view(poll, viewer = '') {
   const counts = poll.options.map(() => 0);
-  for (const choices of Object.values(poll.votes)) {
-    for (const choice of choices) if (counts[choice] !== undefined) counts[choice]++;
+  const votersByOption = poll.options.map(() => []);
+  for (const [nick, choices] of Object.entries(poll.votes)) {
+    for (const choice of choices) {
+      if (counts[choice] !== undefined) {
+        counts[choice]++;
+        votersByOption[choice].push(nick);
+      }
+    }
   }
   const player = cleanNick(viewer);
   return {
@@ -152,6 +158,7 @@ function view(poll, viewer = '') {
     options: poll.options,
     multiple: poll.multiple,
     counts,
+    votersByOption,
     voters: Object.keys(poll.votes).length,
     choices: poll.votes[player] || [],
     createdAt: poll.createdAt,

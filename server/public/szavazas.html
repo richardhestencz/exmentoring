@@ -99,6 +99,7 @@ label{display:block;font-weight:700;color:var(--ink);font-size:.92rem;margin:0 0
 .poll-option input{width:18px;height:18px;accent-color:var(--orange);margin:0}
 .option-copy{min-width:0;color:var(--ink);font-weight:600}
 .option-label{display:block;overflow-wrap:anywhere}
+.option-voters{display:block;margin-top:6px;color:var(--muted);font-size:.78rem;font-weight:500;line-height:1.35;overflow-wrap:anywhere}
 .result-bar{display:block;height:7px;margin-top:8px;border-radius:99px;background:rgba(128,96,90,.16);overflow:hidden}
 .result-bar i{display:block;height:100%;border-radius:inherit;background:var(--grad);transition:width .35s ease}
 .option-count{font-variant-numeric:tabular-nums;color:var(--ink);min-width:34px;text-align:right}
@@ -290,7 +291,9 @@ footer p{margin:0;font-size:.92rem}
     const optionHtml = poll.options.map((option, index) => {
       const count = poll.counts[index] || 0;
       const percentage = total ? Math.round(count / total * 100) : 0;
-      return `<label class="poll-option"><input type="${inputType}" name="poll-choice" value="${index}"${choices.has(index) ? ' checked' : ''}${nick ? '' : ' disabled'}><span class="option-copy"><span class="option-label">${esc(option)}</span><span class="result-bar"><i style="width:${percentage}%"></i></span></span><b class="option-count">${count}</b></label>`;
+      const voterNames = (poll.votersByOption?.[index] || []).map(esc).join(', ');
+      const voterHtml = voterNames ? `<span class="option-voters">Szavazott: ${voterNames}</span>` : '';
+      return `<label class="poll-option"><input type="${inputType}" name="poll-choice" value="${index}"${choices.has(index) ? ' checked' : ''}${nick ? '' : ' disabled'}><span class="option-copy"><span class="option-label">${esc(option)}</span>${voterHtml}<span class="result-bar"><i style="width:${percentage}%"></i></span></span><b class="option-count">${count}</b></label>`;
     }).join('');
     const editOptions = poll.options.map((option) => `<div class="edit-option"><span class="edit-option-number"></span><input class="edit-option-value" maxlength="160" value="${esc(option)}" aria-label="Opció"><button class="edit-remove" type="button" aria-label="Opció törlése">×</button></div>`).join('');
     const shareUrl = new URL(`/szavazas.html?id=${encodeURIComponent(poll.id)}`, location.href).href;

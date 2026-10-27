@@ -9,6 +9,7 @@ test('szavazás létrehozása és összesítése', () => {
   assert.strictEqual(all.length, 1);
   assert.strictEqual(polls.vote(created.poll, 'Matyi', [1]), null);
   assert.deepStrictEqual(polls.view(created.poll, 'Matyi').counts, [0, 1]);
+  assert.deepStrictEqual(polls.view(created.poll).votersByOption, [[], ['Matyi']]);
   assert.deepStrictEqual(polls.view(created.poll, 'Matyi').choices, [1]);
 });
 
@@ -18,6 +19,7 @@ test('multiple choice: több választás egy felhasználótól, egy szavazónak 
   assert.strictEqual(polls.vote(poll, 'Matyi', [0, 2]), null);
   assert.strictEqual(polls.vote(poll, 'Dani', [2]), null);
   assert.deepStrictEqual(polls.view(poll).counts, [1, 0, 2]);
+  assert.deepStrictEqual(polls.view(poll).votersByOption, [['Matyi'], [], ['Matyi', 'Dani']]);
   assert.strictEqual(polls.view(poll).voters, 2);
 });
 
