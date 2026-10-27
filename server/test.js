@@ -287,6 +287,8 @@ test('3D tisztás: a mosómedve ott marad, ahol hagyták', () => {
   assert.strictEqual(Wd.move(W, 'Ricsi', { x: 50, z: 0, ry: 0 }), null);
   assert.ok(W.Ricsi.x <= Wd.R, 'a tisztás szélén megáll');
   assert.ok(Wd.move(W, 'Ricsi', { x: 'a', z: 0, ry: 0 }), 'hibás adat');
+  assert.strictEqual(Wd.move(W, 'Ricsi', { x: 0, z: 0, y: 0.7, ry: 0 }), null); assert.strictEqual(W.Ricsi.y, 0.7, 'a tárgy tetején áll');
+  Wd.move(W, 'Ricsi', { x: 0, z: 0, y: 99, ry: 0 }); assert.strictEqual(W.Ricsi.y, 3, 'a magasság korlátos');
   assert.strictEqual(Wd.sit(W, 'Ricsi', 4), null);
   Wd.join(W, 'Gabó'); assert.match(Wd.sit(W, 'Gabó', 4), /Ricsi/, 'foglalt hely');
   Wd.leave(W, 'Ricsi');

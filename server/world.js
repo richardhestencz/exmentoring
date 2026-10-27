@@ -22,7 +22,8 @@ function move(W, nick, m, now = Date.now()) {
   if (!me || !me.on) return 'Előbb lépj be a tisztásra.';
   if (!num(m.x) || !num(m.z) || !num(m.ry)) return 'Hibás helyzet.';
   const d = Math.hypot(m.x, m.z), k = d > R ? R / d : 1;
-  Object.assign(me, { x: m.x * k, z: m.z * k, ry: m.ry % (Math.PI * 2), act: ACTS.includes(m.act) ? m.act : 'idle', spot: null, at: now });
+  const y = num(m.y) ? Math.min(3, Math.max(0, m.y)) : 0;   // a talp magassága (tárgyak tetején, ugrás közben)
+  Object.assign(me, { x: m.x * k, z: m.z * k, y, ry: m.ry % (Math.PI * 2), act: ACTS.includes(m.act) ? m.act : 'idle', spot: null, at: now });
   return null;
 }
 
@@ -42,6 +43,6 @@ function leave(W, nick) {
 }
 
 const view = (W) => Object.fromEntries(Object.entries(W).map(([n, v]) => [n, {
-  x: +v.x.toFixed(2), z: +v.z.toFixed(2), ry: +v.ry.toFixed(2), act: v.act, spot: v.spot, on: v.on }]));
+  x: +v.x.toFixed(2), z: +v.z.toFixed(2), y: +(v.y || 0).toFixed(2), ry: +v.ry.toFixed(2), act: v.act, spot: v.spot, on: v.on }]));
 
 module.exports = { empty, join, move, sit, leave, view, R, SPOTS };

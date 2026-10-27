@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Tisztás 3D</title>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
-<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/","three-mesh-bvh":"https://cdn.jsdelivr.net/npm/three-mesh-bvh@0.7.3/build/index.module.js"}}</script>
 <style>
 html,body{margin:0;height:100%;overflow:hidden;font-family:system-ui,sans-serif;background:#fbeee2}
 canvas{display:block}
@@ -110,6 +110,9 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { computeBoundsTree, acceleratedRaycast } from 'three-mesh-bvh';
+// gyors sugárvetés a tárgyak hálóin (magassági térkép, kamera, célzás)
+THREE.BufferGeometry.prototype.computeBoundsTree = computeBoundsTree; THREE.Mesh.prototype.raycast = acceleratedRaycast;
 
 // ---------- alap: a textúrák saját színeivel (a Tripo-textúrákon az árnyalás már rajta van), fény nélkül ----------
 const renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -400,30 +403,52 @@ function seatOn(av, p) {
   av.top = p.pose === 'stand' ? 1.15 : 0.85;
 }
 // felállás: talpra a megadott pontra
-function standAt(av, x, z, ry) {
+function standAt(av, x, z, ry, y = 0) {
   av.made.forEach((o) => scene.remove(o)); av.made = [];
-  av.r.rotation.set(0, ry, 0); av.r.position.set(x, BASE.foot, z); av.top = 1.15;
+  av.r.rotation.set(0, ry, 0); av.r.position.set(x, BASE.foot + y, z); av.top = 1.15;
   av.mixer.stopAllAction(); av.cur = ''; setAct(av, 'idle');
 }
 
-// ---------- ütközés: fák, tűz, asztalok, rönkök, függőágy-oszlopok, a tó és a tisztás széle ----------
+// ---------- ütközés, mint egy játékban: a tárgyak teteje magassági térkép (rá lehet ugrani, rajtuk járni, leesni róluk),
+// ami a lábnál magasabb (lépcső fölött), az fal: mentén csúszik; a fák törzse, a tó és a tisztás széle külön ----------
 const OBST = [];
+const STEP = 0.06, GRAV = 14, JUMP_V = 5.2;   // lépcső: ennyit lép fel magától (egyenetlenség); a rönkre, sámlira, padra ugrani kell
+const HM = { cell: 0.08, x0: -R, z0: -R, n: Math.ceil(2 * R / 0.08), h: null };
 function buildObstacles() {
-  const c = (v, r) => OBST.push({ x: v.x, z: v.z, r });
-  for (const [x, z] of TREES) c({ x, z }, 0.42);
-  c({ x: FIRE[0], z: FIRE[1] }, 1.12);
-  { const sz = size(P.pub); c(P.pub.position, Math.max(sz.x, sz.z) * 0.44); }
-  { const sz = size(P.picnic); for (const lx of [-0.6, 0, 0.6]) c(local(P.picnic, lx, 0), sz.z * 0.42); }
-  for (const pv of [P.logL, P.logR]) for (const lx of [-0.65, 0, 0.65]) c(local(pv, lx, 0), 0.3);
-  for (const lx of [-1.35, 1.35]) c(local(P.hammock, lx, 0), 0.22);
+  for (const [x, z] of TREES) OBST.push({ x, z, r: 0.42 });
+  HM.h = new Float32Array(HM.n * HM.n);
+  const ray = new THREE.Raycaster(), down = new THREE.Vector3(0, -1, 0), o = new THREE.Vector3();
+  for (const obj of [P.logL, P.logR, P.picnic, P.pub, P.hammock, P.fire, P.canoe, WHEEL].filter(Boolean)) {
+    obj.updateMatrixWorld(true);
+    obj.traverse((m) => { if (m.isMesh && !m.userData.outline && !m.geometry.boundsTree) m.geometry.computeBoundsTree(); });
+    const meshes = []; obj.traverse((m) => { if (m.isMesh && !m.userData.outline) meshes.push(m); });
+    const bb = new THREE.Box3().setFromObject(obj);
+    const i0 = Math.max(0, Math.floor((bb.min.x - HM.x0) / HM.cell)), i1 = Math.min(HM.n - 1, Math.ceil((bb.max.x - HM.x0) / HM.cell));
+    const j0 = Math.max(0, Math.floor((bb.min.z - HM.z0) / HM.cell)), j1 = Math.min(HM.n - 1, Math.ceil((bb.max.z - HM.z0) / HM.cell));
+    for (let i = i0; i <= i1; i++) for (let j = j0; j <= j1; j++) {
+      ray.set(o.set(HM.x0 + (i + 0.5) * HM.cell, bb.max.y + 1, HM.z0 + (j + 0.5) * HM.cell), down);
+      const hit = ray.intersectObjects(meshes, false)[0];
+      if (hit && hit.point.y > HM.h[i * HM.n + j]) HM.h[i * HM.n + j] = hit.point.y;
+    }
+  }
+  for (const pv of pops) pv.traverse((m) => { if (m.isMesh && !m.geometry.boundsTree) m.geometry.computeBoundsTree(); });   // kamera, célzás
 }
-const ME_R = 0.24;
+const hCell = (i, j) => (i >= 0 && j >= 0 && i < HM.n && j < HM.n ? HM.h[i * HM.n + j] : 0);
+// simított (bilineáris) magasság: a ferde tárgyak széle nem lépcsőzetes, így a fal mentén egyenletesen csúszik
+const hAt = (x, z) => {
+  if (!HM.h) return 0;
+  const fx = (x - HM.x0) / HM.cell - 0.5, fz = (z - HM.z0) / HM.cell - 0.5, i = Math.floor(fx), j = Math.floor(fz), u = fx - i, v = fz - j;
+  return (hCell(i, j) * (1 - u) + hCell(i + 1, j) * u) * (1 - v) + (hCell(i, j + 1) * (1 - u) + hCell(i + 1, j + 1) * u) * v;
+};
+// a talp alatti legmagasabb pont (a középpont és négy pont a mosómedve körül)
+const groundAt = (x, z, r = 0.16) => Math.max(hAt(x, z), hAt(x + r, z), hAt(x - r, z), hAt(x, z + r), hAt(x, z - r));
+const ME_R = 0.24;   // a mosómedve sugara a fákhoz, a tóhoz
 function lakeLocal(x, z) { const dx = x - LAKE.x, dz = z - LAKE.z, ca = Math.cos(LAKE.a), sa = Math.sin(LAKE.a); return [dx * ca + dz * sa, -dx * sa + dz * ca]; }
 function collide(p) {
   for (let it = 0; it < 3; it++) {
     for (const o of OBST) { const dx = p.x - o.x, dz = p.z - o.z, d = Math.hypot(dx, dz), m = o.r + ME_R; if (d < m && d > 1e-6) { p.x = o.x + dx / d * m; p.z = o.z + dz / d * m; } }
     const [u, v] = lakeLocal(p.x, p.z), rx = LAKE.rx + ME_R, rz = LAKE.rz + ME_R, e = (u / rx) ** 2 + (v / rz) ** 2;
-    if (e < 1) { const k = 1 / Math.sqrt(e || 1e-6), nu = u * k, nv = v * k, ca = Math.cos(LAKE.a), sa = Math.sin(LAKE.a);
+    if (e < 1 && groundAt(p.x, p.z) < 0.05) { const k = 1 / Math.sqrt(e || 1e-6), nu = u * k, nv = v * k, ca = Math.cos(LAKE.a), sa = Math.sin(LAKE.a);
       p.x = LAKE.x + nu * ca - nv * sa; p.z = LAKE.z + nu * sa + nv * ca; }
     const d = Math.hypot(p.x, p.z), lim = R - 0.45; if (d > lim) { p.x *= lim / d; p.z *= lim / d; }
   }
@@ -520,7 +545,7 @@ function onWorld(W) {
     if (v.spot !== null) occ[v.spot] = n;
     if (n === myNick && mode !== 'view') continue;           // a saját mosómedvénket játék közben helyben irányítjuk
     let av = players.get(n);
-    if (!av) { av = makeAv(n); players.set(n, av); av.r.position.set(v.x, BASE.foot, v.z); av.r.rotation.y = v.ry; if (v.spot === null) setAct(av, 'idle'); }
+    if (!av) { av = makeAv(n); players.set(n, av); av.r.position.set(v.x, BASE.foot + (v.y || 0), v.z); av.r.rotation.y = v.ry; if (v.spot === null) setAct(av, 'idle'); }
     av.want = v;
   }
   for (const [n, av] of players) if (!W[n] || (n === myNick && mode !== 'view')) { dropAv(av); players.delete(n); }
@@ -529,12 +554,12 @@ function syncRemote(av, dt) {
   const w = av.want; if (!w) return;
   av.tag.classList.toggle('off', !w.on);
   if (w.spot !== null && SPOTS[w.spot]) { if (av.spot !== w.spot) { av.spot = w.spot; seatOn(av, SPOTS[w.spot]); } return; }
-  if (av.spot !== null) { av.spot = null; standAt(av, w.x, w.z, w.ry); }
+  if (av.spot !== null) { av.spot = null; standAt(av, w.x, w.z, w.ry, w.y || 0); }
   const k = 1 - Math.exp(-8 * dt);
-  av.r.position.x += (w.x - av.r.position.x) * k; av.r.position.z += (w.z - av.r.position.z) * k;
+  av.r.position.x += (w.x - av.r.position.x) * k; av.r.position.z += (w.z - av.r.position.z) * k; av.r.position.y += (BASE.foot + (w.y || 0) - av.r.position.y) * Math.min(1, k * 1.6);
   av.r.rotation.y += angDiff(w.ry, av.r.rotation.y) * k;
   setAct(av, w.on ? w.act : 'idle', w.act === 'run' ? 1.1 : 1);
-  av.sh.position.set(av.r.position.x, 0.02, av.r.position.z);
+  av.sh.position.set(av.r.position.x, groundAt(av.r.position.x, av.r.position.z) + 0.02, av.r.position.z);
 }
 const angDiff = (a, b) => ((a - b + Math.PI) % (Math.PI * 2) + Math.PI * 2) % (Math.PI * 2) - Math.PI;
 
@@ -587,7 +612,7 @@ renderer.domElement.addEventListener('click', (e) => {
 
 // ---------- a játékos ----------
 let mode = 'view';   // view: körbenézés, intro: belépő, play: a saját mosómedvénk
-const me = { av: null, x: 0, z: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 5.6, near: null, h: 0, vy: 0 };
+const me = { av: null, x: 0, z: 0, y: 0, base: 0, ry: 0, spot: null, yaw: 0, pitch: 0.3, dist: 5.6, near: null, vy: 0 };
 let lastSent = '', sendAt = 0;
 function enter() {
   const nick = (document.getElementById('nick').value || '').trim();
@@ -607,7 +632,8 @@ function leave(why = '') {
 }
 function myPose() {
   if (me.spot !== null) return;
-  me.av.r.position.set(me.x, BASE.foot + me.h, me.z); me.av.r.rotation.y = me.ry; me.av.sh.position.set(me.x, 0.02, me.z); me.av.sh.scale.setScalar(1 / (1 + me.h * 1.5));
+  const g = groundAt(me.x, me.z);
+  me.av.r.position.set(me.x, BASE.foot + me.y, me.z); me.av.r.rotation.y = me.ry; me.av.sh.position.set(me.x, g + 0.02, me.z); me.av.sh.scale.setScalar(1 / (1 + (me.y - g) * 1.5));
 }
 function sitDown(i) {
   const p = SPOTS[i]; me.spot = i; seatOn(me.av, p); send({ t: 'w-sit', spot: i });
@@ -616,13 +642,13 @@ function sitDown(i) {
 function standUp() {
   const p = SPOTS[me.spot], back = new THREE.Vector3(p.pos.x - p.look.x, 0, p.pos.z - p.look.z).normalize();
   const q = { x: p.pos.x + back.x * 0.75, z: p.pos.z + back.z * 0.75 }; collide(q);
-  me.x = q.x; me.z = q.z; me.ry = Math.atan2(back.x, back.z); me.spot = null; me.yaw = me.ry + Math.PI; me.pitch = 0.3; standAt(me.av, me.x, me.z, me.ry); myPose();
+  me.x = q.x; me.z = q.z; me.y = me.base = groundAt(q.x, q.z); me.vy = 0; me.ry = Math.atan2(back.x, back.z); me.spot = null; me.yaw = me.ry + Math.PI; me.pitch = 0.3; standAt(me.av, me.x, me.z, me.ry); myPose();
   lastSent = ''; sendMove('idle', true);
 }
 function sendMove(act, force) {
-  const k = `${me.x.toFixed(2)},${me.z.toFixed(2)},${me.ry.toFixed(2)},${act}`, now = performance.now();
+  const k = `${me.x.toFixed(2)},${me.z.toFixed(2)},${me.y.toFixed(2)},${me.ry.toFixed(2)},${act}`, now = performance.now();
   if (k === lastSent || (!force && now - sendAt < 200)) return;
-  lastSent = k; sendAt = now; send({ t: 'w-move', x: me.x, z: me.z, ry: me.ry, act });
+  lastSent = k; sendAt = now; send({ t: 'w-move', x: me.x, z: me.z, y: me.y, ry: me.ry, act });
 }
 // célzás: a képernyő közepéből induló sugárhoz legközelebbi hely, ha a mosómedve elég közel áll hozzá
 const aimRay = new THREE.Raycaster(), CENTER = new THREE.Vector2(0, 0), _p = new THREE.Vector3();
@@ -670,7 +696,24 @@ addEventListener('keydown', (e) => {
 });
 addEventListener('keyup', (e) => keys.delete(e.code));
 addEventListener('blur', () => keys.clear());
-function jump() { if (me.spot === null && me.h === 0 && mode === 'play' && !paused) me.vy = 3.6; }
+function jump() { if (me.spot === null && mode === 'play' && !paused && me.vy === 0 && me.y <= groundAt(me.x, me.z) + 0.02) { me.vy = JUMP_V; me.jumped = true; } }
+// vízszintes mozgás: ha a cél magasabb, mint a talp + lépcső, ott fal van; ilyenkor a fal mentén csúszik (külön x, külön z)
+// földön állva a meredek oldal (45°-nál meredekebb) fal, a levegőből viszont rá lehet érkezni
+// járva legfeljebb ennyivel lehet magasabb a felszín, mint amin áll (me.base: ahová legutóbb érkezett), így apránként sem kúszik fel
+function canStand(x, z) {
+  const g = groundAt(x, z), air = me.vy !== 0 || me.y > groundAt(me.x, me.z) + 0.01;
+  return air ? g <= me.y + 0.005 : g <= Math.max(me.base + STEP, Math.min(groundAt(me.x, me.z) + 0.012, me.base + 0.12));   // apró egyenetlenség igen, felkúszás nem (legfeljebb 12 cm az alapszint fölé)   // a mostaninál magasabbra nem, oldalra, hátra igen; a levegőből csak felülről érkezik
+}
+function moveBy(dx, dz) {
+  // falnál a mozgást elforgatjuk, amíg szabad irányt talál: így bármilyen ferde fal mentén csúszik (a sebesség a fal irányú része)
+  let nx = me.x, nz = me.z;
+  for (const a of [0, 0.35, -0.35, 0.7, -0.7, 1.05, -1.05, 1.4, -1.4]) {
+    const c = Math.cos(a), s = Math.sin(a), mx = (dx * c - dz * s) * c, mz = (dx * s + dz * c) * c;
+    if (canStand(me.x + mx, me.z + mz)) { nx = me.x + mx; nz = me.z + mz; break; }
+  }
+  const q = { x: nx, z: nz }; collide(q);
+  if (canStand(q.x, q.z)) { me.x = q.x; me.z = q.z; }
+}
 // az Esc-et a böngésző foglalja (elengedi az egeret); a menü a T
 document.addEventListener('pointerlockchange', () => { if (!locked() && mode === 'play' && !paused) toast('Kattints a játékba a kamerához · T: menü'); });
 // T-menü: megáll a mozgás, előjön az egér; látószög, Folytatás vagy Kilépés a tisztásról
@@ -678,7 +721,7 @@ let paused = false;
 function openPause() { if (mode !== 'play') return; paused = true; keys.clear(); document.getElementById('pause').hidden = false; document.exitPointerLock?.(); setTimeout(() => document.getElementById('resume').focus(), 30); }
 function closePause(relock) {
   paused = false; document.getElementById('pause').hidden = true;
-  if (relock && !matchMedia('(pointer:coarse)').matches) renderer.domElement.requestPointerLock?.();
+  if (relock && !matchMedia('(pointer:coarse)').matches) renderer.domElement.requestPointerLock?.()?.catch?.(() => {});
 }
 function act() {
   if (me.spot !== null) return standUp();
@@ -691,7 +734,7 @@ let drag = null;
 // állva a mosómedve fordul, és a kamera mindig mögötte marad; ülve csak a kamera kerül körbe
 function turnBy(a) { if (me.spot === null) me.ry += a; else me.yaw += a; }
 const locked = () => document.pointerLockElement === renderer.domElement;
-renderer.domElement.addEventListener('click', (e) => { if (mode === 'play' && !paused && e.pointerType !== 'touch' && !matchMedia('(pointer:coarse)').matches && !locked()) renderer.domElement.requestPointerLock?.(); });
+renderer.domElement.addEventListener('click', (e) => { if (mode === 'play' && !paused && e.pointerType !== 'touch' && !matchMedia('(pointer:coarse)').matches && !locked()) renderer.domElement.requestPointerLock?.()?.catch?.(() => {}); });
 addEventListener('mousemove', (e) => { if (!locked() || mode !== 'play') return;
   turnBy(-e.movementX * 0.0035); me.pitch = Math.min(1.25, Math.max(-0.1, me.pitch + e.movementY * 0.0028)); });
 renderer.domElement.addEventListener('pointerdown', (e) => { if (mode === 'play' && !locked() && !(e.pointerType === 'touch' && e.clientX < innerWidth * 0.45)) drag = { x: e.clientX, y: e.clientY, id: e.pointerId }; });
@@ -746,7 +789,7 @@ const acam = new THREE.PerspectiveCamera(60, innerWidth / innerHeight, 0.1, 200)
 let intro = null;
 const A_LEN = 2.6, B_LEN = 3.8;
 function startIntro(state) {
-  me.av = makeAv(myNick); me.x = state.x; me.z = state.z; me.ry = state.ry; me.spot = null; me.yaw = state.ry + Math.PI; me.pitch = 0.3;
+  me.av = makeAv(myNick); me.x = state.x; me.z = state.z; me.y = me.base = Math.max(groundAt(state.x, state.z), +state.y || 0); me.vy = 0; me.ry = state.ry; me.spot = null; me.yaw = state.ry + Math.PI; me.pitch = 0.3;
   if (state.spot !== null && SPOTS[state.spot] && !npcAt[state.spot]) sitDown(state.spot); else { standAt(me.av, me.x, me.z, me.ry); myPose(); }
   const pl = new THREE.Vector3(me.x, 0, me.z);
   intro = { t0: clock.getElapsedTime(), items: [...pops, ...avs.map((a) => a.r)].map((o) => ({ o, s: o.scale.clone(), d: Math.hypot(o.position.x - pl.x, o.position.z - pl.z) })) };
@@ -800,13 +843,17 @@ function playStep(dt) {
     const fwd = Math.max(-1, Math.min(1, iy));
     if (Math.abs(fwd) > 0.15) {
       const speed = (fwd > 0 ? (run ? 3.4 : 1.35) : 0.9) * Math.abs(fwd), dir = Math.sign(fwd);
-      const q = { x: me.x + Math.sin(me.ry) * dir * speed * dt, z: me.z + Math.cos(me.ry) * dir * speed * dt }; collide(q); me.x = q.x; me.z = q.z;
+      moveBy(Math.sin(me.ry) * dir * speed * dt, Math.cos(me.ry) * dir * speed * dt);
       act = run && fwd > 0 ? 'run' : 'walk';
       setAct(me.av, act, act === 'run' ? 1.15 : Math.max(0.6, speed / 1.35) * dir);
     } else if (Math.abs(ix) > 0.15) { act = 'walk'; setAct(me.av, 'walk', 0.6); }   // helyben fordul: aprókat lép
     else setAct(me.av, 'idle');
     me.yaw += angDiff(me.ry + Math.PI, me.yaw) * (1 - Math.exp(-10 * dt));
-    if (me.h > 0 || me.vy > 0) { me.vy -= 11 * dt; me.h = Math.max(0, me.h + me.vy * dt); if (me.h === 0) me.vy = 0; }
+    // függőleges: gravitáció, landolás a talp alatti felszínen, kis lépcsőre fellépés
+    const g = groundAt(me.x, me.z);
+    if (me.vy > 0 || me.y > g + 0.001) { me.vy -= GRAV * dt; me.y += me.vy * dt; if (me.y <= g) { me.y = g; me.vy = 0; me.base = me.jumped ? g : Math.min(me.base, g); me.jumped = false; } }   // az alapszint csak ugrással emelkedhet
+    else { me.y = g; me.vy = 0; if (g > me.base + 0.12) me.base = g; }   // tárgyba került (pl. a kezdőhely egy sámlira esett): a tetejére áll
+    if (me.y > g + 0.05 && act === 'idle') setAct(me.av, 'walk', 0.4);   // a levegőben nem áll mereven
     myPose(); sendMove(act);
     me.near = aimSpot();
   } else me.near = null;
@@ -822,7 +869,7 @@ function playStep(dt) {
   const seated = me.spot !== null, cp = Math.cos(me.pitch), sp = Math.sin(me.pitch);
   const off = new THREE.Vector3(Math.sin(me.yaw) * cp, sp, Math.cos(me.yaw) * cp), right = new THREE.Vector3(Math.cos(me.yaw), 0, -Math.sin(me.yaw));
   const tgt = seated ? me.av.r.getObjectByName('hips').getWorldPosition(new THREE.Vector3()).add(new THREE.Vector3(0, 0.35, 0))
-    : new THREE.Vector3(me.av.r.position.x, 1.05, me.av.r.position.z).addScaledVector(right, 0.65);
+    : new THREE.Vector3(me.av.r.position.x, me.y + 1.05, me.av.r.position.z).addScaledVector(right, 0.65);
   const cd = seated ? Math.min(me.dist, 2.6) : me.dist;   // ülve közelebbről
   const want = tgt.clone().addScaledVector(off, cd);
   // a kamera nem mehet be a fákba, tárgyakba: ha valami a mosómedve és a kamera közt van, elé áll
@@ -867,7 +914,7 @@ renderer.setAnimationLoop(() => {
     p.tag.style.display = on && !(mode === 'play' && p === me.av) ? '' : 'none'; p.tag.style.left = (v.x * 0.5 + 0.5) * innerWidth + 'px'; p.tag.style.top = (-v.y * 0.5 + 0.5) * innerHeight + 'px'; }
 });
 addEventListener('resize', () => { acam.aspect = innerWidth / innerHeight; acam.updateProjectionMatrix(); if (mode !== 'view') freeCam(); });
-window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave, WHEEL, LAY: () => LAY, mode: () => mode, playStep };
+window.__dbg = { THREE, scene, camera, controls, P, avs, me, players, SPOTS: () => SPOTS, keys, startIntro, runIntro, intro: () => intro, clock, leave, WHEEL, LAY: () => LAY, mode: () => mode, playStep, groundAt, hAt, HM, moveBy };
 </script>
 </body>
 </html>
