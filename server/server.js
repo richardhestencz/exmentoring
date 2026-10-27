@@ -15,6 +15,8 @@ const seats = require('./seats');
 const world = require('./world');
 const bj = require('./blackjack');
 const rouletteHistory = require('./roulette-history');
+const { occasionalBadPun } = require('./roulette-banter');
+const dailyChallenge = require('./roulette-challenge');
 const polls = require('./polls');
 const chapter = require('./chapter');
 const music = require('./music');
@@ -36,6 +38,7 @@ const S = { pot: START_POT, history: [], stats: {}, doorOpens: 0, credited: { da
 try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch {}
 S.stats = rouletteHistory.normalizeStats(S.stats);
 S.rouletteHistory = Array.isArray(S.rouletteHistory) ? S.rouletteHistory : [];
+S.dailyChallenge = dailyChallenge.normalizeState(S.dailyChallenge);
 let rouletteHistoryNeedsMigration = Number(S.rouletteHistoryVersion) !== 2;
 if (rouletteHistoryNeedsMigration) {
   S.rouletteHistory = rouletteHistory.migrateHistory(S.rouletteHistory);
@@ -138,6 +141,31 @@ let feed = [];
 const say = (text) => { feed.unshift({ ts: Date.now(), text }); feed = feed.slice(0, 40); };
 const fmt = (n) => n.toLocaleString('hu-HU') + ' 🦝';
 const stat = (nick) => (S.stats[nick] ||= { net: 0, rounds: 0, bets: 0, wins: 0 });
+function currentDailyChallenge() {
+  const date = today();
+  if (S.dailyChallenge.date !== date) {
+    S.dailyChallenge = dailyChallenge.emptyState(date);
+    save();
+  }
+  return S.dailyChallenge;
+}
+
+function settleDailyChallenge(history, spinAt, round, candidateNicks) {
+  const state = currentDailyChallenge();
+  if (state.winner) return null;
+  for (const nick of candidateNicks) {
+    const result = dailyChallenge.progress(history, nick, state.date);
+    if (!result.complete) continue;
+    state.winner = nick;
+    state.wonAt = spinAt;
+    state.round = round;
+    stat(nick).net += dailyChallenge.REWARD;
+    say(`🏆 ${nick} teljesítette a napi kihívást: +${fmt(dailyChallenge.REWARD)} jutalom!`);
+    save();
+    return nick;
+  }
+  return null;
+}
 
 // ---- tétek: zsetonokkal, ugyanarra a mezőre többször is ----
 function addBet(nick, kind, amount) {
@@ -207,6 +235,8 @@ function tease(spinner, net) {
   const losers = others.filter(([, v]) => v < 0).map(([k]) => k), winners = others.filter(([, v]) => v > 0);
   if (losers.length) parts.push(pickOne([`${list(losers)} is a potba fizetett.`, `${list(losers)} sem járt jobban.`, `Részvétünk: ${list(losers)}.`]));
   if (winners.length) parts.push(winners.length === 1 ? `${winners[0][0]} viszont nyert: +${fmt(winners[0][1])}.` : `Nyertek: ${winners.map(([k, v]) => `${k} +${fmt(v)}`).join(', ')}.`);
+  const pun = occasionalBadPun();
+  if (pun && parts.length) parts.push(`Szóvicc: ${pun}`);
   if (!parts.length) parts.push('Senki sem nyert.');
   return parts.join(' ');
 }
@@ -257,6 +287,7 @@ function startResult() {
     totalPayout: settledBets.reduce((sum, bet) => sum + bet.payout, 0),
     net: settledBets.reduce((sum, bet) => sum + bet.net, 0),
   });
+  settleDailyChallenge(S.rouletteHistory, spinAt, R.id, [...new Set(settledBets.map((bet) => bet.nick).filter((nick) => nick !== DOOR))]);
   say(`${n} (${color}). ${tease(R.spinner, net)}`);
   // kör-napló a logs/server.log-ba: ki pörgetett, ki mire tett, mi jött, ki mennyit nyert/veszített
   const bySum = {};
@@ -280,7 +311,11 @@ const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
 
 function snapshot(withTrack) {
-  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net, bets: s.bets, wins: s.wins, winRate: rouletteHistory.winRate(s) })).sort((a, b) => b.net - a.net).slice(0, 60);
+  const challengeState = currentDailyChallenge();
+  const challenge = dailyChallenge.challengeFor(challengeState.date);
+  const board = Object.entries(S.stats).map(([nick, s]) => ({ nick, net: s.net, bets: s.bets, wins: s.wins, winRate: rouletteHistory.winRate(s), challengeWin: challengeState.winner === nick })).sort((a, b) => b.net - a.net).slice(0, 60);
+  const challengeNicks = new Set([...Object.keys(S.stats), ...R.bets.map((bet) => bet.nick)]);
+  const challengeProgress = Object.fromEntries([...challengeNicks].filter((nick) => nick !== DOOR).map((nick) => [nick, dailyChallenge.progress(S.rouletteHistory, nick, challengeState.date)]));
   const spinHistory = S.rouletteHistory.slice(0, 20).map((spin) => ({
     id: spin.id, round: spin.round, at: spin.at, spinner: spin.spinner, number: spin.number, color: spin.color,
     bets: Array.isArray(spin.bets) ? spin.bets.length : 0, totalStake: spin.totalStake, totalPayout: spin.totalPayout, net: spin.net,
@@ -296,6 +331,13 @@ function snapshot(withTrack) {
     presence: presence.view(S.presence, today()),
     cola: (cola.prune(S.cola), S.cola.codes),
     profiles: S.profiles, seats: seats.view(S.seats, today()), chapter: chapter.view(S.chapter),
+    dailyChallenge: {
+      ...challenge,
+      date: challengeState.date,
+      winner: challengeState.winner,
+      wonAt: challengeState.wonAt,
+      progress: challengeProgress,
+    },
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper, focus: focusNicks(), music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
   };

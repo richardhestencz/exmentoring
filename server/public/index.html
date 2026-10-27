@@ -264,6 +264,15 @@ ul{list-style:none;margin:0;padding:0}
 .feed{padding:8px 12px;font-size:.84rem}
 .feed li{padding:3px 0;color:#f3e6de}
 .feed li:first-child{color:#fff}
+.daily-challenge{padding:10px 12px}
+.daily-challenge[hidden]{display:none}
+.challenge-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:4px;color:#fff;font-size:.82rem}
+.challenge-head strong{color:#f8c7a3}
+.challenge-reward{color:var(--ok);font-weight:800;white-space:nowrap}
+.challenge-title{display:block;color:#fff;font-size:.9rem}
+.challenge-copy{margin:2px 0 6px;color:#e8dcd5;font-size:.76rem;line-height:1.35}
+.challenge-progress{font-size:.74rem;color:#f8c7a3;font-variant-numeric:tabular-nums}
+.challenge-winner{display:block;margin-top:4px;color:var(--ok);font-size:.73rem;font-weight:700}
 .tr{position:absolute;z-index:5;right:16px;top:16px;width:min(250px,26vw);padding:12px 14px}
 /* a ranglista alapból a dobogó (hogy ne takarja a tavat), ráállva kinyílik */
 .tr:hover ul#board,.tr:focus-within ul#board{max-height:min(46vh,420px)}
@@ -561,6 +570,7 @@ html.focus .focusview{display:block;position:relative;height:calc(100svh - 44px)
   .tr{right:8px;top:46px;width:calc(48% - 8px);padding:7px 10px}
   .tr li{font-size:.7rem;padding:1px 5px;grid-template-columns:16px minmax(0,1fr) auto;gap:4px}.tr ul#board{max-height:71px}.tr h2{font-size:.8rem;margin-bottom:2px}
   .feed{font-size:.72rem;padding:5px 10px}.feed li:nth-child(n+2){display:none}.feed li{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .daily-challenge{padding:7px 9px}.challenge-head{font-size:.7rem}.challenge-title{font-size:.76rem}.challenge-copy{font-size:.65rem;margin-bottom:3px}.challenge-progress,.challenge-winner{font-size:.64rem}
   .me{padding:6px 10px;font-size:.88rem;gap:6px}.me button{font-size:.72rem;flex:none}.me svg{width:22px;height:20px}.me .rc{width:24px;height:24px}
   .door{font-size:.72rem;margin-top:5px;padding-top:5px;grid-template-columns:auto auto 1fr;gap:0 5px}.door b{font-size:.9rem}.door svg{width:16px;height:21px;grid-row:auto}.door>span:last-child{text-align:right}
   .dock{left:8px;right:8px;bottom:8px;gap:8px;grid-template-columns:1fr 1fr;grid-template-areas:"board board" "pills side"}
@@ -682,6 +692,13 @@ footer strong{color:#fff}
     <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
     <div class="glass lunchcard" id="lunchcard" hidden aria-live="polite"></div>
+    <section class="glass daily-challenge" id="dailyChallenge" aria-label="Napi rulett-kihívás">
+      <div class="challenge-head"><strong>🏆 Napi kihívás</strong><span class="challenge-reward" id="challengeReward">+30 000</span></div>
+      <strong class="challenge-title" id="challengeTitle">Betöltés…</strong>
+      <p class="challenge-copy" id="challengeDescription"></p>
+      <div class="challenge-progress" id="challengeProgress"></div>
+      <small class="challenge-winner" id="challengeWinner" hidden></small>
+    </section>
   </div>
 
   <aside class="glass tr" aria-label="Ranglista és ajtó" tabindex="0">
@@ -780,6 +797,24 @@ const safeGet=k=>{try{return localStorage.getItem(k)||''}catch{return ''}};
 const safeSet=(k,v)=>{try{localStorage.setItem(k,v)}catch{}};
 const stage=$('stage');
 const rcImg=()=>`<img class="rc em" src="/img/raccoon-${window.isDark&&isDark()?'night-':''}32.png" alt="mosómedve">`;
+function renderDailyChallenge(){
+  const c=S&&S.dailyChallenge;if(!c)return;
+  $('challengeTitle').textContent=c.title||'Napi rulett-kihívás';
+  $('challengeDescription').textContent=c.description||'';
+  $('challengeReward').textContent=`+${fmt(c.reward||30000)}`;
+  const p=nick&&c.progress&&c.progress[nick]||{};
+  const bits=[];
+  if(c.minWinningSpins)bits.push(`${p.winningSpins||0}/${c.minWinningSpins} nyerő pörgetés`);
+  if(c.minWinningKinds)bits.push(`${p.winningKinds||0}/${c.minWinningKinds} tétfajta`);
+  if(c.minInsideWinningKinds)bits.push(`${p.insideWinningKinds||0}/${c.minInsideWinningKinds} belső tét`);
+  if(c.requiredWinningColors)bits.push(`piros ${p.winningColors&&p.winningColors.includes('red')?'✓':'○'} · fekete ${p.winningColors&&p.winningColors.includes('black')?'✓':'○'}`);
+  if(c.minWinStreak)bits.push(`${p.maxWinStreak||0}/${c.minWinStreak} egymás után`);
+  if(c.minTotalStake)bits.push(`${fmt(p.totalStake||0)} / ${fmt(c.minTotalStake)} tét`);
+  $('challengeProgress').textContent=bits.join(' · ')||'A haladásod itt jelenik meg.';
+  const winner=$('challengeWinner');
+  if(c.winner){winner.hidden=false;winner.textContent=`${c.winner} már megszerezte a +${fmt(c.reward||30000)} jutalmat.`}
+  else{winner.hidden=true;winner.textContent=''}
+}
 
 /* ---------- állapot + websocket ---------- */
 let S=null,nick=safeGet('nick'),offset=0,ws,retry=0,canSpin=false,curSpin=null;
@@ -1044,8 +1079,9 @@ function render(){
     const cls=i===0?'p1':i===1?'p2':i===2?'p3':(i===nb-1&&nb>=4?'clown':'');
     const rk={p1:'🥇',p2:'🥈',p3:'🥉',clown:'🤡'}[cls]||(i+1);
     const bets=Number(b.bets)||0,wins=Number(b.wins)||0,rate=bets?`${Number(b.winRate||0).toFixed(1)}%`:'–';
-    return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk"><button class="rank-name" type="button" data-history-nick="${esc(b.nick)}">${esc(b.nick)}</button><small class="rank-meta">${wins}/${bets} sikeres · ${rate}</small></span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
+    return `<li class="${cls}"><span class="rk">${rk}</span><span class="nk"><button class="rank-name" type="button" data-history-nick="${esc(b.nick)}">${esc(b.nick)}${b.challengeWin?' 🏆':''}</button><small class="rank-meta">${wins}/${bets} sikeres · ${rate}${b.challengeWin?' · napi kihívás':''}</small></span><span class="${b.net>=0?'pos':'neg'}">${b.net>0?'+':''}${fmt(b.net)}</span></li>`;
   }).join(''):'<li><span></span><span class="nk">Még nincs lejátszott kör.</span></li>';
+  renderDailyChallenge();
   showNick();drawCrowd();placeBjHit();renderBJ();
   $('feed').innerHTML=S.feed.length?S.feed.slice(0,4).map(f=>`<li>${esc(f.text).replace(/🦝/g,rcImg())}</li>`).join(''):'<li>Még nem történt semmi.</li>';
 }

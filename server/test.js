@@ -4,6 +4,29 @@ const fs = require('fs');
 const path = require('path');
 const g = require('./game');
 const rh = require('./roulette-history');
+const banter = require('./roulette-banter');
+const challenge = require('./roulette-challenge');
+
+test('rulett feed: a rossz szóvicc csak időnként jelenik meg', () => {
+  assert.strictEqual(banter.occasionalBadPun(() => 0, 0.2), banter.BAD_PUNS[0]);
+  assert.strictEqual(banter.occasionalBadPun(() => 0.2, 0.2), '');
+});
+
+test('napi rulett-kihívás: naponta másik kihívás és nehézített teljesítés', () => {
+  const first = challenge.challengeFor('2026-10-27');
+  const second = challenge.challengeFor('2026-10-28');
+  assert.notStrictEqual(first.id, second.id);
+  const history = [
+    { round: 3, at: Date.parse('2026-10-27T09:00:00+02:00'), bets: [{ nick: 'Ricsi', kind: 'red', stake: 5000, won: true }] },
+    { round: 2, at: Date.parse('2026-10-27T08:00:00+02:00'), bets: [{ nick: 'Ricsi', kind: 'in:17', stake: 5000, won: true }] },
+    { round: 1, at: Date.parse('2026-10-27T07:00:00+02:00'), bets: [{ nick: 'Ricsi', kind: 'black', stake: 5000, won: true }] },
+  ];
+  const result = challenge.progress(history, 'Ricsi', '2026-10-27');
+  assert.strictEqual(result.totalStake, 15000);
+  assert.strictEqual(result.winningSpins, 3);
+  assert.strictEqual(result.insideWin, true);
+  assert.strictEqual(typeof result.complete, 'boolean');
+});
 
 test('rulett tét-napló: minden tét külön rekord és külön eredmény', () => {
   const bets = rh.settleBets([
