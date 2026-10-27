@@ -33,6 +33,12 @@ const S = { pot: START_POT, history: [], stats: {}, doorOpens: 0, credited: { da
 try { Object.assign(S, JSON.parse(fs.readFileSync(DATA_FILE, 'utf8'))); } catch {}
 S.stats = rouletteHistory.normalizeStats(S.stats);
 S.rouletteHistory = Array.isArray(S.rouletteHistory) ? S.rouletteHistory : [];
+let rouletteHistoryNeedsMigration = Number(S.rouletteHistoryVersion) !== 2;
+if (rouletteHistoryNeedsMigration) {
+  S.rouletteHistory = rouletteHistory.migrateHistory(S.rouletteHistory);
+  rouletteHistory.recountBetStats(S.stats, S.rouletteHistory, DOOR);
+  S.rouletteHistoryVersion = 2;
+}
 // Gyros: a kezdő adat a data/gyros-seed.json-ból jön (nincs a repóban). Csak becenevek legyenek benne (Ricsi, Matyi…),
 // teljes név soha. Induláskor a seedben lévő beceneveket aliasonként átvesszük, így ott lehet javítani őket.
 {
@@ -117,6 +123,7 @@ function save() {
     } catch (e) { console.error('mentés sikertelen:', e.message); }
   }, 1500);
 }
+if (rouletteHistoryNeedsMigration) save();
 
 S.roundBets = S.roundBets.filter((b) => game.info(b.kind)).map((b) => ({ ...b, kind: game.norm(b.kind) }));
 const R = { id: 0, phase: 'betting', endAt: 0, spinStart: 0, result: null, bets: S.roundBets, doorQueue: 0, sim: null, spinMs: 0, spinner: '', net: null };

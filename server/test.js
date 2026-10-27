@@ -20,6 +20,30 @@ test('rulett tét-napló: minden tét külön rekord és külön eredmény', () 
   assert.strictEqual(rh.winRate(stats.Ricsi), 50);
 });
 
+test('rulett tét-napló: azonos hely zsetonjai egy tétként jelennek meg', () => {
+  const bets = rh.settleBets([
+    { nick: 'Ricsi', kind: 'red', stake: 5000 },
+    { nick: 'Ricsi', kind: 'red', stake: 5000 },
+    { nick: 'Ricsi', kind: 'red', stake: 5000 },
+    { nick: 'Ricsi', kind: 'red', stake: 5000 },
+  ], 12, (kind, number, stake) => kind === 'red' && number === 12 ? stake * 2 : 0);
+  assert.strictEqual(bets.length, 1);
+  assert.deepStrictEqual(bets[0], { nick: 'Ricsi', kind: 'red', stake: 20000, payout: 40000, net: 20000, won: true });
+});
+
+test('rulett history migráció: a régi azonos helyű tétek összevonódnak', () => {
+  const history = rh.migrateHistory([{
+    id: '20261027002',
+    bets: [1, 2, 3, 4].map(() => ({ nick: 'Ricsi', kind: 'red', stake: 5000, payout: 10000, net: 5000, won: true })),
+  }]);
+  assert.strictEqual(history[0].bets.length, 1);
+  assert.strictEqual(history[0].bets[0].stake, 20000);
+  assert.strictEqual(history[0].bets[0].payout, 40000);
+  const stats = rh.normalizeStats({ Ricsi: { net: 20000, rounds: 1, bets: 4, wins: 4 } });
+  rh.recountBetStats(stats, history);
+  assert.deepStrictEqual(stats.Ricsi, { net: 20000, rounds: 1, bets: 1, wins: 1 });
+});
+
 test('rulett pörgetésazonosító: dátum és napi sorszám', () => {
   const state = { rouletteHistory: [] };
   const first = Date.parse('2026-10-27T10:00:00+02:00');
