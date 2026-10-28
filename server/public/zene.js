@@ -66,7 +66,7 @@
   function onStateChange(e) {
     const s = M.st; if (!s) return;
     if (e.data === 0 && M.joined) reportEnd();   // vége: a következő jön (a szerver ellenőrzi, tényleg vége-e)
-    if (e.data === 1) { M.errs = M.errs.filter((t) => Date.now() - t < 10000); setTimeout(align, 300); }   // indulás, puffer, reklám után azonnal a közös helyre
+    if (e.data === 1) M.errs = M.errs.filter((t) => Date.now() - t < 10000);
     paintPlay();
   }
   function reportEnd() {
@@ -103,13 +103,15 @@
     try { s.paused ? M.player.pauseVideo() : (M.player.getPlayerState() === 2 ? M.player.playVideo() : 0); } catch {}
     applyVolume(); paintPlay();
   }
-  // Igazítás a közös időhöz (Richard, 2026-10-27: „gyorsul meg lassul néha, de ha ellépek az oldalról, akkor jó”).
+  // Igazítás a közös időhöz CSAK akkor, ha valaki bekapcsolja a zenét (Richard, 2026-10-28: „a zene szinkronja akkor legyen, ha valaki
+  // megnyomja a zene bekapcsolása gombot, és akkor mindenkit összeszinkronizál”): a bekapcsoló gépe szól a szervernek, a szerver
+  // mindenkinek, és minden hallgató egyszer a közös helyre áll. Közben nincs folyamatos tekergetés. Számváltáskor a betöltés eleve a közös helyről indul.
+  // Korábbi tanulság (Richard, 2026-10-27: „gyorsul meg lassul néha, de ha ellépek az oldalról, akkor jó”):
   // Sebességet SOHA nem állítunk: a YouTube csak 1,25 / 0,75 lépcsőt tud, ami zenében hallható gyorsulás-lassulás, és a mérés
   // zaja (a YouTube kb. 265 ms-onként küldi az időt, az óraszinkron is igazít) önmagában kiváltotta. Ha mindenki 1×-en szól,
-  // az eltérés magától nem nő; csak valódi csúszásnál (reklám, akadó net) tekerünk: ha az utolsó 5 mérés középértéke 1 s fölött van,
-  // és legfeljebb fél percenként. Belépéskor a betöltés pontos (a tanult ráhagyással).
-  const SEEK_OVER = 1.0, SEEK_GAP = 30000, LEAD_STEP = 0.2, SETTLE = 0.12;
-  let seekAt = 0, lastSeek = 0, fresh = false;
+  // az eltérés magától nem nő. Az igazítás 5 mérés középértékéből dönt, és a tanult ráhagyással teker.
+  const SEEK_OVER = 1.0, LEAD_STEP = 0.2, SETTLE = 0.12;
+  let seekAt = 0, fresh = false;
   const diffs = [];
   M.stats = { seeks: 0, nudges: 0 };
   function setRate(r) { try { if (M.player.getPlaybackRate() !== r) M.player.setPlaybackRate(r); } catch {} }
@@ -118,11 +120,12 @@
     let dur = 0; try { dur = M.player.getDuration(); } catch {}
     if (dur > 0 && expected() >= dur - 1) { reportEnd(); return; }   // a közös idő szerint már vége: nem tekerünk a vége utánra
     try { M.player.seekTo(dur > 0 ? Math.min(expected() + M.lead, dur - 1) : expected() + M.lead, true); } catch {}
-    seekAt = lastSeek = now; M.stats.seeks++;
+    seekAt = now; M.stats.seeks++;
   }
   function align() {
     if (!M.ready || !M.joined || !M.st || M.st.paused || !cur()) return;
     let st, t; try { st = M.player.getPlayerState(); t = M.player.getCurrentTime(); } catch { return; }
+    if (!fresh && !seekAt) return;                            // csak bekapcsolás / közös szinkron / számváltás után mérünk
     if (st !== 1) { diffs.length = 0; return; }               // puffer, hirdetés, szünet alatt nem mérünk
     try { if (M.player.getVideoData().isLive) return; } catch {}   // élő adást nem lehet közös időre igazítani
     setRate(1);                                               // ha egy régebbi változat gyorsítva hagyta
@@ -135,8 +138,7 @@
     diffs.push(diff); if (diffs.length > 5) diffs.shift();
     if (diffs.length < 5) return;
     const med = [...diffs].sort((a, b) => a - b)[2];          // középérték: egy-egy kiugró mérés nem számít
-    if (fresh) { fresh = false; if (Math.abs(med) > SETTLE) seek(now); return; }   // betöltés / számváltás után egyszer pontosan beállunk
-    if (Math.abs(med) > SEEK_OVER && now - lastSeek > SEEK_GAP) seek(now);
+    fresh = false; if (Math.abs(med) > SETTLE) seek(now);    // egyszer pontosan beállunk, aztán békén hagyjuk
   }
   setInterval(() => {
     if (!M.joined || !cur()) return;
@@ -161,6 +163,7 @@
   window.MusicHook = (m) => {
     if (m.t === 'music-duck') return duck(m.on, true);
     if (m.t === 'music-pong') return pong(m);
+    if (m.t === 'music-resync') { if (M.joined) { diffs.length = 0; seekAt = 0; fresh = true; } return; }   // valaki bekapcsolta: mindenki a közös helyre
     const mu = m.t === 'state' || m.t === 'music' ? m.music : null;
     if (!mu || !Array.isArray(mu.items)) return;
     const changed = !M.st || M.st.rev !== mu.rev || M.st.fetchedAt !== mu.fetchedAt || M.st.link !== mu.link;
@@ -228,6 +231,7 @@
     if (!M.ready) { note('A lejátszó még töltődik, próbáld újra mindjárt.'); M.joined = false; return; }
     if (!cur()) note(M.st && M.st.list ? 'Még üres a lista: tegyél bele egy számot a YouTube-on!' : 'Még nincs bekötve lista.');
     M.loadedV = ''; sync(true); paintPlay();
+    send({ t: 'music-sync' });   // és mindenki más is ide áll
   };
   $('mprev').onclick = () => send({ t: 'music-skip', dir: -1 });
   $('mnext').onclick = () => send({ t: 'music-skip', dir: 1 });

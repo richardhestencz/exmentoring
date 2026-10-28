@@ -519,6 +519,10 @@ wss.on('connection', (ws) => {
     }
     if (m.t === 'w-watch') { ws.wantsWorld = true; ws.send(JSON.stringify({ t: 'world', world: world.view(S.world) })); return; }
     if (m.t === 'music-ping') { if (m.j && ws.nick) musicHeard.set(ws.nick, Date.now()); return ws.send(JSON.stringify({ t: 'music-pong', c: Number(m.c) || 0, s: Date.now() })); }   // óraszinkron; aki hallgatja, azt számoljuk   // óraszinkron a közös zenéhez
+    if (m.t === 'music-sync') {   // valaki bekapcsolta nálad a zenét: mindenki, aki hallgatja, egyszer a közös helyre áll (legfeljebb 3 s-onként)
+      const now = Date.now(); if (now - (musicRt.syncAt || 0) < 3000) return;
+      musicRt.syncAt = now; broadcastMusic({ t: 'music-resync', by: ws.nick || '' }); return;
+    }
     if (m.t === 'fmodiag') { if ((ws.fmodiag = (ws.fmodiag || 0) + 1) <= 4) console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] fokusz-mozgas: ${ws.nick || '?'} ${String(m.d || '').slice(0, 700)}`); return; }   // miért nem mozog a kép egy gépen
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
