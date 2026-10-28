@@ -1,5 +1,5 @@
 // Közös zene: egy bekötött YouTube-lejátszási lista (a számokat a YouTube-on teszik bele), sorban, magától megy; mindenki ugyanott tart.
-// A lejátszó egy oldalsó panelben van (a fejléc „🎵 Zene” gombja nyitja), bezárva is szól. Az ajtó nyitására mindenkinél lehalkul.
+// A lejátszó egy oldalsó panelben van (a fejléc „🎵 XMenFM” gombja nyitja), bezárva is szól. Az ajtó nyitására mindenkinél lehalkul.
 (() => {
   const $ = (id) => document.getElementById(id);
   const drawer = $('mdrawer');

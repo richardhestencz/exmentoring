@@ -32,7 +32,7 @@
   function mirror() {
     if (!on) return;
     const now = $('mnow').textContent.trim();
-    $('fnow').textContent = now || 'Még üres a lista: a 🎵 Zene panelen tegyél be egy számot.';
+    $('fnow').textContent = now || 'Még üres a lista: az 🎵 XMenFM panelen tegyél be egy számot.';
     $('fby').textContent = $('mby').textContent;
     $('fjoin').textContent = $('mjoin').classList.contains('on') ? 'Zene kikapcsolása (nálad)' : '▶ Zene bekapcsolása';
     $('fjoin').classList.toggle('on', $('mjoin').classList.contains('on'));
