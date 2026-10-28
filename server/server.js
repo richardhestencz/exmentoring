@@ -14,6 +14,7 @@ const profiles = require('./profiles');
 const seats = require('./seats');
 const world = require('./world');
 const bj = require('./blackjack');
+const slots = require('./slots');
 const rouletteHistory = require('./roulette-history');
 const { occasionalBadPun } = require('./roulette-banter');
 const dailyChallenge = require('./roulette-challenge');
@@ -116,6 +117,24 @@ function bjSchedule() {
     bjEndAt = Date.now() + BJ_RESULT_MS;
     bjTimer = setTimeout(() => { bj.reset(BJ); S.bjBets = []; save(); broadcast(); }, BJ_RESULT_MS);
   }
+}
+// ---- félkarú rabló: azonnal elszámolódik, a memóriában csak az utolsó pörgetések vannak ----
+const SLOT_LAST = {};   // becenév -> az utolsó pörgetés ideje (túl gyors pörgetés ellen)
+let slotRecent = [];
+function slotSpin(nick, stake) {
+  if (!slots.BETS.includes(stake)) return 'Ismeretlen tét.';
+  const now = Date.now();
+  if (now - (SLOT_LAST[nick] || 0) < slots.COOLDOWN_MS) return 'Várd meg, míg megállnak a tárcsák.';
+  if (S.pot < stake) return 'Nincs elég mosómedve a közös potban.';
+  SLOT_LAST[nick] = now;
+  const r = slots.spin(stake);
+  S.pot += r.back - stake;
+  const st = stat(nick); st.net += r.back - stake; st.rounds++;
+  slotRecent.unshift({ ts: now, nick, stake, line: r.line, mult: r.mult, back: r.back });
+  slotRecent = slotRecent.slice(0, 10);
+  if (r.mult >= 15) say(`🎰 ${nick} a félkarú rablón: ${r.line.join(' ')} – ${r.mult}x, +${fmt(r.back - stake)}!`);
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] slot | ${nick}: ${r.line.join(' ')} tét ${stake} -> ${r.back} | pot: ${S.pot}`);
+  return { ...r, stake };
 }
 function bjAfter() {
   if (BJ.phase === 'result' && !BJ.settled) { bjSettle(); BJ.settled = true; }
@@ -341,7 +360,7 @@ function snapshot(withTrack) {
       wonAt: challengeState.wonAt,
       progress: challengeProgress,
     },
-    bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
+    bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, slot: { ...slots.view(), recent: slotRecent }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper, focus: focusNicks(), music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
@@ -619,6 +638,13 @@ wss.on('connection', (ws) => {
       } else e = 'Ismeretlen blackjack-lépés.';
       if (e) return err(e);
       bjAfter();
+      return;
+    }
+    if (m.t === 'slot-spin') {
+      const r = slotSpin(ws.nick, m.amount);
+      if (typeof r === 'string') return err(r);
+      ws.send(JSON.stringify({ t: 'slot-result', ...r }));
+      save(); broadcast();
       return;
     }
     // ki ül hol: HO vagy helyben (belépéskor), aztán leülés egy szabad helyre, felállás
