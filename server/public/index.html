@@ -944,6 +944,7 @@ function connect(){
   };
 }
 const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
+window.send=send;   // a chat (chat.js) a közös websocketen keresztül küld
 $('historyClose').onclick=closeHistory;
 historyModal.onclick=e=>{if(e.target===historyModal)closeHistory()};
 document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!historyModal.hidden)closeHistory()});
