@@ -50,6 +50,8 @@ function build() {
     <div class="slbg"></div>
     <canvas class="sl3d"></canvas><canvas class="slfx"></canvas>
     <div class="slwin" aria-live="polite"></div>
+    <button type="button" class="slarrow l" aria-label="Másik gép: Mosó-Olümposz">‹</button>
+    <button type="button" class="slarrow r" aria-label="Másik gép: Mosó-Olümposz">›</button>
     <button type="button" class="slx" aria-label="Vissza a tisztásra">✕</button>
     <button type="button" class="slmute" aria-label="Hang ki/be"></button>
     <div class="slpanel">
@@ -83,7 +85,7 @@ function build() {
   setTimeout(() => q('.slgo').focus({ preventScroll: true }), 400);
 }
 
-function close() {
+function close(now) {
   if (!V) return;
   const v = V; V = null;
   cancelAnimationFrame(v.raf);
@@ -96,7 +98,7 @@ function close() {
   v.env.dispose();
   v.renderer.dispose(); v.renderer.forceContextLoss();
   if (v.audio.ctx) v.audio.ctx.close();
-  setTimeout(() => v.el.remove(), 260);
+  if (now) v.el.remove(); else setTimeout(() => v.el.remove(), 260);
   document.body.style.overflow = '';
 }
 
@@ -277,10 +279,18 @@ function build3d() {
   V.coinM = new THREE.MeshStandardMaterial({ color: 0xffc83a, metalness: 1, roughness: 0.22, emissive: 0x402800 });
 }
 
+// a nyilak: át a modern gépre (Mosó-Olümposz), az csak innen érhető el
+async function toOlympus() {
+  if (!V || V.spinning || V.celebrating) return;
+  const a = api; close(true);
+  try { (await import('/olympus.js?v=1')).open(a); } catch (e) { console.error(e); a.toast('A másik gép most nem tölt be.'); }
+}
+
 /* ---------------- kezelőfelület ---------------- */
 function bindUi() {
   const { q } = V;
   q('.slx').onclick = close;
+  q('.slarrow.l').onclick = toOlympus; q('.slarrow.r').onclick = toOlympus;
   q('.slgo').onclick = () => go();
   q('.slmute').onclick = () => { V.mute = !V.mute; store('slotMute', V.mute ? '1' : '0'); renderPanel(); };
   q('.slbets').onclick = (e) => { const b = e.target.closest('[data-v]'); if (!b || b.disabled) return; V.bet = +b.dataset.v; store('slotBet', V.bet); renderPanel(); };
@@ -289,6 +299,7 @@ function bindUi() {
     if (!V) return;
     if (e.key === 'Escape') { e.stopPropagation(); close(); return; }
     if (e.target && /INPUT|TEXTAREA|SELECT/.test(e.target.tagName)) return;
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); toOlympus(); return; }
     if (e.key === ' ' || e.key === 'Enter') { if (e.target && e.target.closest && e.target.closest('summary,.slbets,.slx,.slmute')) return; e.preventDefault(); go(); }
     const n = +e.key; const bets = betsOf(); if (n >= 1 && n <= bets.length) { V.bet = bets[n - 1]; store('slotBet', V.bet); renderPanel(); }
   };
@@ -805,6 +816,11 @@ function injectCss() {
 .slfx{pointer-events:none;z-index:2}
 .slx,.slmute{position:absolute;top:14px;z-index:5;width:42px;height:42px;border-radius:50%;border:0;background:rgba(10,15,22,.6);color:#fff;font-size:18px;cursor:pointer;backdrop-filter:blur(6px)}
 .slx{right:14px}.slmute{right:64px}
+.slarrow{position:absolute;z-index:5;top:50%;transform:translateY(-50%);width:54px;height:96px;border:0;border-radius:16px;background:rgba(10,15,22,.45);color:#fff;font:300 64px/1 system-ui,sans-serif;cursor:pointer;backdrop-filter:blur(6px);transition:background .2s,transform .2s}
+.slarrow.l{left:10px}.slarrow.r{right:10px}
+.slarrow:hover,.slarrow:focus-visible{background:rgba(255,210,100,.35);outline:none}
+.slarrow.l:hover{transform:translateY(-50%) translateX(-3px)}.slarrow.r:hover{transform:translateY(-50%) translateX(3px)}
+@media (max-width:560px){.slarrow{width:36px;height:70px;font-size:44px}}
 .slx:hover,.slmute:hover,.slx:focus-visible,.slmute:focus-visible{background:rgba(255,255,255,.22);outline:none}
 .slpanel{position:absolute;left:50%;bottom:14px;transform:translateX(-50%);z-index:4;width:min(560px,calc(100% - 24px));background:rgba(20,10,4,.66);backdrop-filter:blur(10px);border:1px solid rgba(255,210,120,.25);border-radius:18px;padding:10px 14px;box-sizing:border-box}
 .slrow{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -865,7 +881,7 @@ function injectCss() {
   document.head.appendChild(s);
 }
 
-// próbához (konzolból): a gép egy kitalált eredményen áll meg, a pot nem változik. pl. (await import('/slot.js?v=1')).demo('jackpot')
+// próbához (konzolból): a gép egy kitalált eredményen áll meg, a pot nem változik. pl. (await import('/slot.js?v=2')).demo('jackpot')
 export function demo(tier) {
   if (!V || V.spinning) return;
   const L = { tiny: ['🍒', '🍋', '🍒'], paws: ['🦝', '🍇', '🦝'], cherry: ['🍒', '🍒', '🍒'], lemon: ['🍋', '🍋', '🍋'], grape: ['🍇', '🍇', '🍇'], bell: ['🔔', '🔔', '🔔'], star: ['⭐', '⭐', '⭐'], jackpot: ['🦝', '🦝', '🦝'], lose: ['🍒', '🔔', '🍋'] }[tier] || ['🍒', '🔔', '🍋'];

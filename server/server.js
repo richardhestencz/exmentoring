@@ -15,6 +15,7 @@ const seats = require('./seats');
 const world = require('./world');
 const bj = require('./blackjack');
 const slots = require('./slots');
+const olympus = require('./olympus');
 const rouletteHistory = require('./roulette-history');
 const { occasionalBadPun } = require('./roulette-banter');
 const dailyChallenge = require('./roulette-challenge');
@@ -137,6 +138,24 @@ function slotSpin(nick, stake) {
   if (r.mult >= 15) say(`🎰 ${nick} a félkarú rablón: ${r.line.join(' ')} – ${r.mult}x, +${fmt(r.back - stake)}!`);
   console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] slot | ${nick}: ${r.line.join(' ')} tét ${stake} -> ${r.back} | pot: ${S.pot}`);
   return { ...r, stake };
+}
+// ---- Mosó-Olümposz (modern gép, a félkarú rablóból érhető el): egy pörgetés az összes leomlással és ingyenes pörgetéssel együtt azonnal elszámolódik ----
+const OLY_LAST = {};
+let olyRecent = [];
+function olySpin(nick, stake, buy) {
+  if (!olympus.BETS.includes(stake)) return 'Ismeretlen tét.';
+  const now = Date.now(), cost = buy ? stake * olympus.BUY_MULT : stake;
+  if (now - (OLY_LAST[nick] || 0) < olympus.COOLDOWN_MS) return 'Várd meg, míg lefut a pörgetés.';
+  if (S.pot < cost) return 'Nincs elég mosómedve a közös potban.';
+  OLY_LAST[nick] = now;
+  const r = olympus.play(stake, { buy });
+  S.pot += r.back - r.cost;
+  const st = stat(nick); st.net += r.back - r.cost; st.rounds++;
+  olyRecent.unshift({ ts: now, nick, stake, buy: !!buy, mult: r.mult, back: r.back, free: !!r.free });
+  olyRecent = olyRecent.slice(0, 10);
+  if (r.mult >= 50) say(`⚡ ${nick} az Olümposzon: ${r.mult}×, +${fmt(r.back - r.cost)}!`);
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] oly | ${nick}: ${buy ? 'vétel ' : ''}tét ${stake} -> ${r.back} (${r.mult}x) | pot: ${S.pot}`);
+  return r;
 }
 function bjAfter() {
   if (BJ.phase === 'result' && !BJ.settled) { bjSettle(); BJ.settled = true; }
@@ -362,7 +381,7 @@ function snapshot(withTrack) {
       wonAt: challengeState.wonAt,
       progress: challengeProgress,
     },
-    bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, slot: { ...slots.view(), recent: slotRecent }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
+    bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, slot: { ...slots.view(), recent: slotRecent }, oly: { ...olympus.view(), recent: olyRecent }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper, focus: focusNicks(), music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
     chat: chat.view(S.chat),
   };
@@ -664,6 +683,13 @@ wss.on('connection', (ws) => {
       } else e = 'Ismeretlen blackjack-lépés.';
       if (e) return err(e);
       bjAfter();
+      return;
+    }
+    if (m.t === 'oly-spin') {
+      const r = olySpin(ws.nick, m.amount, !!m.buy);
+      if (typeof r === 'string') return err(r);
+      ws.send(JSON.stringify({ t: 'oly-result', ...r }));
+      save(); broadcast();
       return;
     }
     if (m.t === 'slot-spin') {

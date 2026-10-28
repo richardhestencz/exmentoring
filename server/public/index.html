@@ -944,6 +944,7 @@ function connect(){
     if(window.LunchHook)LunchHook(m);
     if(window.FocusHook)FocusHook(m);
     if(window.SlotHook)SlotHook(m);
+    if(window.OlyHook)OlyHook(m);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render();$('chdue').hidden=!m.chapter||!!(nick&&m.chapter.votes[nick])}
     else if(m.t==='roulette-user-history')renderUserHistory(m)
     else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
@@ -1565,7 +1566,7 @@ let slotMod=null;
 slotHit.onclick=async()=>{
   if(!nick){showNick();return}
   slotHit.disabled=true;
-  try{slotMod=slotMod||await import('/slot.js?v=1');slotMod.open({send,fmt,toast,esc,nick:()=>nick,state:()=>S,night:()=>sceneCycle().night>=.42})}
+  try{slotMod=slotMod||await import('/slot.js?v=2');slotMod.open({send,fmt,toast,esc,nick:()=>nick,state:()=>S,night:()=>sceneCycle().night>=.42})}
   catch(e){console.error(e);toast('A félkarú rabló most nem tölt be. Próbáld újra!')}
   slotHit.disabled=false;
 };
