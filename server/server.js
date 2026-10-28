@@ -20,6 +20,7 @@ const dailyChallenge = require('./roulette-challenge');
 const polls = require('./polls');
 const chapter = require('./chapter');
 const music = require('./music');
+const chat = require('./chat');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -61,6 +62,7 @@ if (rouletteHistoryNeedsMigration) {
 }
 S.music = music.sanitize(S.music);
 const musicRt = { open: false, since: 0 };   // az ajtó éppen nyitva van-e (nem mentjük)
+S.chat = chat.sanitize(S.chat);
 S.presence ||= presence.empty();
 S.cola ||= cola.empty();
 S.profiles ||= profiles.empty();
@@ -340,6 +342,7 @@ function snapshot(withTrack) {
     },
     bj: { ...bj.view(BJ), endAt: bjEndAt, max: bj.MAX_BET }, last: Object.fromEntries(Object.entries(LAST).map(([k, v]) => [k, profiles.total(v)])),
     minesweeper: S.minesweeper, focus: focusNicks(), music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())),
+    chat: chat.view(S.chat),
   };
   if (withTrack && R.phase === 'spin' && R.sim) {
     const { w0, tw, alpha0, hz, hits, track } = R.sim;
@@ -460,6 +463,11 @@ function broadcastMusic(msg) {
   const out = JSON.stringify(msg || { t: 'music', music: music.view(S.music, Date.now(), music.duckActive(musicRt, Date.now())) });
   for (const c of wss.clients) if (c.readyState === 1) c.send(out);
 }
+// közös chat: egy új üzenet (felugrik mindenkinél), vagy a teljes fal (belépéskor/kérésre)
+function broadcastChat(msg) {
+  const out = JSON.stringify(msg);
+  for (const c of wss.clients) if (c.readyState === 1) c.send(out);
+}
 function broadcast(withTrack) {
   const msg = JSON.stringify(snapshot(withTrack));
   for (const c of wss.clients) if (c.readyState === 1) c.send(msg);
@@ -526,8 +534,26 @@ wss.on('connection', (ws) => {
     if (m.t === 'fmodiag') { if ((ws.fmodiag = (ws.fmodiag || 0) + 1) <= 4) console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] fokusz-mozgas: ${ws.nick || '?'} ${String(m.d || '').slice(0, 700)}`); return; }   // miért nem mozog a kép egy gépen
     if (m.t === 'poll-list') return sendPollList(ws);
     if (m.t === 'poll-get') return sendPollState(ws, m.id);
+    if (m.t === 'chat-get') return ws.send(JSON.stringify({ t: 'chat', chat: chat.view(S.chat) }));   // a teljes fal (belépés után kérésre)
     if (!ws.nick) return err('Előbb adj meg becenevet.');
     if (m.t === 'focus') { if (ws.focus !== !!m.on) { ws.focus = !!m.on; broadcast(); } return; }
+    if (m.t === 'chat-emote') {   // mozgó emote (efemer, nem tároljuk): azonnal repül mindenkinél a képernyőn
+      if (!chat.isEmote(m.e)) return;
+      const now = Date.now();
+      if (now - (ws.lastEmote || 0) < 250) return;   // gyorsabb, mint az üzenet, de spam ellen védve
+      ws.lastEmote = now;
+      broadcastChat({ t: 'chat-emote', e: m.e, nick: ws.nick });
+      return;
+    }
+    if (m.t === 'chat-send') {   // egy üzenet a közös falra: elmentjük és azonnal mindenkinél felugrik
+      const now = Date.now();
+      if (now - (ws.lastChat || 0) < chat.MIN_GAP_MS) return err('Várj egy picit a következő üzenettel.');
+      const r = chat.add(S.chat, ws.nick, m.text, now);
+      if (r.error) return err(r.error);
+      ws.lastChat = now; save();
+      broadcastChat({ t: 'chat-msg', msg: r.msg });
+      return;
+    }
     if (m.t.startsWith('music-')) {
       const now = Date.now();
       let e = null;

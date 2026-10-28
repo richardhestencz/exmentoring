@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120" role="img" aria-label="Éhes mosómedve">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#ffdf8a"/><stop offset="55%" stop-color="#e8a02e"/><stop offset="100%" stop-color="#b7641f"/>
+    </radialGradient>
+    <linearGradient id="fur" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#8a4a36"/><stop offset="100%" stop-color="#5e3022"/>
+    </linearGradient>
+  </defs>
+  <circle cx="60" cy="60" r="58" fill="url(#bg)"/>
+  <!-- fülek előre hegyezve -->
+  <path d="M30 44 Q26 20 44 32 Z" fill="url(#fur)"/><path d="M34 42 Q33 28 42 34 Z" fill="#d79a86"/>
+  <path d="M90 44 Q94 20 76 32 Z" fill="url(#fur)"/><path d="M86 42 Q87 28 78 34 Z" fill="#d79a86"/>
+  <!-- fej -->
+  <ellipse cx="60" cy="62" rx="33" ry="31" fill="url(#fur)"/>
+  <path d="M60 48 Q40 50 40 70 Q46 86 60 86 Q74 86 80 70 Q80 50 60 48 Z" fill="#efe3d6"/>
+  <path d="M38 58 Q50 50 60 56 Q70 50 82 58 Q80 68 70 68 Q62 66 60 62 Q58 66 50 68 Q40 68 38 58 Z" fill="#2c1b14"/>
+  <!-- nagy vágyakozó szemek -->
+  <circle cx="50" cy="60" r="5.4" fill="#fff"/><circle cx="51" cy="61" r="3" fill="#1a120d"/><circle cx="49.4" cy="59.4" r="1.1" fill="#fff"/>
+  <circle cx="70" cy="60" r="5.4" fill="#fff"/><circle cx="71" cy="61" r="3" fill="#1a120d"/><circle cx="69.4" cy="59.4" r="1.1" fill="#fff"/>
+  <!-- felvont, reménykedő szemöldök -->
+  <path d="M44 51 Q50 49 56 51" fill="none" stroke="#1a120d" stroke-width="2" stroke-linecap="round"/>
+  <path d="M64 51 Q70 49 76 51" fill="none" stroke="#1a120d" stroke-width="2" stroke-linecap="round"/>
+  <!-- orr -->
+  <ellipse cx="60" cy="70" rx="4" ry="3" fill="#1a120d"/>
+  <!-- nyitott száj + kilógó nyelv (nyáladzik) -->
+  <path d="M50 76 Q60 86 70 76 Z" fill="#1a120d"/>
+  <path d="M56 80 Q60 90 64 80 Z" fill="#e8657b"/>
+  <!-- nyálcsepp -->
+  <path d="M70 78 q-2 6 0 9 q2 -3 0 -9 Z" fill="#9fe0ff"/>
+  <!-- falat: gyros/szendvics az oldal témájához -->
+  <g transform="translate(86 80) rotate(12)">
+    <path d="M0 10 L16 10 L8 -4 Z" fill="#e7c37a" stroke="#b98a3c" stroke-width="1.2"/>
+    <path d="M2 10 L14 10 L8 2 Z" fill="#7cae55"/>
+    <circle cx="8" cy="6" r="1.6" fill="#d14b3a"/>
+  </g>
+</svg>
