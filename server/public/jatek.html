@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop City</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#f3f3f3;font-family:system-ui,-apple-system,sans-serif;user-select:none}
+canvas{display:block}
+/* a tisztás betöltője */
+#sync{position:fixed;inset:0;z-index:5;pointer-events:none;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;color:#5b5b5b;letter-spacing:.35em;text-align:center}
+#sync[hidden]{display:none}
+#sync b{display:block;font-size:clamp(18px,4vw,30px);font-weight:700;animation:glitch 1.6s steps(1) infinite}
+#sync span{display:block;margin-top:10px;font-size:13px;letter-spacing:.25em}
+#sync i{display:block;margin:14px auto 0;width:min(320px,70vw);height:2px;background:linear-gradient(90deg,transparent,#8a8a8a,transparent)}
+@keyframes glitch{0%,100%{transform:none;opacity:1}12%{transform:translateX(3px) skewX(8deg);opacity:.7}14%{transform:none;opacity:1}61%{transform:translateX(-4px);opacity:.6}63%{transform:none;opacity:1}}
+#flash{position:fixed;inset:0;background:#fff;opacity:0;pointer-events:none;z-index:4}
+#hurt{position:fixed;inset:0;pointer-events:none;z-index:3;opacity:0;transition:opacity .25s;box-shadow:inset 0 0 140px 40px rgba(200,0,0,.75)}
+/* HUD: jobb felső sarok (fegyver, pénz, csillagok), bal alul a térkép és az életerő, mint a nagy városi játékokban */
+.hud{display:none}
+body.playing .hud{display:block}
+#tr{position:fixed;right:22px;top:16px;z-index:3;text-align:right;color:#fff;text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.6)}
+#weapon{display:flex;gap:10px;align-items:baseline;justify-content:flex-end;font-weight:800;font-size:15px}
+#weapon b{font-family:'Pricedown','Impact',sans-serif;font-size:20px;letter-spacing:.04em}
+#money{font-family:'Pricedown','Impact',sans-serif;font-size:34px;color:#7be37b;letter-spacing:.03em;margin-top:2px}
+#stars{font-size:26px;letter-spacing:2px;margin-top:-2px}
+#stars i{font-style:normal;color:rgba(255,255,255,.18)}
+#stars i.on{color:#fff;animation:star 1s steps(2) infinite}
+@keyframes star{50%{color:#4aa3ff}}
+#bl{position:fixed;left:22px;bottom:20px;z-index:3;width:210px}
+#radar{display:block;width:210px;height:150px;border-radius:10px;border:3px solid rgba(0,0,0,.6);background:#2c3e2a}
+.bars{display:flex;gap:4px;margin-top:5px}
+.bars div{height:9px;background:rgba(0,0,0,.55);border-radius:2px;overflow:hidden}
+.bars div:first-child{flex:2}.bars div:last-child{flex:1}
+#hpbar{height:100%;width:100%;background:#5fcf5f}#arbar{height:100%;width:0;background:#4aa3ff}
+#reticle{position:fixed;left:50%;top:50%;width:6px;height:6px;margin:-3px 0 0 -3px;border-radius:50%;background:#fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.6);z-index:3;pointer-events:none}
+#reticle.aim{width:22px;height:22px;margin:-11px 0 0 -11px;background:none;border:2px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.6)}
+#reticle[hidden],body:not(.playing) #reticle{display:none}
+#prompt{position:fixed;left:24px;top:22px;z-index:3;max-width:340px;background:rgba(0,0,0,.78);color:#fff;font-size:15px;line-height:1.4;padding:12px 16px;border-radius:4px}
+#prompt[hidden]{display:none}
+kbd{display:inline-block;background:#fff;color:#111;border-radius:4px;padding:0 7px;margin-right:8px;font:inherit;font-weight:900}
+#toast{position:fixed;left:50%;bottom:120px;transform:translate(-50%,10px);opacity:0;transition:.3s;z-index:6;background:rgba(0,0,0,.78);color:#fff;font-weight:600;padding:9px 16px;border-radius:4px;pointer-events:none;max-width:80vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#banner{position:fixed;left:0;right:0;top:34%;z-index:6;text-align:center;pointer-events:none;opacity:0;transition:opacity .5s;color:#fff}
+#banner.on{opacity:1}
+#banner b{display:block;font-family:'Pricedown','Impact',sans-serif;font-size:clamp(40px,8vw,88px);letter-spacing:.04em;color:#ffd23e;text-shadow:0 4px 0 #000,0 0 24px rgba(0,0,0,.5)}
+#banner span{display:block;font-weight:700;font-size:17px;text-shadow:0 2px 0 #000}
+#keys{position:fixed;right:22px;bottom:18px;z-index:3;color:#fff;font-size:12px;line-height:1.6;text-align:right;text-shadow:0 1px 0 #000;opacity:.85}
+/* menük (szünet, bolt, lőtér): sötét, nagy betűs lista */
+.menu{position:fixed;inset:0;z-index:7;display:grid;place-items:center;background:rgba(0,0,0,.55)}
+.menu[hidden]{display:none}
+.mbox{min-width:300px;max-width:calc(100% - 32px);background:rgba(10,10,14,.92);color:#fff;padding:22px;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px}
+.mbox h2{margin:0 0 6px;font-family:'Pricedown','Impact',sans-serif;font-size:34px;letter-spacing:.04em;color:#ffd23e}
+.mbox button{font:inherit;font-weight:800;font-size:15px;text-align:left;padding:11px 14px;border-radius:4px;border:0;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;justify-content:space-between;gap:16px}
+.mbox button:hover,.mbox button:focus-visible{background:#ffd23e;color:#111;outline:none}
+.mbox button:disabled{opacity:.4;cursor:default}
+.mbox small{color:#bbb}
+</style>
+</head>
+<body>
+<div id="sync"><div><b>SZINKRONIZÁLÁS</b><span id="syncNick"></span><i></i><span id="syncPct">0%</span></div></div>
+<div id="flash"></div>
+<div id="hurt"></div>
+<div class="hud">
+  <div id="tr"><div id="weapon"></div><div id="money">$00000000</div><div id="stars"></div></div>
+  <div id="bl"><canvas id="radar" width="420" height="300"></canvas><div class="bars"><div><div id="hpbar"></div></div><div><div id="arbar"></div></div></div></div>
+  <div id="keys">WASD mozgás · Shift futás · Szóköz ugrás · E használ / beszáll · Jobb egér célzás · Bal egér lövés · 1-4 fegyver · R töltés · Esc szünet</div>
+</div>
+<div id="reticle" hidden></div>
+<div id="prompt" hidden></div>
+<div id="toast"></div>
+<div id="banner"></div>
+<div class="menu" id="pause" hidden><div class="mbox"><h2>Szünet</h2><button type="button" id="resume">▶ Folytatás</button><button type="button" id="quit">← Vissza a mentoring szobába</button><small>Loop City · pilot · 3D elemek: Kenney (CC0), a mosómedve: Tripo AI</small></div></div>
+<div class="menu" id="menu" hidden><div class="mbox" id="menubox"></div></div>
+<script type="module" src="/game/main.js"></script>
+</body>
+</html>

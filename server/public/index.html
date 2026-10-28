@@ -55,6 +55,11 @@ ul{list-style:none;margin:0;padding:0}
 .oldv{display:none;margin-left:10px;color:#e9dcd3;font-size:.78rem;font-weight:600;text-decoration:none;white-space:nowrap}
 .oldv:hover{color:#fff}
 .beta3d .oldv{display:inline}
+/* a béta nézetben: Loop City, a nyílt világú játék (külön oldal: csak kattintásra töltődik, a főoldalt nem terheli) */
+.gtab{display:none;margin-left:10px;background:#1b1b22;color:#ffd23e;font-weight:900;font-size:.78rem;padding:4px 12px;border-radius:999px;text-decoration:none;white-space:nowrap;box-shadow:0 2px 0 rgba(0,0,0,.3)}
+.gtab:hover,.gtab:focus-visible{background:#ffd23e;color:#1b1b22;outline:none}
+.beta3d .gtab{display:inline-block}
+@media (max-width:480px){.beta3d .gtab{margin-left:6px;padding:4px 9px}}
 .beta3d .beta{animation:none;cursor:default;pointer-events:none;box-shadow:none;padding:4px 5px}
 .beta3d .beta .cta,.beta3d .beta .cta-s,.beta3d .beta i{display:none}
 .w3d,.play3d{display:none}
@@ -529,7 +534,7 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 /* „Csak zene” nézet (fokusz.js): a világfa tövében lantozó mosómedve (Gemini), a zene vezérlői, az ebéd; a kerék nem rajzolódik */
 .fbtn[aria-pressed="true"]{background:#eb772e;border-color:#eb772e}
 .focusview{display:none}
-html.focus main,html.focus .beta,html.focus .chdue,html.focus .oldv{display:none!important}
+html.focus main,html.focus .beta,html.focus .chdue,html.focus .oldv,html.focus .gtab{display:none!important}
 html.focus .focusview{display:block;position:relative;height:calc(100svh - 44px);min-height:420px;overflow:hidden;background:#120c08}
 .fbg{--fd:url(img/focus-day-wide.jpg);--fn:url(img/focus-night-wide.jpg);position:absolute;inset:0;background:#120c08 var(--fd) 50% 100%/cover no-repeat}
 :root[data-theme="dark"] .fbg{background-image:var(--fn)}
@@ -740,7 +745,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="Közös zene: lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> Zene</span></button><button type="button" class="mbtn fbtn" id="focusbtn" aria-pressed="false" aria-controls="focusview">🎧<span class="ml"> Csak zene</span></button><button type="button" class="mbtn cbtn" id="cbtn" aria-expanded="false" aria-controls="cdrawer" title="Közös chat"><span class="cbadge" id="cbadge" hidden></span>💬<span class="ml"> Chat</span></button></span>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="gtab" href="/jatek.html" title="Loop City: nyílt világú játék a tisztásról indulva, autókkal, bolttal és online lőtérrel (béta)">🎮 Loop City</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="XMenFM: közös lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> XMenFM</span></button><button type="button" class="mbtn fbtn" id="focusbtn" aria-pressed="false" aria-controls="focusview">🎧<span class="ml"> Csak zene</span></button><button type="button" class="mbtn cbtn" id="cbtn" aria-expanded="false" aria-controls="cdrawer" title="Közös chat"><span class="cbadge" id="cbadge" hidden></span>💬<span class="ml"> Chat</span></button></span>
     <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a class="nav-m" href="/beta.html">BÉTA: 3D tisztás</a><a class="nav-m" href="/gyros.html">Gyros</a><a class="nav-m" href="/cola.html">Kóla</a><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -777,7 +782,7 @@ footer strong{color:#fff}
   </div>
 
   <div class="tl">
-    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
+    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d" title="Loop City: a tisztásról indulsz, onnan a városba">🎮 Belépés: Loop City</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
     <div class="glass lunchcard" id="lunchcard" hidden aria-live="polite"></div>
     <section class="glass daily-challenge" id="dailyChallenge" aria-label="Napi rulett-kihívás">
@@ -978,7 +983,7 @@ $('nick').value=nick;
 let toastT;
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
 $('spinbtn').onclick=()=>send({t:'spin'});
-$('play3d').onclick=()=>{if(!nick){showNick();return}play3d(true)};
+$('play3d').onclick=()=>{if(!nick){showNick();return}location.href='/jatek.html'};   // a belépés a Loop City (a tisztásról indul, onnan a város)
 showNick();
 
 /* ---------- tétasztal (vízszintes, mint az élő kaszinóban) ---------- */
@@ -1656,8 +1661,8 @@ connect();
 // a 3D tisztásról „Blackjack”-kel jött: egyből a blackjack-nézet
 if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
 </script>
-<aside class="mdrawer" id="mdrawer" aria-label="Közös zene" aria-hidden="true">
-  <div class="mh"><b>🎵 Közös lejátszási lista</b><span class="mduck" id="mduck" hidden>halkítva (ajtó)</span><button type="button" id="mclose" aria-label="Bezárás">×</button></div>
+<aside class="mdrawer" id="mdrawer" aria-label="XMenFM" aria-hidden="true">
+  <div class="mh"><b>🎵 XMenFM</b><span class="mduck" id="mduck" hidden>halkítva (ajtó)</span><button type="button" id="mclose" aria-label="Bezárás">×</button></div>
   <div class="mbody">
     <div class="mplayer"><div id="ytp"></div><div class="mempty" id="mempty">Még üres a lista.<br>Tegyél be egy számot lent!</div></div>
     <div class="mnow" id="mnow"></div><div class="mby" id="mby"></div>

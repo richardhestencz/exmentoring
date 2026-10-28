@@ -1,0 +1,106 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Loop Aréna</title>
+<link rel="icon" type="image/png" href="/img/raccoon-64.png">
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
+<style>
+html,body{margin:0;height:100%;overflow:hidden;background:#f3f3f3;font-family:system-ui,-apple-system,sans-serif;user-select:none;color:#fff}
+canvas{display:block}
+/* a tisztás betöltője (ugyanaz, mint a jatek.html-ben) */
+#sync{position:fixed;inset:0;z-index:20;display:grid;place-items:center;font-family:ui-monospace,Menlo,monospace;color:#5b5b5b;letter-spacing:.35em;text-align:center;background:#f3f3f3;pointer-events:none}
+#sync[hidden]{display:none}
+#sync b{display:block;font-size:clamp(18px,4vw,30px);font-weight:700;animation:glitch 1.6s steps(1) infinite}
+#sync span{display:block;margin-top:10px;font-size:13px;letter-spacing:.25em}
+#sync i{display:block;margin:14px auto 0;width:min(320px,70vw);height:2px;background:linear-gradient(90deg,transparent,#8a8a8a,transparent)}
+@keyframes glitch{0%,100%{transform:none;opacity:1}12%{transform:translateX(3px) skewX(8deg);opacity:.7}14%{transform:none;opacity:1}61%{transform:translateX(-4px);opacity:.6}63%{transform:none;opacity:1}}
+.hud{position:fixed;z-index:3;pointer-events:none;text-shadow:0 2px 0 #000,0 0 8px rgba(0,0,0,.6);font-weight:800}
+body:not(.playing) .hud,body:not(.playing) #cross,body:not(.playing) #hm{display:none}
+#hpw{left:22px;bottom:30px;width:260px}
+#hpw b{font-family:'Pricedown','Impact',sans-serif;font-size:40px;letter-spacing:.04em}
+#hpb{height:10px;background:rgba(0,0,0,.55);border-radius:3px;overflow:hidden;margin-top:2px}
+#hpb i{display:block;height:100%;width:100%;background:#5fcf5f;transition:width .1s}
+#ammo{right:24px;bottom:28px;text-align:right}
+#ammo b{font-family:'Pricedown','Impact',sans-serif;font-size:44px}
+#ammo span{display:block;font-size:14px;opacity:.9}
+#timer{left:50%;top:12px;transform:translateX(-50%);font-family:'Pricedown','Impact',sans-serif;font-size:34px;letter-spacing:.06em}
+#feed{right:20px;top:14px;text-align:right;font-size:14px;line-height:1.7}
+#feed div{background:rgba(0,0,0,.45);padding:1px 10px;border-radius:3px;margin-bottom:3px;display:block;animation:fd 6s forwards}
+#feed .me{background:rgba(255,210,62,.55);color:#111;text-shadow:none}
+@keyframes fd{0%,85%{opacity:1}100%{opacity:0}}
+#info{left:0;right:0;bottom:6px;text-align:center;font-size:12px;opacity:.7;line-height:1.5}
+#cross{position:fixed;left:50%;top:50%;width:0;height:0;z-index:3;pointer-events:none}
+#cross i{position:absolute;background:#fff;box-shadow:0 0 0 1px rgba(0,0,0,.55)}
+#cross i:nth-child(1){left:-1px;top:-14px;width:2px;height:8px}#cross i:nth-child(2){left:-1px;top:6px;width:2px;height:8px}
+#cross i:nth-child(3){left:-14px;top:-1px;width:8px;height:2px}#cross i:nth-child(4){left:6px;top:-1px;width:8px;height:2px}
+#cross.ads{opacity:0}
+#hm{position:fixed;left:50%;top:50%;width:34px;height:34px;margin:-17px 0 0 -17px;z-index:3;pointer-events:none;opacity:0;transition:opacity .25s}
+#hm.on{opacity:1;transition:none}
+#hm:before,#hm:after{content:"";position:absolute;left:16px;top:-2px;width:3px;height:38px;background:#fff;box-shadow:0 0 3px #000;transform:rotate(45deg)}
+#hm:after{transform:rotate(-45deg)}
+#hm.head:before,#hm.head:after,#hm.kill:before,#hm.kill:after{background:#ff3b3b}
+#scope{position:fixed;inset:0;z-index:2;pointer-events:none;display:none;background:radial-gradient(circle at 50% 50%,transparent 0,transparent 31vh,#000 31.4vh)}
+#scope:before{content:"";position:absolute;left:0;right:0;top:50%;height:1px;background:rgba(0,0,0,.8)}
+#scope:after{content:"";position:absolute;top:0;bottom:0;left:50%;width:1px;background:rgba(0,0,0,.8)}
+#hurt{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;box-shadow:inset 0 0 160px 50px rgba(200,0,0,.8);transition:opacity .4s}
+#prot{position:fixed;inset:0;z-index:2;pointer-events:none;opacity:0;box-shadow:inset 0 0 120px 20px rgba(80,200,255,.55);transition:opacity .3s}
+#dir{position:fixed;left:50%;top:50%;width:0;height:0;z-index:3;pointer-events:none}
+#dir i{position:absolute;left:-60px;top:-150px;width:120px;height:24px;margin:0;background:radial-gradient(ellipse at 50% 100%,rgba(255,40,40,.9),rgba(255,40,40,0) 70%);transform-origin:60px 150px;animation:dm 1.2s forwards}
+@keyframes dm{0%{opacity:1}100%{opacity:0}}
+#dead{position:fixed;left:0;right:0;top:30%;z-index:4;text-align:center;pointer-events:none;display:none;text-shadow:0 3px 0 #000}
+#dead b{display:block;font-family:'Pricedown','Impact',sans-serif;font-size:clamp(34px,6vw,64px);color:#ff5d5d;letter-spacing:.05em}
+#dead span{font-size:20px;font-weight:700}
+#toast{position:fixed;left:50%;bottom:110px;transform:translate(-50%,10px);opacity:0;transition:.3s;z-index:9;background:rgba(0,0,0,.78);color:#fff;font-weight:600;padding:9px 16px;border-radius:4px;pointer-events:none;max-width:80vw;text-align:center}
+#toast.on{opacity:1;transform:translate(-50%,0)}
+#board{position:fixed;left:50%;top:50%;transform:translate(-50%,-50%);z-index:6;min-width:min(520px,92vw);background:rgba(10,10,14,.88);padding:16px 20px;border-radius:6px;display:none}
+#board h3{margin:0 0 8px;font-family:'Pricedown','Impact',sans-serif;font-size:28px;color:#ffd23e;letter-spacing:.04em}
+#board table{width:100%;border-collapse:collapse;font-size:15px}
+#board th{text-align:right;color:#aaa;font-weight:600;padding:2px 8px}#board th:first-child,#board td:first-child{text-align:left}
+#board td{text-align:right;padding:3px 8px;font-weight:700}#board tr.me td{color:#ffd23e}
+.menu{position:fixed;inset:0;z-index:10;display:grid;place-items:center;background:rgba(0,0,0,.6)}
+.menu[hidden]{display:none}
+.mbox{min-width:300px;max-width:calc(100% - 32px);background:rgba(10,10,14,.94);padding:22px;border-radius:6px;box-shadow:0 10px 40px rgba(0,0,0,.5);display:flex;flex-direction:column;gap:8px}
+.mbox h2{margin:0 0 6px;font-family:'Pricedown','Impact',sans-serif;font-size:34px;letter-spacing:.04em;color:#ffd23e}
+.mbox button{font:inherit;font-weight:800;font-size:15px;text-align:left;padding:11px 14px;border-radius:4px;border:0;background:rgba(255,255,255,.08);color:#fff;cursor:pointer;display:flex;justify-content:space-between;gap:16px}
+.mbox button:hover,.mbox button:focus-visible{background:#ffd23e;color:#111;outline:none}
+.mbox small{color:#bbb;line-height:1.5}
+.mbox input{font:inherit;font-weight:700;padding:9px 12px;border-radius:4px;border:0;background:#fff;color:#111;width:100%;box-sizing:border-box}
+.cls{display:flex;gap:10px;flex-wrap:wrap}.cls button{flex-direction:column;flex:1;min-width:130px;gap:4px}.cls button span{font-weight:500;font-size:12px;opacity:.8}
+.cls button.sel{background:#ffd23e;color:#111}
+#over{position:fixed;inset:0;z-index:8;display:none;place-items:center;background:rgba(0,0,0,.55);text-align:center}
+#over b{display:block;font-family:'Pricedown','Impact',sans-serif;font-size:clamp(40px,8vw,84px);color:#ffd23e;text-shadow:0 4px 0 #000}
+#over div{font-size:18px;font-weight:700;line-height:1.7}
+</style>
+</head>
+<body>
+<div id="sync"><div><b>SZINKRONIZÁLÁS</b><span id="syncNick"></span><i></i><span id="syncPct">0%</span></div></div>
+<div id="scope"></div><div id="hurt"></div><div id="prot"></div><div id="dir"></div>
+<div id="cross"><i></i><i></i><i></i><i></i></div><div id="hm"></div>
+<div class="hud" id="hpw"><b id="hpn">100</b><div id="hpb"><i id="hpi"></i></div></div>
+<div class="hud" id="ammo"><b id="am">12</b><span id="wn"></span></div>
+<div class="hud" id="timer">5:00</div>
+<div class="hud" id="feed"></div>
+<div class="hud" id="info">WASD mozgás · Szóköz ugrás (tartva: bunnyhop) · C / Ctrl guggol, futás közben csúszás · Jobb egér célzás · Bal egér lövés · R töltés · 1/2/3 osztály · Tab állás · Esc szünet</div>
+<div id="dead"><b>KIÜTÖTTEK</b><span id="deadt"></span></div>
+<div id="board"><h3>Állás</h3><table><thead><tr><th>Játékos</th><th>Ölés</th><th>Halál</th><th>Pont</th></tr></thead><tbody id="bb"></tbody></table></div>
+<div id="over"><div><b id="overw"></b><div id="overl"></div><div id="overc"></div></div></div>
+<div id="toast"></div>
+<div class="menu" id="pick" hidden><div class="mbox">
+  <h2>Loop Aréna</h2>
+  <input id="nick" maxlength="16" placeholder="Becenév" autocomplete="off">
+  <small>Válassz osztályt (a halálod után az 1/2/3 billentyűvel válthatsz).</small>
+  <div class="cls" id="cls">
+    <button type="button" data-c="0">Pisztoly<span>24 sebzés · pontos · 12 töltény</span></button>
+    <button type="button" data-c="1" class="sel">Gépkarabély<span>16 sebzés · gyors tűz · 30 töltény</span></button>
+    <button type="button" data-c="2">Mesterlövész<span>fejlövés = 1 ölés · távcső</span></button>
+  </div>
+  <button type="button" id="goOn">▶ Indulás <small id="onl"></small></button>
+  <button type="button" id="goBot">Gyakorlás botokkal</button>
+  <button type="button" id="back">← Vissza a városba</button>
+</div></div>
+<div class="menu" id="pause" hidden><div class="mbox"><h2>Szünet</h2><button type="button" id="resume">▶ Folytatás</button><button type="button" id="quit">← Vissza a városba</button><small>Loop Aréna · pilot · fegyverek és pálya-elemek: Kenney (CC0), a mosómedve: Tripo AI</small></div></div>
+<script type="module" src="/game/arena.js"></script>
+</body>
+</html>
