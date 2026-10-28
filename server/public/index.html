@@ -370,6 +370,78 @@ html,body{overflow-x:clip}   /* telefonon semmi ne tolja szélesebbre az oldalt 
 .mdrawer #mshuf[aria-pressed="true"]{background:#eb772e}
 .mdrawer li .by{color:#ffb27a;font-size:.72rem;white-space:nowrap}
 
+/* közös chat: fejléc-gomb + oldalsó panel + felugró üzenetek (ugyanaz a minta, mint a zene) */
+.cbtn{position:relative}
+.cbtn .cbadge{position:absolute;top:-5px;right:-5px;display:inline-grid;place-items:center;min-width:17px;height:17px;padding:0 4px;border-radius:999px;background:#ffd400;color:#1a1200;font:800 .66rem/1 Figtree,system-ui,sans-serif;box-shadow:0 0 0 2px #b83553}
+.cbtn .cbadge[hidden]{display:none}
+.cdrawer{visibility:hidden;transition:transform .3s ease,visibility 0s .3s;position:fixed;top:44px;right:0;bottom:0;width:min(400px,100vw);z-index:95;background:#1c1119;color:#f4e8e2;box-shadow:-12px 0 40px rgba(0,0,0,.45);display:flex;flex-direction:column;font-size:.88rem;transform:translateX(105%)}
+.cdrawer.open{transform:none;visibility:visible;transition:transform .3s ease}
+.cdrawer .cdh{display:flex;align-items:center;gap:8px;padding:12px 14px;border-bottom:1px solid rgba(255,255,255,.1)}
+.cdrawer .cdh b{flex:1;font-size:1rem;min-width:0}
+.cdrawer .cdh button{border:0;background:none;color:#fff;font-size:1.4rem;line-height:1;cursor:pointer;padding:2px 6px;border-radius:8px;flex:none}
+.cdrawer .cdh button:hover{background:rgba(255,255,255,.12)}
+.cdrawer .clist{flex:1;overflow-y:auto;padding:12px 14px;display:flex;flex-direction:column;gap:8px;list-style:none;margin:0}
+.cdrawer .cempty{margin:auto;text-align:center;color:#e9b9a3;line-height:1.5;padding:16px}
+.cdrawer .clist li{max-width:85%;align-self:flex-start}
+.cdrawer .clist li.me{align-self:flex-end}
+.cdrawer .clist .b{padding:7px 11px;border-radius:12px;background:rgba(255,255,255,.07);border-bottom-left-radius:4px}
+.cdrawer .clist li.me .b{background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);color:#fff;border-bottom-left-radius:12px;border-bottom-right-radius:4px}
+.cdrawer .clist .who{font-weight:800;font-size:.76rem;color:#ffb27a;margin-right:6px}
+.cdrawer .clist li.me .who{color:rgba(255,255,255,.85)}
+.cdrawer .clist .tm{font-size:.68rem;color:#b8aaa3}
+.cdrawer .clist li.me .tm{color:rgba(255,255,255,.7)}
+.cdrawer .clist .tx{margin-top:2px;white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.35}
+.cdrawer .cform{display:flex;gap:6px;padding:10px 14px;border-top:1px solid rgba(255,255,255,.1)}
+.cdrawer .cform textarea{flex:1;min-width:0;resize:none;height:38px;max-height:120px;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(0,0,0,.3);color:#fff;padding:9px 11px;font:inherit;line-height:1.3}
+.cdrawer .cform textarea::placeholder{color:#b8aaa3}
+.cdrawer .cform button{align-self:flex-end;border:0;border-radius:10px;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553);color:#fff;font:inherit;font-weight:800;cursor:pointer;padding:9px 14px}
+.cdrawer .cnote{padding:0 14px 8px;font-size:.78rem;color:#ffd2a1;min-height:0}
+.cdrawer .cnote:empty{display:none}
+.cpop{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:120;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none;width:min(420px,92vw)}
+.cpop .citem{pointer-events:auto;cursor:pointer;width:100%;box-sizing:border-box;background:#1c1119;color:#f4e8e2;border:1px solid rgba(235,119,46,.4);border-radius:12px;padding:9px 13px;box-shadow:0 10px 30px rgba(0,0,0,.45);opacity:0;transform:translateY(16px) scale(.97);transition:opacity .3s ease,transform .3s ease;font-size:.88rem}
+.cpop .citem.in{opacity:1;transform:none}
+.cpop .citem.me{border-color:rgba(255,255,255,.25)}
+.cpop .citem .who{font-weight:800;color:#ffb27a;margin-right:7px}
+.cpop .citem .tx{overflow-wrap:anywhere}
+@media (prefers-reduced-motion:reduce){.cpop .citem{transition:opacity .2s ease}.cpop .citem.in{transform:none}}
+/* emote-sor a chat beviteli mező fölött */
+.cdrawer .cemotes{display:flex;flex-wrap:wrap;gap:4px;padding:8px 14px 0}
+.cdrawer .cemotes[hidden]{display:none}
+.cdrawer .cemotes button{border:0;background:rgba(255,255,255,.08);border-radius:9px;cursor:pointer;font-size:1.25rem;line-height:1;padding:5px 7px}
+.cdrawer .cemotes button:hover,.cdrawer .cemotes button:focus-visible{background:rgba(235,119,46,.35);outline:none;transform:scale(1.15)}
+.cdrawer .cemotes button.rc{padding:3px 6px}
+.cdrawer .cemotes button.rc img{display:block;width:26px;height:26px;pointer-events:none}
+.cdrawer .cform .cemobtn{align-self:flex-end;border:1px solid rgba(255,255,255,.18);border-radius:10px;background:rgba(0,0,0,.3);color:#fff;font-size:1.2rem;line-height:1;cursor:pointer;padding:7px 9px;flex:none}
+.cdrawer .cform .cemobtn:hover,.cdrawer .cform .cemobtn:focus-visible{background:rgba(235,119,46,.3);outline:none}
+.cdrawer .cform .cemobtn[aria-expanded="true"]{background:rgba(235,119,46,.5)}
+/* repülő, táncoló emote-ok (Twitch-stílus): a képernyő alján indulnak és felúsznak, közben ritmusra ugrálnak */
+.cfly{position:fixed;inset:0;z-index:119;pointer-events:none;overflow:hidden}
+.cfly .fe{position:absolute;bottom:-40px;font-size:2.2rem;will-change:transform,opacity;filter:drop-shadow(0 2px 6px rgba(0,0,0,.4));animation:cfly-up var(--dur,4.5s) ease-in forwards}
+.cfly .fe span{display:inline-block;animation:cfly-dance var(--beat,.5s) ease-in-out infinite}
+@keyframes cfly-up{0%{opacity:0;transform:translateY(0)}8%{opacity:1}80%{opacity:1}100%{opacity:0;transform:translateY(calc(-1 * var(--rise,80vh)))}}
+@keyframes cfly-dance{0%,100%{transform:translateX(-10px) rotate(-14deg) scale(1)}50%{transform:translateX(10px) rotate(14deg) scale(1.22)}}
+/* a kabala mosómedve, mint repülő emote: a kép + érzelem szerinti mozgás */
+.cfly .fe img{display:block;width:3.4rem;height:3.4rem;pointer-events:none}
+.cfly .fe.rc{font-size:0}
+.cfly .fe.rc span{animation-duration:var(--beat,.5s)}
+.cfly .fe.m-dance span{animation-name:rc-dance}
+.cfly .fe.m-laugh span{animation-name:rc-laugh}
+.cfly .fe.m-love span{animation-name:rc-love}
+.cfly .fe.m-party span{animation-name:rc-dance}
+.cfly .fe.m-spin span{animation-name:rc-spin;animation-timing-function:linear}
+.cfly .fe.m-jump span{animation-name:rc-jump}
+.cfly .fe.m-sad span{animation-name:rc-sad;animation-timing-function:ease-in-out}
+.cfly .fe.m-cool span{animation-name:rc-cool;animation-timing-function:ease-in-out}
+@keyframes rc-dance{0%,100%{transform:rotate(-16deg) translateX(-7px) scale(1)}50%{transform:rotate(16deg) translateX(7px) scale(1.12)}}
+@keyframes rc-laugh{0%,100%{transform:translateY(0) scale(1,1)}25%{transform:translateY(-6px) scale(1.1,.9)}60%{transform:translateY(2px) scale(.94,1.1)}}
+@keyframes rc-love{0%,100%{transform:scale(1)}30%{transform:scale(1.25)}45%{transform:scale(1.05)}70%{transform:scale(1.2)}}
+@keyframes rc-spin{0%{transform:rotate(0)}100%{transform:rotate(360deg)}}
+@keyframes rc-jump{0%,100%{transform:translateY(0)}40%{transform:translateY(-16px) scale(1.04)}70%{transform:translateY(0) scale(.96,1.04)}}
+@keyframes rc-sad{0%,100%{transform:rotate(-6deg) translateY(2px)}50%{transform:rotate(6deg) translateY(5px)}}
+@keyframes rc-cool{0%,100%{transform:translateX(-5px) rotate(-5deg)}50%{transform:translateX(5px) rotate(5deg)}}
+@media (prefers-reduced-motion:reduce){.cfly .fe{animation:cfly-fade 3s ease forwards}.cfly .fe span{animation:none}}
+@keyframes cfly-fade{0%{opacity:0}10%{opacity:1}75%{opacity:1}100%{opacity:0}}
+
 /* eredmény-szalag (mint az élő kaszinóban: szomszédok + nyerő szám) */
 .banner{position:absolute;z-index:6;left:50%;top:50%;transform:translate(-50%,-50%) scale(.9);display:flex;flex-direction:column;align-items:center;gap:12px;
   pointer-events:none;opacity:0;transition:opacity .4s,transform .4s}
@@ -673,7 +745,7 @@ footer strong{color:#fff}
 
 <header class="top">
   <div class="wrap">
-    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="gtab" href="/jatek.html" title="Loop City: nyílt világú játék a tisztásról indulva, autókkal, bolttal és online lőtérrel (béta)">🎮 Loop City</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="XMenFM: közös lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> XMenFM</span></button><button type="button" class="mbtn fbtn" id="focusbtn" aria-pressed="false" aria-controls="focusview">🎧<span class="ml"> Csak zene</span></button></span>
+    <span class="studio"><button type="button" class="themebtn" aria-pressed="false" aria-label="Sötét mód be/ki" title="Sötét mód"><img class="rc" src="/img/raccoon-64.png" alt=""></button><a href="#jatek">Mentoring szoba</a><a class="beta" id="beta" href="/beta.html" title="Próbáld ki az új, 3D tisztást: járkálj a saját mosómedvéddel"><b>BÉTA</b><span class="cta"> Próbáld ki a 3D tisztást</span><span class="cta-s"> 3D tisztás</span><i aria-hidden="true">→</i></a><a class="oldv" href="/">← megszokott nézet</a><a class="gtab" href="/jatek.html" title="Loop City: nyílt világú játék a tisztásról indulva, autókkal, bolttal és online lőtérrel (béta)">🎮 Loop City</a><a class="chdue" id="chdue" href="/chapter.html" hidden title="Mikor legyen az AI chapter nagyba? Jelöld be a naptárban!">📅<span class="l"> Jelöld be: mikor legyen az AI chapter?</span><span class="s"> Jelöld be!</span></a><button type="button" class="mbtn" id="mbtn" aria-expanded="false" aria-controls="mdrawer" title="XMenFM: közös lejátszási lista"><span class="eq" aria-hidden="true"><i></i><i></i><i></i></span>🎵<span class="ml"> XMenFM</span></button><button type="button" class="mbtn fbtn" id="focusbtn" aria-pressed="false" aria-controls="focusview">🎧<span class="ml"> Csak zene</span></button><button type="button" class="mbtn cbtn" id="cbtn" aria-expanded="false" aria-controls="cdrawer" title="Közös chat"><span class="cbadge" id="cbadge" hidden></span>💬<span class="ml"> Chat</span></button></span>
     <nav aria-label="Oldal szakaszai"><span class="nav-primary"><a href="/szavazas.html">Szavazás</a><a href="/gyros.html">Gyros</a><a href="/cola.html">Kóla</a></span><details class="nav-more"><summary aria-label="További oldalak" title="További oldalak">…</summary><span class="nav-dropdown"><a class="nav-m" href="/beta.html">BÉTA: 3D tisztás</a><a class="nav-m" href="/gyros.html">Gyros</a><a class="nav-m" href="/cola.html">Kóla</a><a href="#jatek">Játék</a><a href="/chapter.html">📅 Chapter</a><a href="/ajto.html">Ajtó beállítása</a><a href="/bent.html">Ki van bent?</a><a href="/aknakereso.html">Aknakereső</a><a href="https://github.com/richardhestencz/exmentoring" rel="noopener">GitHub</a></span></details></nav>
   </div>
   <div class="conn" id="conn">Nincs kapcsolat, újracsatlakozás…</div>
@@ -861,13 +933,14 @@ function connect(){
   ws.onmessage=e=>{
     const m=JSON.parse(e.data);
     if(window.MusicHook)MusicHook(m);
+    if(window.ChatHook)ChatHook(m);
     if(window.LunchHook)LunchHook(m);
     if(window.FocusHook)FocusHook(m);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render();$('chdue').hidden=!m.chapter||!!(nick&&m.chapter.votes[nick])}
     else if(m.t==='roulette-user-history')renderUserHistory(m)
     else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
     else if(m.t==='err'){if(!$('nickmodal').hidden)$('err').textContent=m.msg;else toast(m.msg)}
-    else if(m.t==='hello'){$('err').textContent='';nick=m.nick;safeSet('nick',nick);if(pendingMode){send({t:'where',mode:pendingMode});pendingMode=null}showNick();if(S)render()}
+    else if(m.t==='hello'){$('err').textContent='';nick=m.nick;window.nick=nick;safeSet('nick',nick);if(pendingMode){send({t:'where',mode:pendingMode});pendingMode=null}showNick();if(S)render()}
   };
 }
 const send=o=>{if(ws&&ws.readyState===1)ws.send(JSON.stringify(o))};
@@ -1609,6 +1682,20 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
     <ol id="mlist"></ol>
   </div>
 </aside>
+<aside class="cdrawer" id="cdrawer" aria-label="Közös chat" aria-hidden="true">
+  <div class="cdh"><b>💬 Közös chat</b><button type="button" id="cclose" aria-label="Bezárás">×</button></div>
+  <ul class="clist" id="clist"></ul>
+  <div class="cempty" id="cempty">Még nincs üzenet.<br>Írj valamit — mindenki egyszerre látja!</div>
+  <div class="cnote" id="cnote" aria-live="polite"></div>
+  <div class="cemotes" id="cemotes" aria-label="Mozgó emote-ok" hidden></div>
+  <form class="cform" id="cform">
+    <button type="button" class="cemobtn" id="cemobtn" aria-expanded="false" aria-controls="cemotes" title="Mozgó emote-ok" aria-label="Mozgó emote-ok">😀</button>
+    <textarea id="ctext" rows="1" maxlength="500" placeholder="Írj a közös falra… (Enter: küldés, Shift+Enter: új sor)" aria-label="Üzenet a közös chat falra"></textarea>
+    <button type="submit" aria-label="Küldés">Küldés</button>
+  </form>
+</aside>
+<div class="cpop" id="cpop" aria-live="polite" aria-label="Új chat üzenetek"></div>
+<div class="cfly" id="cfly" aria-hidden="true"></div>
 <div class="lunchmodal" id="lunchmodal" hidden role="dialog" aria-modal="true" aria-labelledby="lunchh">
   <div class="lunchbox">
     <h1 id="lunchh">🍽️ Ebéd</h1>
@@ -1617,7 +1704,7 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
     <div class="lfoot"><button type="button" class="llater" id="lunchlater">Most nem</button><button type="button" class="go ldone" id="lunchdone" disabled>Kész</button></div>
   </div>
 </div>
-<script src="/zene.js"></script><script src="/ebed.js?v=2"></script><script src="/fokusz.js"></script><script src="/fokusz-mozgas.js?v=7"></script>
+<script src="/zene.js"></script><script src="/chat.js"></script><script src="/ebed.js?v=2"></script><script src="/fokusz.js"></script><script src="/fokusz-mozgas.js?v=7"></script>
 <script src="/fx.js"></script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>
