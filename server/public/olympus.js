@@ -177,18 +177,21 @@ async function playResult(R) {
   const base = await playSpin(R.base, { free: false });
   total += base;
   if (R.free) {
-    await freeIntro(R.free.awarded || 15);
-    V.acc = 0; V.q('.olfsbox').hidden = false;
-    let left = R.free.awarded || 15;
+    // a kezdő szám a nyitó pörgetésé (15); a szerver free.awarded-je már az újraindítások összegét is tartalmazza
+    const first = R.base.awarded || 15;
+    await freeIntro(first);
+    V.acc = 0; V.q('.olacc').textContent = '×0'; V.q('.olfsbox').hidden = false;
+    let left = first;
     for (const sp of R.free.spins) {
       if (!V) return;
       left--; V.q('.olfsn').textContent = left;
       total += await playSpin(sp, { free: true });
-      if (sp.awarded) { left += sp.awarded; V.q('.olfsn').textContent = left; await banner(`+${sp.awarded} ingyenes pörgetés`, 'retrig', 1.4); }
+      if (sp.awarded) { left += sp.awarded; V.q('.olfsn').textContent = left; pulse('.olfsn'); await banner(`+${sp.awarded} ingyenes pörgetés`, 'retrig', 1.6); }
     }
     await wait(0.4);
     V.q('.olfsbox').hidden = true; setStorm(false);
   }
+  hidePlate();
   setWin(R.back);
   const tier = R.capped ? 'max' : R.mult >= 500 ? 'legend' : R.mult >= 100 ? 'epic' : R.mult >= 50 ? 'mega' : R.mult >= 15 ? 'big' : '';
   if (tier) await bigWin(tier, R.back, R.free ? `Ingyenes pörgetések összesen` : '');
@@ -211,6 +214,7 @@ async function playSpin(sp, { free }) {
     for (const cell of cells) explode(cell);
     V.audio.burst();
     win += cas.wins.reduce((a, w) => a + w.pay, 0); setWin(V.winShown + cas.wins.reduce((a, w) => a + w.pay, 0));
+    plate(win, sp.cascades.length > 1 ? 'Lavina nyeremény' : 'Nyeremény');
     await wait(0.18);
     tumble(cas.fill, cas.grid); await settled();
     await zapOrbs();
@@ -221,7 +225,8 @@ async function playSpin(sp, { free }) {
     for (const o of sp.orbs) { const cell = cellAt(o.c, o.r); if (cell) await orbFly(cell); }
     if (free) { V.acc = sp.accum || V.acc; V.q('.olacc').textContent = '×' + V.acc; pulse('.olacc'); }
     total = win * (sp.applied || 1);
-    await banner(`${api.fmt(Math.round(win))} × ${sp.applied}`, 'mult', 1.1);
+    plate(null, 'Szorzó', `${api.fmt(Math.round(win))} × ${sp.applied}`); V.audio.zap(sp.applied); await wait(0.9);
+    plate(total, 'Nyeremény', null, true); V.audio.land();
     setWin(V.winShown - win + total);
   }
   if (sp.scatters >= 4 || (free && sp.scatters >= 3)) {
@@ -229,7 +234,8 @@ async function playSpin(sp, { free }) {
     V.audio.scatter(); zeusStrike(); await wait(1.0);
     for (const c of V.cells) c.hot = 0;
   }
-  if (sp.scatterPay) setWin(V.winShown + sp.scatterPay);
+  if (sp.scatterPay) { setWin(V.winShown + sp.scatterPay); plate(total + sp.scatterPay, 'Nyeremény Zeusz-érmékkel'); }
+  if (sp.total > 0) await wait(free ? 1.1 : 0.9);   // a tábla egy kicsit még látszik
   return sp.total;
 }
 
@@ -242,7 +248,20 @@ function idleGrid() {
   const G = geo(), pool = ORDER.slice(0, 9);
   for (let c = 0; c < COLS; c++) for (let r = 0; r < ROWS; r++) V.cells.push(mkCell(pool[Math.floor(Math.random() * pool.length)], c, r, G.y - (ROWS - r) * G.s - 40, c * 0.06 + 0.2));
 }
-function dropOut() { const G = geo(); for (const cl of V.cells) { cl.out = true; cl.state = 'fall'; cl.ty = G.y + G.h + G.s * 2 + (ROWS - cl.r) * G.s; cl.delay = cl.c * 0.035 + (ROWS - cl.r) * 0.01; cl.vy = 0; } V.audio.whoosh(); }
+// a nagy nyereménytábla a rács közepén: minden lavinánál felvillan, a szorzónál előbb a szorzást mutatja
+function plate(amount, label, text, big) {
+  let p = V.plate;
+  if (!p) { p = V.plate = document.createElement('div'); p.className = 'olplate'; p.innerHTML = '<div class="pl"></div><div class="pv"></div>'; V.el.appendChild(p); }
+  p.querySelector('.pl').textContent = label;
+  p.querySelector('.pv').textContent = text || '+' + api.fmt(Math.round(amount));
+  p.classList.toggle('mul', !!text); p.classList.toggle('big', !!big);
+  p.classList.remove('hit'); void p.offsetWidth; p.classList.add('hit');
+  const g = geo(); V.flash = Math.max(V.flash, 0.18);
+  if (amount) for (let i = 0; i < 14; i++) P({ kind: 'spark', color: '#ffd36a', x: g.x + g.w / 2 + rnd(-g.w * 0.25, g.w * 0.25), y: g.y + g.h / 2 + rnd(-30, 30), vx: rnd(-260, 260), vy: rnd(-220, 120), life: 0.6, s: 3, drag: 2 });
+}
+function hidePlate() { const p = V.plate; if (!p) return; V.plate = null; p.classList.add('out'); setTimeout(() => p.remove(), 300); }
+function dropOut() {
+  hidePlate(); const G = geo(); for (const cl of V.cells) { cl.out = true; cl.state = 'fall'; cl.ty = G.y + G.h + G.s * 2 + (ROWS - cl.r) * G.s; cl.delay = cl.c * 0.035 + (ROWS - cl.r) * 0.01; cl.vy = 0; } V.audio.whoosh(); }
 function dropIn(grid) {
   const G = geo();
   V.cells = V.cells.filter((c) => c.out);   // a kihullók még látszanak, amíg el nem tűnnek
@@ -301,7 +320,7 @@ async function orbFly(cl) {
   V.audio.collect();
   await wait(0.42);
 }
-function winPos() { const r = V.q('.olwin').getBoundingClientRect(), o = V.el.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, y: r.top - o.top + r.height / 2 }; }
+function winPos() { const r = (V.plate || V.q('.olwin')).getBoundingClientRect(), o = V.el.getBoundingClientRect(); return { x: r.left - o.left + r.width / 2, y: r.top - o.top + r.height / 2 }; }
 function orbColor(v) { return v >= 250 ? '#ffd23e' : v >= 50 ? '#ff4d4d' : v >= 15 ? '#c25cff' : v >= 8 ? '#3e9bff' : '#3ee07a'; }
 function ring(p, color) { P({ kind: 'ring', color, x: p.x, y: p.y, life: 0.6, s: geo().s * 0.5 }); }
 function floatText(x, y, t, color) { V.floats.push({ kind: 'text', x, y, t, color, age: 0, life: 1.1 }); }
@@ -443,7 +462,7 @@ function drawFx(g, dt) {
     } else {
       const e = k * k * (3 - 2 * k), x = f.from.x + (f.to.x - f.from.x) * e, y = f.from.y + (f.to.y - f.from.y) * e - Math.sin(k * Math.PI) * 120;
       g.translate(x, y); g.scale(1 - k * 0.4, 1 - k * 0.4); drawOrb(g, f.v, geo().s * 0.4);
-      if (k > 0.9 && !f.hit) { f.hit = 1; pulse('.olwin'); }
+      if (k > 0.9 && !f.hit) { f.hit = 1; pulse('.olwin'); if (V.plate) { V.plate.classList.remove('hit'); void V.plate.offsetWidth; V.plate.classList.add('hit'); } }
     }
     g.restore();
   }
@@ -544,6 +563,17 @@ function injectCss() {
 .olpay{margin-top:6px;font-size:13px}.olpay summary{cursor:pointer;opacity:.8}
 .olpt p{margin:6px 0;line-height:1.45;opacity:.9}.olpt table{border-collapse:collapse}.olpt td{padding:2px 10px 2px 0;vertical-align:middle}
 .olic{display:inline-block;width:26px;height:26px;vertical-align:middle;background:url(/img/oly-symbols.webp) 0 0/1000% 100% no-repeat}
+.olplate{position:absolute;z-index:7;left:calc(var(--gx) + var(--gw)/2);top:calc(var(--gy) + var(--gh)/2);transform:translate(-50%,-50%);pointer-events:none;text-align:center;padding:14px 38px 16px;border-radius:22px;min-width:min(60%,320px);
+  background:linear-gradient(180deg,rgba(60,20,90,.88),rgba(20,8,40,.92));border:3px solid #f3c35a;box-shadow:0 0 0 2px rgba(80,40,0,.6),0 0 40px rgba(255,190,60,.55),0 12px 30px rgba(0,0,0,.5)}
+.olplate .pl{font:800 clamp(13px,1.6vw,17px)/1.2 system-ui,sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#ffe6a6}
+.olplate .pv{margin-top:4px;font:900 clamp(40px,7vw,78px)/1 system-ui,sans-serif;color:#fff;background:linear-gradient(180deg,#fffbe8,#ffd36a 55%,#e08a12);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 0 #6a3206) drop-shadow(0 0 18px rgba(255,200,80,.85));white-space:nowrap}
+.olplate.mul .pv{background:linear-gradient(180deg,#fff,#9fe0ff 55%,#3a8bff);-webkit-background-clip:text;background-clip:text;filter:drop-shadow(0 4px 0 #06203a) drop-shadow(0 0 20px #7fd8ff)}
+.olplate.big{border-color:#fff2b8;box-shadow:0 0 0 2px rgba(80,40,0,.6),0 0 70px rgba(255,200,80,.9),0 12px 30px rgba(0,0,0,.5)}
+.olplate.hit{animation:olplatein .5s cubic-bezier(.2,1.8,.4,1) both,olplateflash .9s ease-out}
+.olplate.out{animation:olplateout .3s ease-in both}
+@keyframes olplatein{0%{transform:translate(-50%,-50%) scale(1.6);opacity:.2}100%{transform:translate(-50%,-50%) scale(1);opacity:1}}
+@keyframes olplateflash{0%{filter:brightness(2.2)}30%{filter:brightness(1.4)}100%{filter:none}}
+@keyframes olplateout{to{transform:translate(-50%,-50%) scale(.7);opacity:0}}
 .olban{position:absolute;z-index:7;left:50%;top:calc(var(--gy) + var(--gh)/2);transform:translate(-50%,-50%);pointer-events:none;font:900 clamp(30px,5vw,60px)/1 Georgia,serif;color:#fff;-webkit-text-stroke:2px #3a1a06;text-shadow:0 5px 0 #3a1a06,0 0 30px rgba(255,200,80,.9);animation:olbanin .45s cubic-bezier(.2,1.8,.4,1) both;white-space:nowrap}
 .olban.mult{color:#ffe38a}.olban.retrig{color:#bfe9ff;text-shadow:0 5px 0 #06203a,0 0 30px #7fd8ff}
 .olban.out{animation:olbanout .35s ease-in both}
