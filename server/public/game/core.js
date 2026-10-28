@@ -14,9 +14,18 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 
 export const G = {
-  THREE, hooks: { update: [] }, solids: [], interact: [], targets: [], world: {}, mode: 'load', keys: {}, mouse: { dx: 0, dy: 0, l: false, r: false },
+  THREE, hooks: { update: [], always: [] }, solids: [], interact: [], targets: [], ceilings: [], world: {}, mode: 'load', keys: {}, mouse: { dx: 0, dy: 0, l: false, r: false },
   on(ev, fn) { (this.hooks[ev] ||= []).push(fn); },
   emit(ev, ...a) { for (const f of this.hooks[ev] || []) f(...a); },
+};
+G.ceilAt = (x, z) => G.ceilings.reduce((height, query) => Math.min(height, query(x, z)), 1e9);
+const netListeners = [];
+G.net = {
+  status: 'offline',
+  send() {},
+  on(fn) { netListeners.push(fn); return () => { const i = netListeners.indexOf(fn); if (i >= 0) netListeners.splice(i, 1); }; },
+  _bind(send, status) { this.send = send || (() => {}); this.status = status; },
+  _emit(message) { for (const fn of netListeners.slice()) fn(message); },
 };
 
 // ---------- renderer, kamera, fény ----------
@@ -193,9 +202,11 @@ G.frame = null;   // a betöltő/bevezető saját rajzolása
 function loop() {
   requestAnimationFrame(loop);
   const dt = Math.min(0.05, G.clock.getDelta()), t = G.clock.elapsedTime;
+  for (const f of G.hooks.always) f(dt, t);
   if (G.frame) { G.frame(dt, t); return; }
-  if (G.mode === 'play' || G.mode === 'pause') {
+  if (G.mode === 'play' || G.mode === 'pause' || G.mode === 'cardjitsu') {
     if (G.mode === 'play') { for (const f of G.hooks.update) f(dt, t); interactions(); }
+    if (G.mode === 'cardjitsu') for (const f of G.hooks.cardjitsu || []) f(dt, t);
     G.mouse.dx = G.mouse.dy = 0;
     // a nap követi a játékost (az árnyék-kamera kicsi, éles)
     const p = G.player; sun.position.set(p.x + G.sunDir.x * 200, G.sunDir.y * 200, p.z + G.sunDir.z * 200); sun.target.position.set(p.x, 0, p.z);

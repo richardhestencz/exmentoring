@@ -25,3 +25,7 @@ A Shelly ajtószenzor az irodai MacBookon fut, beállítása: https://hestencz-m
 ## Üzemeltetés
 - Állapot: `data/state.json` (pot, ranglista), a Mac minin `~/Exmentoring/data/state.json`.
 - Env: `PORT`, `INGEST_TOKEN`, `DATA_DIR`.
+
+## Card-Jitsu
+
+A Loop City dojōja a `/jatek.html` oldalon érhető el. A szerveroldali szabálymotor és szobakezelő a `cardjitsu.js`; csak a `cardJitsu` statisztika kerül a `state.json` fájlba, aktív meccs és visszacsatlakozási token nem. Célzott gyors teszt: `node --test cardjitsu.test.js`; a teljes `npm test` a valódi websocketes Card-Jitsu integrációt is futtatja.

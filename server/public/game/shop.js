@@ -46,7 +46,7 @@ function room() {
 let R = null, back = null;
 export async function init() {
   R = room();
-  G.ceilAt = (x, z) => (Math.abs(x - IX) < W / 2 + 1 && Math.abs(z - IZ) < D / 2 + 1 ? H : 1e9);
+  G.ceilings.push((x, z) => (Math.abs(x - IX) < W / 2 + 1 && Math.abs(z - IZ) < D / 2 + 1 ? H : 1e9));
   const shop = G.world.places.shop;
   // polcok és hűtők a Kenney Furniture Kitből (CC0)
   const F = '/game/assets/furniture/';

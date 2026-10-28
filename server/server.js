@@ -25,6 +25,7 @@ const music = require('./music');
 const chat = require('./chat');
 const arena = require('./arena');
 const city = require('./city');
+const cardjitsu = require('./cardjitsu');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -97,6 +98,7 @@ function normalizeMinesweeper(value) {
 S.minesweeper = normalizeMinesweeper(S.minesweeper);
 S.polls = polls.normalize(S.polls);
 S.chapter = chapter.normalize(S.chapter);
+S.cardJitsu = cardjitsu.normalizeStats(S.cardJitsu);
 const LAST = {};
 // ---- blackjack időzítés és elszámolás ----
 let bjTimer = null, bjEndAt = 0;
@@ -352,6 +354,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.get('/api/arena', (req, res) => res.json({ players: arena.count(), city: city.count() }));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
+const CJ = cardjitsu.create({ stats: S.cardJitsu, save: () => save() });
 
 function snapshot(withTrack) {
   const challengeState = currentDailyChallenge();
@@ -527,14 +530,14 @@ wss.on('connection', (ws) => {
   ws.nick = ''; ws.budget = 10;
   const refill = setInterval(() => { ws.budget = 10; }, 1000);
   ws.on('close', () => {
-    clearInterval(refill); arena.leave(ws); city.leave(ws);
+    clearInterval(refill); arena.leave(ws); city.leave(ws); CJ.close(ws);
     if (ws.focus) setImmediate(() => broadcast());
     // a tisztásról akkor lép ki, ha ezzel a becenévvel már senki nincs bent (más lapon sem)
     if (ws.inWorld && ![...wss.clients].some((c) => c !== ws && c.inWorld && c.nick === ws.nick)) { world.leave(S.world, ws.nick); save(); broadcastWorld(); }
   });
   ws.send(JSON.stringify(snapshot(true)));
   ws.on('message', (raw) => {
-    if (arena.handle(ws, raw) || city.handle(ws, raw)) return;   // a Loop City (c-) is saját forgalmi kerettel   // az aréna (a- üzenetek) saját forgalmi kerettel
+    if (CJ.handle(ws, raw) || arena.handle(ws, raw) || city.handle(ws, raw)) return;   // saját, kis üzenetkeretek
     if (--ws.budget < 0) return;
     let m; try { m = JSON.parse(raw); } catch { return; }
     const err = (msg) => ws.send(JSON.stringify({ t: 'err', msg }));
