@@ -131,7 +131,7 @@ G.on('key', (c) => { if (P.dead && (c === 'Space' || c === 'KeyE') && performanc
 G.on('update', () => { if (P.dead && performance.now() - P.deadAt > 6000) respawn(); });
 // sebzés és halál (a többi modul hívja): 0 alatt elájul, 5 s múlva a kórház (a tisztás) előtt ébred, a pénze egy része elveszik
 G.damage = (dmg, from) => {
-  if (P.dead) return;
+  if (P.dead || G.cardJitsuSafe) return;
   const a = Math.min(P.armor, dmg * 0.7); P.armor -= a; P.hp -= dmg - a; G.hud.hp();
   document.getElementById('hurt').style.opacity = 0.6; setTimeout(() => (document.getElementById('hurt').style.opacity = 0), 160);
   if (P.hp <= 0) {

@@ -210,6 +210,14 @@ A főoldal fejlécében a **BÉTA** felirat (`#beta`) fehér áttűnéssel a **`
 
 A fejlesztés a `vilag3d` ágon folyik, élesbe fast-forwarddal vagy squash-merge-dzsel kerül.
 
+## Loop City Card-Jitsu
+
+- A `/jatek.html` városában a z=0 főút déli oldalán áll a **DOJO**. E-vel lehet belépni; odabent három közös tatami, a Mester, szabályok, statisztika és könnyű/normál/nehéz gépi ellenfél található. A lobbyban szabadon lehet járni. Párbajban 1–5 választ lapot, az Esc külön menüt nyit; feladás csak az ottani explicit gombbal történik. A megfigyelő bezárása és a párbaj vége visszavisz a dojōba.
+- Szabály: tűz veri a havat, hó a vizet, víz a tüzet; azonos elemnél a nagyobb szám nyer. Három különböző színű nyert lap kell, az elemek pedig vagy mind azonosak, vagy mind különbözők. A 24 erőlap részletes leírása a Mesternél és a lapok tippjében látszik.
+- Szerver: `server/cardjitsu.js`. A meccs, kéz, pakli és 30 másodperces visszacsatlakozási foglalás csak memóriában él. A `state.json` kizárólag a sanitizált `cardJitsu` statisztikát tárolja. Övhatárok: 5/13/21/30/40/52/64/76/88 győzelem.
+- Ugyanaz a Loop City websocket viszi a `cj-` üzeneteket. Kliens: `cj-enter`, `cj-exit`, `cj-join`, `cj-bot`, `cj-play`, `cj-watch`, `cj-leave`, `cj-forfeit`, `cj-rematch`, `cj-resume`; szerver: `cj-room` (csak nyilvános teremadat), `cj-state` (résztvevőnek privát kéz és token, nézőnek csak publikus meccs), `cj-round`, `cj-error`. A resume token csak az adott böngészőlap `sessionStorage` tárában él.
+- Tesztek: `cardjitsu.test.js` a teljes szabálymotor és fake-clock életciklus; `cardjitsu.integration.test.js` valódi websockettel ellenőrzi a privát/publikus határt, hibás és párhuzamos lépéseket, egyszeri elszámolást és újraindítás utáni statisztikát.
+
 `/tisztas3d.html`: a tisztás valódi 3D-ben, Tripo AI-jal generált modellekből (ingyenes csomag, CC BY 4.0, a forrás az oldalon feltüntetve). Be lehet lépni, és a saját mosómedvével járkálni.
 - **Belépés:** becenév, majd az Assassin's Creed-szerű belépő: fehér „Animus”-tér szürke szilánkokkal („SZINKRONIZÁLÁS”), fehér villanás, a világ ködből, a mosómedvénktől kifelé hullámzó sorrendben bukkan elő, a kamera sasszemből leereszkedik a mosómedve mögé.
 - **Irányítás:** WASD / nyilak, Shift futás, W/S előre-hátra, A/D és az egér vízszintesen a mosómedvét fordítja (a kamera mindig mögötte marad, ülve körbe lehet nézni), Szóköz ugrás, T menü, kattintás után az egér forgatja a kamerát (pointer lock, Esc elengedi), görgő közelítés, E leülés / felállás. A kamera a jobb váll mögül néz, középen **célzó**: a célzott szabad hely narancs gyűrűt kap, a célzó kivilágosodik. Mobilon joystick bal lent, Futás és cselekvés gomb jobb lent. A kamera nem megy be a fákba, tárgyakba (sugárvetés).

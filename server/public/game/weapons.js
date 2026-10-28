@@ -158,15 +158,15 @@ function punch() {
 }
 
 G.on('key', (c) => {
-  if (G.mode !== 'play') return;
+  if (G.mode !== 'play' || G.cardJitsuSafe) return;
   const m = /^Digit([1-5])$/.exec(c); if (m) G.equipSlot(+m[1]);
   if (c === 'KeyR') reload();
 });
-addEventListener('wheel', (e) => { if (G.mode === 'play' && G.locked() && !P().inCar) cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
+addEventListener('wheel', (e) => { if (G.mode === 'play' && !G.cardJitsuSafe && G.locked() && !P().inCar) cycle(e.deltaY > 0 ? 1 : -1); }, { passive: true });
 
 G.on('update', (dt) => {
   const p = P(); if (!p.av) return;
-  const hidden = !!p.inCar || p.dead;
+  const hidden = !!p.inCar || p.dead || G.cardJitsuSafe;
   // a találat-villanások, nyomjelzők, szikrák elhalványítása
   for (const m of tracers) if (m.visible && (m.userData.t -= dt) <= 0) m.visible = false; else if (m.visible) m.material.opacity = 0.9;
   for (const m of sparks) if (m.visible) { m.userData.t -= dt; m.scale.setScalar(1 + (0.22 - m.userData.t) * 6); if (m.userData.t <= 0) m.visible = false; }

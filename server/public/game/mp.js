@@ -43,12 +43,14 @@ async function setCar(o, kind) {
 
 function connect() {
   ws = new WebSocket((location.protocol === 'https:' ? 'wss' : 'ws') + '://' + location.host);
-  ws.onopen = () => { retry = 0; ws.send(JSON.stringify({ t: 'c-join', nick: G.nick, tint: myTint })); };
-  ws.onclose = () => { for (const id of [...others.keys()]) drop(id); myId = 0; setTimeout(connect, Math.min(10000, 1500 * ++retry)); };
+  G.net._bind((m) => { if (ws?.readyState === 1) ws.send(JSON.stringify(m)); }, 'connecting');
+  ws.onopen = () => { retry = 0; G.net.status = 'online'; ws.send(JSON.stringify({ t: 'c-join', nick: G.nick, tint: myTint })); };
+  ws.onclose = () => { for (const id of [...others.keys()]) drop(id); myId = 0; G.net.status = 'offline'; G.net._emit({ t: 'net-close' }); setTimeout(connect, Math.min(10000, 1500 * ++retry)); };
   ws.onmessage = (e) => {
-    const s = e.data; if (typeof s !== 'string' || !s.startsWith('{"t":"c-')) return;   // a webhely többi üzenete nem kell
+    const s = e.data; if (typeof s !== 'string') return;
+    if (!s.startsWith('{"t":"c-')) { try { G.net._emit(JSON.parse(s)); } catch {} return; }
     const m = JSON.parse(s);
-    if (m.t === 'c-wl') { myId = m.id; G.hud.toast('Online vagy a városban: a többiek látnak.'); }
+    if (m.t === 'c-wl') { myId = m.id; G.net._emit({ t: 'net-open' }); G.hud.toast('Online vagy a városban: a többiek látnak.'); }
     else if (m.t === 'c-ro') {
       const prev = roster; roster = new Map(m.l.map(([id, n, t]) => [id, [n, t]]));
       for (const [id] of roster) if (id !== myId && !prev.has(id) && prev.size) G.hud.toast(`${roster.get(id)[0]} megérkezett Loop Citybe.`);
@@ -68,7 +70,7 @@ function connect() {
 
 export function init() {
   connect();
-  G.on('update', (dt, t) => {
+  G.on('always', (dt) => {
     // a saját helyünk 10-szer másodpercenként
     sendT -= dt;
     if (sendT <= 0 && ws && ws.readyState === 1 && myId) {
@@ -82,7 +84,9 @@ export function init() {
       o.x += (o.tx - o.x) * k; o.y += (o.ty - o.y) * k; o.z += (o.tz - o.z) * k;
       let d = ((o.tr - o.r + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI; o.r += d * k;
       const inCar = !!o.car;
-      o.av.root.visible = !inCar;
+      o.av.root.visible = !inCar && !G.hideCityPlayers;
+      o.tag.visible = !G.hideCityPlayers;
+      if (o.car) o.car.visible = !G.hideCityPlayers;
       if (inCar) { o.car.position.set(o.x, 0, o.z); o.car.rotation.y = o.r; }
       else {
         o.av.root.position.set(o.x, o.y, o.z); o.av.root.rotation.set(o.a === 3 ? -1.2 : 0, o.r, 0);

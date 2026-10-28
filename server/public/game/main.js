@@ -9,7 +9,7 @@ G.nick = nick;
 $('syncNick').textContent = nick;
 
 // a modulok (autók, gyalogosok, fegyverek, bolt, lőtér) egymástól függetlenül töltődnek: ha egy hibás, a többi megy
-const MODS = ['./vehicles.js', './npcs.js', './weapons.js', './shop.js', './range.js', './minimap.js', './mp.js'];
+const MODS = ['./vehicles.js', './npcs.js', './weapons.js', './shop.js', './range.js', './minimap.js', './cardjitsu.js'];
 
 // ---------- az Animus-tér: szürke végtelen, forgó szilánkok, a kamera előre száguld ----------
 const animus = new THREE.Scene(); animus.background = new THREE.Color(0xf3f3f3); animus.fog = new THREE.Fog(0xf3f3f3, 10, 80);
@@ -52,6 +52,8 @@ G.frame = (dt, t) => {
 (async () => {
   await loadRaccoon();
   spawnPlayer();
+  // A közös websocket legyen kész, mielőtt a Card-Jitsu feliratkozik rá.
+  const mp = await import('./mp.js'); mp.init();
   await Promise.all(MODS.map((m) => import(m).then((x) => x.init && x.init()).catch((e) => console.warn('modul nem töltődött:', m, e))));
   await G.world.clearingReady;
   // a többi letöltés megvárása (a LoadingManager mindent számol)

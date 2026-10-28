@@ -158,6 +158,8 @@ function special(b, side, name, w, d, h, color, neon, neonColor) {
 }
 const blockAt = (i, j) => blocks.find((b) => b.i === i && b.j === j);
 const shop = special(blockAt(1, 1), 's', 'shop', 22, 16, 7, '#fff3c4', '24/7 BOLT', '#3ef0ff');
+// A z=0 főút dojoja a véletlen házak előtt foglal helyet.
+const dojo = special(blockAt(0, 1), 's', 'dojo', 22, 16, 7.5, '#7c4f31', 'DOJO', '#ffb13b');
 // a lőtér a tisztás és a város között, a földút mellett (Richard: legyen közelebb a tisztáshoz); bejárata a földút felé
 const range = special({ inner: { x0: 24, x1: 50, z0: -36, z1: -13 } }, 's', 'range', 24, 20, 9, '#c9d6df', 'LŐTÉR', '#ff4040');
 { // betonozott előtér az ajtó és a földút között

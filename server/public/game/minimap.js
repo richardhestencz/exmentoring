@@ -42,6 +42,7 @@ export function init() {
     const pl = G.world.places;
     if (pl.shop) icon(pl.shop.door.x, pl.shop.door.z, '$', '#2f9e44');
     if (pl.range) icon(pl.range.door.x, pl.range.door.z, '⌖', '#d6336c');
+    if (pl.dojo) icon(pl.dojo.door.x, pl.dojo.door.z, '☯', '#b86a27');
     icon(0, 0, '🔥', '#c98a2c');
     // a játékos nyila
     g.translate(CW / 2, CH / 2 + 30); g.rotate(G.cam.yaw - P.ry + Math.PI);
