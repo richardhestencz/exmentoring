@@ -1,4 +1,4 @@
-// A festett tisztás egyetlen mozgása: ha szól a közös zene, három hangfal finoman lüktet, és néha egy hangjegy száll ki belőlük.
+// A festett tisztás egyetlen mozgása: ha szól a közös zene, két hangfal finoman lüktet, és néha egy hangjegy száll ki belőlük.
 // Minden más áll (a fák, a tó, a mosómedvék is). A „✨” gombbal ki-be kapcsolható (megjegyzi; csökkentett mozgásnál alapból ki).
 // A réteg a háttérképpel együtt méreteződik és nagyít (a főoldal hívja: FxLayout, FxCam).
 (() => {
@@ -12,7 +12,7 @@
   (document.getElementById('bgNight') || bg).after(layer);   // a nappali és az éjszakai kép fölé
 
   // a hangfalak helye a széles kép saját képpontjaiban: [x, talppont y, magasság, merre néz]. Az álló kép közepe a széles kép kicsinyítve (k, ox, oy).
-  const SPEAKERS = [[602, 540, 115, 'right'], [478, 790, 165, 'right'], [1392, 578, 118, 'left']];
+  const SPEAKERS = [[602, 540, 115, 'right'], [478, 790, 165, 'right']];   // a jobb oldali hangfal helyén a félkarú rabló áll (index.html)
   const geo = (sc) => (sc.w > sc.h ? SPEAKERS : SPEAKERS.map(([x, y, h, f]) => [x * sc.k + sc.ox, y * sc.k + sc.oy, h * sc.k, f]));
   const pct = (v, of) => (v / of * 100).toFixed(3) + '%';
   const rnd = (a, b) => a + Math.random() * (b - a);

@@ -8,6 +8,7 @@
 <script src="/theme.js"></script><script src="/nav-badge.js" defer></script>
 <title>Exmentoring</title>
 <script>if(/^\/beta/.test(location.pathname))document.documentElement.classList.add('beta3d')</script>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"}}</script>
 <link rel="icon" type="image/png" href="/img/raccoon-64.png">
 <link rel="apple-touch-icon" href="/img/raccoon-256.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -603,6 +604,12 @@ html.focus .focusview.fmoon .fmo{opacity:1}
 .lfoot .go{width:auto;padding:12px 30px}
 .llater{border:0;background:none;color:#e9b9a3;font:inherit;text-decoration:underline;cursor:pointer}
 @media (max-width:640px){.lunchbody{grid-template-columns:1fr}.lunchbox{padding:20px 16px 16px}.lopt.big{padding:14px 10px}}
+/* a félkarú rabló a tisztás képén (a jobb oldali hangfal helyén): kattintásra megnyílik a 3D gép (slot.js) */
+.slothit{position:absolute;pointer-events:auto;cursor:pointer;background:transparent;border:0;border-radius:30px;padding:0}
+.slothit:hover,.slothit:focus-visible{background:radial-gradient(closest-side,rgba(255,209,102,.22),transparent);outline:none}
+.slothit .slbl{position:absolute;left:50%;top:-6px;transform:translate(-50%,-100%);white-space:nowrap;font:800 13px/1.3 system-ui,sans-serif;color:#fff;background:rgba(10,15,22,.7);padding:3px 9px;border-radius:999px;opacity:0;transition:opacity .2s;pointer-events:none}
+.slothit:hover .slbl,.slothit:focus-visible .slbl{opacity:1}
+.stage.view-bj .slothit{pointer-events:none}
 /* zene alatt lüktető hangfalak a tisztáson (fx.js) */
 .fx{position:absolute;left:0;top:0;z-index:1;transform-origin:0 0;will-change:transform,filter;pointer-events:none;overflow:hidden}
 .beta3d .fx{display:none}
@@ -936,6 +943,7 @@ function connect(){
     if(window.ChatHook)ChatHook(m);
     if(window.LunchHook)LunchHook(m);
     if(window.FocusHook)FocusHook(m);
+    if(window.SlotHook)SlotHook(m);
     if(m.t==='state'){if(seenBoot&&m.boot!==seenBoot){location.reload();return}seenBoot=m.boot;offset=m.now-Date.now();if(m.spin)curSpin={round:m.round,...m.spin};S=m;render();$('chdue').hidden=!m.chapter||!!(nick&&m.chapter.votes[nick])}
     else if(m.t==='roulette-user-history')renderUserHistory(m)
     else if(m.t==='roulette-spin-history')renderSpinHistory(m.spin)
@@ -1363,6 +1371,7 @@ function layoutBg(){
   ring={x:left+sc.cx*s,y:ringY,w:sc.wheel*s};bgBox={left,top};
   sceneInfo={sc,s,night:sceneCycle().night>=.42};crowdKey='';applyBackgroundCycle();drawCrowd();
   if(typeof placeBjHit==='function'){placeBjHit();aimWorld();layoutBjScene()}
+  if(typeof placeSlot==='function')placeSlot();
 }
 function fit(){
   SW=stage.clientWidth;SH=stage.clientHeight;mobile=SW<760;
@@ -1471,6 +1480,7 @@ function drawCrowd(){
   }
   crowd.replaceChildren(...frag);
   if(bjHit)crowd.appendChild(bjHit);
+  if(slotHit)crowd.appendChild(slotHit);
 }
 
 /* ---------- blackjack: kattintás az asztalra -> a kép az asztalra közelít, és beúszik a blackjack-nézet ---------- */
@@ -1547,6 +1557,24 @@ addEventListener('keydown',e=>{if(playing3d&&(e.key==='t'||e.key==='T')){postW3d
 // az asztal maga is gomb (a mosómedvék rétegében, a háttérrel együtt mozog)
 var bjHit=document.createElement('button');bjHit.type='button';bjHit.className='bjhit';bjHit.setAttribute('aria-label','Blackjack-asztal: ülj le játszani');
 bjHit.onclick=()=>setView(true);
+// a félkarú rabló: bele van festve a háttérképekbe (Gemini), itt csak a kattintható helye van; kattintásra tölt be a 3D gép (slot.js + three.js)
+var SLOT_SPRITE={x:1392,y:592,h:200,w:205};   // a gép és a mosómedve talppontjának közepe és a mérete a széles kép képpontjaiban
+var slotHit=document.createElement('button');slotHit.type='button';slotHit.className='slothit';slotHit.setAttribute('aria-label','Félkarú rabló: pörgess!');
+slotHit.innerHTML='<span class="slbl">🎰 Félkarú rabló</span>';
+let slotMod=null;
+slotHit.onclick=async()=>{
+  if(!nick){showNick();return}
+  slotHit.disabled=true;
+  try{slotMod=slotMod||await import('/slot.js?v=1');slotMod.open({send,fmt,toast,esc,nick:()=>nick,state:()=>S,night:()=>sceneCycle().night>=.42})}
+  catch(e){console.error(e);toast('A félkarú rabló most nem tölt be. Próbáld újra!')}
+  slotHit.disabled=false;
+};
+function placeSlot(){
+  if(!sceneInfo||!slotHit)return;const {sc,s}=sceneInfo,P=SLOT_SPRITE;
+  const w=P.w*sc.k*s,h=P.h*sc.k*s;
+  Object.assign(slotHit.style,{left:((P.x*sc.k+sc.ox)*s-w/2)+'px',top:((P.y*sc.k+sc.oy)*s-h)+'px',width:w+'px',height:h+'px',zIndex:0});
+  if(slotHit.parentNode!==crowd)crowd.appendChild(slotHit);
+}
 function placeBjHit(){
   if(!sceneInfo||!bjHit)return;const {sc,s}=sceneInfo,[x,y,w,h]=BJ_TABLE.box;
   Object.assign(bjHit.style,{left:(x*sc.k+sc.ox)*s+'px',top:(y*sc.k+sc.oy)*s+'px',width:w*sc.k*s+'px',height:h*sc.k*s+'px',zIndex:999});
