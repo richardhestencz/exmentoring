@@ -12,11 +12,15 @@
   function card() {
     const boxes = document.querySelectorAll('.lunchcard');   // a tisztáson és a „Csak zene” nézetben is
     if (!L || !answered(L.polls[0])) { boxes.forEach((b) => { b.hidden = true; }); return; }
-    const [b, t] = L.polls, who = (arr) => (arr.length ? arr.join(', ') : '');
+    const [b, t] = L.polls;
+    // soronként: válasz (darab): nevek; így látszik, ki mit jelölt
+    const row = (label, n, names) => `<div class="lcr"><span class="lcl">${esc(label)} <b>(${n})</b></span>${names.length ? `<span class="lcn">${names.map(esc).join(', ')}</span>` : ''}</div>`;
+    const brought = [0, 1].map((i) => row(i ? 'Nem hozott' : 'Hozott', b.counts[i], b.votersByOption[i])).join('');
     const times = t.options.map((o, i) => [o, t.counts[i], t.votersByOption[i]]).filter((x) => x[1] > 0);
     const html = `<div class="lch"><b>🍱 Ebéd ma</b><small>lejár ${hm(L.closesAt)}</small></div>`
-      + `<div class="lcr"><span title="${esc(who(b.votersByOption[0]))}">Hozott: <b>${b.counts[0]}</b></span> · <span title="${esc(who(b.votersByOption[1]))}">Nem hozott: <b>${b.counts[1]}</b></span></div>`
-      + `<div class="lcr">${times.length ? 'Indulás: ' + times.map(([o, c, v]) => `<span title="${esc(who(v))}">${o === 'Ma nem jövök' ? 'nem jön' : esc(o)}${o === 'Ma nem jövök' ? ': ' : ' '}<b>${o === 'Ma nem jövök' ? c : '(' + c + ')'}</b></span>`).join(' · ') : 'Indulás: még senki nem jelölte'}</div>`
+      + brought
+      + `<div class="lcs">Indulás</div>`
+      + (times.length ? times.map(([o, c, v]) => row(o === 'Ma nem jövök' ? 'Nem jön' : o, c, v)).join('') : '<div class="lcr">Még senki nem jelölte.</div>')
       + `<button type="button" class="lcedit">Módosítom</button>`;
     boxes.forEach((b) => { b.innerHTML = html; b.hidden = false; b.querySelector('.lcedit').onclick = () => open(true); });
   }
@@ -24,7 +28,7 @@
   // a nagy ablak
   function modal() {
     if (!L) return;
-    const opt = (p, cls) => p.options.map((o, i) => `<button type="button" class="${cls}${p.choices.includes(i) ? ' on' : ''}" aria-pressed="${p.choices.includes(i)}" data-poll="${esc(p.id)}" data-i="${i}">${esc(o)}<small>${p.counts[i] || ''}</small></button>`).join('');
+    const opt = (p, cls) => p.options.map((o, i) => `<button type="button" class="${cls}${p.choices.includes(i) ? ' on' : ''}" aria-pressed="${p.choices.includes(i)}" data-poll="${esc(p.id)}" data-i="${i}">${esc(o)}<small>${p.counts[i] || ''}</small>${(p.votersByOption[i] || []).length ? `<span class="lvn">${p.votersByOption[i].map(esc).join(', ')}</span>` : ''}</button>`).join('');
     const [b, t] = L.polls;
     $('lunchbody').innerHTML = `<section><h2>${esc(b.title)}</h2><div class="lbig">${opt(b, 'lopt big')}</div></section>`
       + `<section><h2>${esc(t.title)}</h2><div class="ltimes">${opt(t, 'lopt')}</div></section>`;
