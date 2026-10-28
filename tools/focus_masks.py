@@ -33,14 +33,19 @@ lines = [[(850, 598), (790, 612), (735, 632), (700, 650), (650, 668), (620, 688)
          [(1255, 583), (1170, 590), (1090, 596)]]
 rzone = np.clip(poly([(590, 585), (870, 585), (860, 615), (815, 640), (800, 700), (775, 760), (770, 815), (640, 815), (600, 700)])
                 + poly([(1180, 660), (1420, 660), (1430, 835), (1180, 835)]) + poly([(1075, 575), (1270, 575), (1270, 602), (1075, 602)]), 0, 1)
-bright = np.clip((lum - blur(lum, 25) - (.0 if night else .02)) / .10, 0, 1)
-smooth = np.clip(1 - (var(lum, 2) - .02) / .05, 0, 1)
-wl = (.42 if not night else .25)
-if night:  # éjjel a víz csillogó, texturált: elég, ha a környezeténél jóval világosabb
+# éjjel, ha megvan a nappali kép, a vizet abból jelöljük ki (ugyanott van): a sötét képen a fák is a víz közé kerültek, és furán csúsztak
+rl, rnight = lum, night
+if night and len(sys.argv) > 4:
+    di = np.asarray(Image.open(sys.argv[4]).convert('RGB').resize((1920, 1080), Image.LANCZOS)).astype(np.float32) / 255
+    rl, rnight = di[..., 0] * .299 + di[..., 1] * .587 + di[..., 2] * .114, False
+bright = np.clip((rl - blur(rl, 25) - (.0 if rnight else .02)) / .10, 0, 1)
+smooth = np.clip(1 - (var(rl, 2) - .02) / .05, 0, 1)
+wl = (.42 if not rnight else .25)
+if rnight:  # éjjel a víz csillogó, texturált: elég, ha a környezeténél jóval világosabb
     river = rzone * np.clip((lum - blur(lum, 25) - .10) / .12, 0, 1)
     river = cv2.morphologyEx(river, cv2.MORPH_CLOSE, np.ones((5, 5)))
 else:
-    river = rzone * bright * smooth * np.clip((lum - wl) / .15, 0, 1)
+    river = rzone * bright * smooth * np.clip((rl - wl) / .15, 0, 1)
 river = np.clip(blur(cv2.dilate(river, np.ones((3, 3))), 1.5) * 1.5, 0, 1)
 river *= 1 - poly([(835, 560), (1085, 560), (1100, 1080), (800, 1080)])  # a törzs széle nem víz
 

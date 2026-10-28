@@ -722,6 +722,15 @@ app.post('/api/door', ingest, (req, res) => {
   } else return res.status(400).json({ error: 'state: open|closed' });
   save(); broadcast(); res.json({ ok: true, opens: S.doorOpens });
 });
+// extra mosómedve a közös potba (a szerver gazdája adja, az ingest tokennel): {amount, note}
+app.post('/api/pot', ingest, (req, res) => {
+  const amount = Number(req.body?.amount), note = String(req.body?.note || '').slice(0, 80);
+  if (!Number.isInteger(amount) || amount <= 0 || amount > 1e6) return res.status(400).json({ error: 'amount: 1..1000000 egész' });
+  S.pot += amount;
+  say(`🎁 Extra +${fmt(amount)} a potba${note ? ': ' + note : ''}!`);
+  console.log(`[${new Date().toLocaleString('hu-HU', { timeZone: 'Europe/Budapest' })}] pot: extra +${amount} -> ${S.pot}`);
+  save(); broadcast(); res.json({ ok: true, pot: S.pot });
+});
 const today = () => new Date().toLocaleDateString('sv-SE', { timeZone: 'Europe/Budapest' });
 // aznapi első érkezés: +10 000 (home office-ból +5 000) a közös potba; egy becenév naponta csak egyszer kaphat
 function credit(n, amount = DAILY_CREDIT) {

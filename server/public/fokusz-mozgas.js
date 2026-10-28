@@ -70,9 +70,10 @@ void main(){
   if (river > .002) {    // a folyó: két, fél ciklussal eltolt mintavétel a folyás irányában (flowmap), és halvány csillanások
     float a = m2.b*6.2831853 - 1.5707963; vec2 dir = vec2(cos(a), sin(a));
     float ph0 = fract(t*.36), ph1 = fract(t*.36 + .5);
-    vec3 fl = mix(cr(uvd - dir*ph0*38.*k), cr(uvd - dir*ph1*38.*k), abs(1. - 2.*ph0));
+    float fs = mix(38., 16., uNight);   // éjjel visszafogottabb (Richard: „az estébe nem kell ennyi folyó animáció”)
+    vec3 fl = mix(cr(uvd - dir*ph0*fs*k), cr(uvd - dir*ph1*fs*k), abs(1. - 2.*ph0));
     float g = pow(noise(p*.12 - dir*t*1.5)*noise(p*.21 + dir*t*1. + 3.1), 3.)*2.;
-    c = mix(c, fl + g*.85*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
+    c = mix(c, fl + g*mix(.85, .45, uNight)*mix(vec3(1., .85, .55), vec3(.75, .85, 1.), uNight), river);
   }
   if (mist > .002) c += mist*smoothstep(.38, .8, fbm(p*.0035 + vec2(-t*.15, t*.035)))*.3*mix(vec3(1., .86, .66), vec3(.62, .72, .92), uNight);
   // pislogás: a környezetüknél jóval világosabb pöttyök (csillagok, fénypöttyök, éjjel a szentjánosbogarak)
@@ -125,7 +126,7 @@ void main(){
     if (loading && loading.key === key) return loading.p;
     const p = (async () => {
       const n = c.night ? 'night' : 'day';
-      const [img, m1, m2, m3] = await Promise.all([loadImg(key), load(`/img/focus-${n}-m1.png?v=5`), load(`/img/focus-${n}-m2.png?v=5`), load(`/img/focus-${n}-m3.png?v=5`)]);
+      const [img, m1, m2, m3] = await Promise.all([loadImg(key), load(`/img/focus-${n}-m1.png?v=6`), load(`/img/focus-${n}-m2.png?v=6`), load(`/img/focus-${n}-m3.png?v=6`)]);
       const tall = /-tall/.test(key);
       Object.assign(S, { key, img, night: c.night ? 1 : 0, crop: tall ? [2625 / 7680, 2430 / 7680] : [0, 1], ready: false });
       upload(1, m1, false); upload(2, m2, false); upload(3, m3, false);
