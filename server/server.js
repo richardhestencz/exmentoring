@@ -21,6 +21,7 @@ const polls = require('./polls');
 const chapter = require('./chapter');
 const music = require('./music');
 const arena = require('./arena');
+const city = require('./city');
 
 const PORT = process.env.PORT || 3000;
 const DATA_FILE = path.join(process.env.DATA_DIR || path.join(__dirname, 'data'), 'state.json');
@@ -308,7 +309,7 @@ function startResult() {
 const app = express();
 app.use(express.json({ limit: '4kb' }));
 app.use(express.static(path.join(__dirname, 'public')));
-app.get('/api/arena', (req, res) => res.json({ players: arena.count() }));
+app.get('/api/arena', (req, res) => res.json({ players: arena.count(), city: city.count() }));
 const server = http.createServer(app);
 const wss = new WebSocketServer({ server, maxPayload: 1024 });
 
@@ -480,14 +481,14 @@ wss.on('connection', (ws) => {
   ws.nick = ''; ws.budget = 10;
   const refill = setInterval(() => { ws.budget = 10; }, 1000);
   ws.on('close', () => {
-    clearInterval(refill); arena.leave(ws);
+    clearInterval(refill); arena.leave(ws); city.leave(ws);
     if (ws.focus) setImmediate(() => broadcast());
     // a tisztásról akkor lép ki, ha ezzel a becenévvel már senki nincs bent (más lapon sem)
     if (ws.inWorld && ![...wss.clients].some((c) => c !== ws && c.inWorld && c.nick === ws.nick)) { world.leave(S.world, ws.nick); save(); broadcastWorld(); }
   });
   ws.send(JSON.stringify(snapshot(true)));
   ws.on('message', (raw) => {
-    if (arena.handle(ws, raw)) return;   // az aréna (a- üzenetek) saját forgalmi kerettel
+    if (arena.handle(ws, raw) || city.handle(ws, raw)) return;   // a Loop City (c-) is saját forgalmi kerettel   // az aréna (a- üzenetek) saját forgalmi kerettel
     if (--ws.budget < 0) return;
     let m; try { m = JSON.parse(raw); } catch { return; }
     const err = (msg) => ws.send(JSON.stringify({ t: 'err', msg }));

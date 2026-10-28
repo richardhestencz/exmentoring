@@ -78,7 +78,7 @@ G.collide = (x, z, r, y = 0) => {
     const seen = new Set();
     for (let di = -1; di <= 1; di++) for (let dj = -1; dj <= 1; dj++) for (const s of grid.get(gkey(Math.floor(x / CELL) + di, Math.floor(z / CELL) + dj)) || []) {
       if (seen.has(s)) continue; seen.add(s);
-      if (s.h !== undefined && y >= s.h - 0.05) continue;   // ha fölötte vagyunk (pl. ráugrott), nem fal
+      if (s.h !== undefined && y >= s.h - (s.top ? 0.4 : 0.05)) continue;   // fölötte vagyunk, vagy járható és legfeljebb 40 cm-es lépcső (járdaszegély): nem fal, fellépünk rá
       const cx = Math.max(s.x0, Math.min(x, s.x1)), cz = Math.max(s.z0, Math.min(z, s.z1)), dx = x - cx, dz = z - cz, d2 = dx * dx + dz * dz;
       if (d2 >= r * r) continue;
       if (d2 > 1e-9) { const d = Math.sqrt(d2), p = (r - d) / d; x += dx * p; z += dz * p; }

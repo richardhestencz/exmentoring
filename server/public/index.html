@@ -710,7 +710,7 @@ footer strong{color:#fff}
   </div>
 
   <div class="tl">
-    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d">🦝 Belépés a tisztásra</button></div>
+    <div class="glass me" id="me"><img class="rc" src="/img/raccoon-64.png" alt="" aria-hidden="true"><b id="mename">Vendég</b><button type="button" id="rename">Átnevez</button><button type="button" id="leave" hidden title="Végeztem mára: kilépek a tisztásról és a Ki van bent? listából">Kilépek</button><button type="button" id="enter" hidden>Belépek</button><button type="button" id="play3d" class="play3d" title="Loop City: a tisztásról indulsz, onnan a városba">🎮 Belépés: Loop City</button></div>
     <ul class="glass feed" id="feed" aria-live="polite"></ul>
     <div class="glass lunchcard" id="lunchcard" hidden aria-live="polite"></div>
     <section class="glass daily-challenge" id="dailyChallenge" aria-label="Napi rulett-kihívás">
@@ -910,7 +910,7 @@ $('nick').value=nick;
 let toastT;
 function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),2800)}
 $('spinbtn').onclick=()=>send({t:'spin'});
-$('play3d').onclick=()=>{if(!nick){showNick();return}play3d(true)};
+$('play3d').onclick=()=>{if(!nick){showNick();return}location.href='/jatek.html'};   // a belépés a Loop City (a tisztásról indul, onnan a város)
 showNick();
 
 /* ---------- tétasztal (vízszintes, mint az élő kaszinóban) ---------- */

@@ -84,12 +84,14 @@ G.on('update', (dt) => {
   const want = P.aiming ? cam.yaw + Math.PI : len ? Math.atan2(vx, vz) : P.ry;
   let d = ((want - P.ry + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
   P.ry += d * Math.min(1, dt * (P.aiming ? 20 : 12));
-  av.root.position.set(P.x, P.y, P.z); av.root.rotation.y = P.ry;
+  const air = P.y > g + 0.05;
+  // simított magasság: a járdára fellépés nem rándítja meg se a modellt, se a kamerát
+  P.sy = P.sy === undefined ? P.y : air ? P.y : P.sy + (P.y - P.sy) * Math.min(1, dt * 16);
+  av.root.position.set(P.x, P.sy, P.z); av.root.rotation.y = P.ry;
   if (!P.aiming && fx > 0 && P.speed > 0.5 && performance.now() - (cam.lastLook || 0) > 700) {   // csak előre menet (oldalazásnál ne köröztessen)
     const behind = P.ry + Math.PI, dd = ((behind - cam.yaw + Math.PI) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI) - Math.PI;
     if (Math.abs(dd) < 2.6) cam.yaw += dd * Math.min(1, dt * 1.6 * Math.min(1, P.speed / 3));   // szembefordulásnál (S) nem pörög körbe
   }
-  const air = P.y > g + 0.05;
   if (air) av.play('run', 0.6); else if (P.speed > 4.5) av.play('run', P.speed / 6.5); else if (P.speed > 0.3) av.play('walk', P.speed / 2.4); else av.play('idle');
 });
 // a kamera mindig a többi frissítés után (az autó is ide írja a célpontját)
@@ -97,14 +99,18 @@ G.camTarget = null;
 G.on('update', (dt) => {
   if (!av) return;
   let tx, ty, tz, dist = P.aiming ? 2.2 : cam.dist, side = P.aiming ? 0.75 : 0, h = 1.25;
-  if (G.camTarget) ({ x: tx, y: ty, z: tz, dist = dist, h = h } = G.camTarget); else { tx = P.x; ty = P.y; tz = P.z; }
+  if (G.camTarget && P.inCar) ({ x: tx, y: ty, z: tz, dist = dist, h = h } = G.camTarget); else { tx = P.x; ty = P.sy ?? P.y; tz = P.z; }
   const cp = Math.cos(cam.pitch), sp = Math.sin(cam.pitch);
   const bx = Math.sin(cam.yaw) * cp, by = sp, bz = Math.cos(cam.yaw) * cp;   // a kamera felé mutató irány
   const rx = Math.cos(cam.yaw), rz = -Math.sin(cam.yaw);
   const ox = tx + rx * side, oy = ty + h, oz = tz + rz * side;
-  const hit = G.rayWalls(ox, oy, oz, bx, by, bz, dist + 0.3);
-  const want = Math.max(0.6, Math.min(dist, hit - 0.3));
-  cam.cur += (want - cam.cur) * Math.min(1, dt * (want < cam.cur ? 30 : 6));
+  // falak: három sugár (közép és két oldal), a legrövidebb számít; így a kamera nem pattog egy él mentén
+  let hit = dist + 0.3;
+  for (const o of [0, -0.35, 0.35]) hit = Math.min(hit, G.rayWalls(ox + rx * o, oy, oz + rz * o, bx, by, bz, dist + 0.3));
+  const want = Math.max(0.9, Math.min(dist, hit - 0.35));
+  // közeledni gyorsan kell (különben a falba lát), távolodni lassan és csak érdemi eltérésnél: ütközéskor nem remeg
+  if (want < cam.cur) cam.cur += (want - cam.cur) * Math.min(1, dt * 18);
+  else if (want - cam.cur > 0.05) cam.cur += (want - cam.cur) * Math.min(1, dt * 3);
   const ceil = G.ceilAt ? G.ceilAt(tx, tz) : 1e9;   // belső térben (bolt) a mennyezet alatt marad
   G.camera.position.set(ox + bx * cam.cur, Math.min(ceil - 0.25, Math.max(0.3, oy + by * cam.cur)), oz + bz * cam.cur);
   G.camera.lookAt(ox - bx * 2, oy - by * 2 + 0.2, oz - bz * 2);
@@ -116,7 +122,7 @@ G.on('update', (dt) => {
 function respawn() {
   if (!P.dead) return;
   const lost = Math.min(P.money, 100); P.money -= lost; G.hud.money();
-  const s = G.world.spawn; P.x = s.x; P.z = s.z; P.y = 0; P.vy = 0; P.hp = 100; P.armor = 0; P.dead = false; P.wanted = 0; G.emit('wanted', 0);
+  const s = G.world.spawn; P.x = s.x; P.z = s.z; P.y = 0; P.sy = 0; P.vy = 0; P.hp = 100; P.armor = 0; P.dead = false; P.wanted = 0; G.emit('wanted', 0);
   G.camTarget = null; G.cam.yaw = s.ry + Math.PI; av.root.rotation.x = 0; av.root.position.set(P.x, 0, P.z); av.play('idle'); G.hud.hp();
   G.hud.banner('', '', 1); G.hud.toast(`Felébredtél a tűz mellett. Az orvos ${lost} $-t kért.`);
 }

@@ -5,6 +5,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { DRACOLoader } from 'three/addons/loaders/DRACOLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
+import { buildTown } from './arena-town.js';
 import { buildMap, SPAWNS, moveBody, snapDown, blocked, rayBoxes, rayPlayer, STAND, CROUCH } from './arena-map.js';
 import { sfx, unlock } from './arena-audio.js';
 
@@ -67,7 +68,8 @@ async function loadAll() {
     const k = WEAPONS[i].len / Math.max(sz.x, sz.z), pivot = new THREE.Group(); inner.scale.setScalar(k); pivot.add(inner);
     GUNS[i] = { model: pivot, flip: GUN_FLIP[i] };
   });
-  MAPG = buildMap(scene);
+  MAPG = Q.get('map') === 'old' ? buildMap(scene) : await buildTown(scene, load);
+  if (Q.get('map') !== 'old') Object.assign(sun.shadow.camera, { left: -52, right: 52, top: 52, bottom: -52 }), sun.shadow.camera.updateProjectionMatrix();
 }
 const GUN_FLIP = [false, false, false];   // a Kenney-fegyverek csöve eleve -Z felé néz
 function gunInstance(i, fwdZ = false) {   // fwdZ: +Z felé néző cső (a mosómedve +Z felé néz)
@@ -145,7 +147,8 @@ function stepMe(dt) {
   const f = act ? (K.KeyW ? 1 : 0) - (K.KeyS ? 1 : 0) : 0, s = act ? (K.KeyD ? 1 : 0) - (K.KeyA ? 1 : 0) : 0;
   let wx = -Math.sin(me.yaw) * f + Math.cos(me.yaw) * s, wz = -Math.cos(me.yaw) * f - Math.sin(me.yaw) * s; const wl = Math.hypot(wx, wz); if (wl) { wx /= wl; wz /= wl; }
   const spd0 = Math.hypot(me.vx, me.vz), wantC = act && (K.KeyC || K.ControlLeft);
-  if (wantC && !me.crouch) { me.crouch = true; if (me.ground && spd0 > 6.5) { me.slide = 1.1; const k = Math.min(1.12, 12 / spd0); me.vx *= k; me.vz *= k; } }
+  // csúszás csak futás (előre) közbeni guggolásra indul
+  if (wantC && !me.crouch) { me.crouch = true; if (me.ground && spd0 > 6.5 && f > 0) { me.slide = 1.1; const k = Math.min(1.12, 12 / spd0); me.vx *= k; me.vz *= k; } }
   if (!wantC && me.crouch && !blocked(me.x, me.y, me.z, STAND)) { me.crouch = false; me.slide = 0; }
   me.h = me.crouch ? CROUCH : STAND; if (me.slide > 0) { me.slide -= dt; if (spd0 < 2.5 || !me.crouch) me.slide = 0; }
   const W = WEAPONS[me.cls], maxSp = (me.crouch && me.slide <= 0 ? 4 : 8) * (me.ads > 0.5 ? (W.scope ? 0.6 : 0.8) : 1);
@@ -155,16 +158,20 @@ function stepMe(dt) {
   const accel = (ws_, a) => { const add = ws_ - (me.vx * wx + me.vz * wz); if (add <= 0) return; const as = Math.min(add, a * ws_ * dt); me.vx += wx * as; me.vz += wz * as; };
   if (me.ground && !jump) {   // talajon: súrlódás, majd gyorsítás (landoláskor tartott ugrással nincs súrlódás: bunnyhop)
     const sp = Math.hypot(me.vx, me.vz);
-    if (sp > 0) { const ns = Math.max(0, sp - Math.max(sp, 2.5) * (me.slide > 0 ? 0.9 : 9) * dt); me.vx *= ns / sp; me.vz *= ns / sp; }
-    if (wl && me.slide <= 0) accel(maxSp, 10);
+    if (sp > 0) { const ns = Math.max(0, sp - Math.max(sp, 2.5) * (me.slide > 0 ? 0.9 : 12) * dt); me.vx *= ns / sp; me.vz *= ns / sp; }
+    if (wl && me.slide <= 0) accel(maxSp, 20);
   } else if (wl) accel(Math.min(maxSp, 1.1), 45);   // levegőben: kis gyorsítás, strafe-olva nő a sebesség
-  me.vy -= 24 * dt;
-  const n = Math.ceil(dt / 0.0125), h = dt / n;
-  for (let i = 0; i < n; i++) moveBody(me, me.vx * h, me.vy * h, me.vz * h);
-  if (wasGround && !me.ground && me.vy <= 0 && !jump) snapDown(me);
-  if (!wasGround && me.ground && me.vy === 0) { sfx('land', 0.7); me.shake = 0.03; }
+  // kis lépésekben: a nehézség minden lépésben hat, a lépcsőn lefelé a talajra tapadunk (nincs „ugrálás” a fokokon)
+  const n = Math.ceil(dt / 0.0125), h = dt / n; let fall = 0;
+  for (let i = 0; i < n; i++) {
+    me.vy -= 24 * h; fall = Math.min(fall, me.vy); const wg = me.ground;
+    moveBody(me, me.vx * h, me.vy * h, me.vz * h);
+    if (wg && !me.ground && me.vy <= 0 && !jump) snapDown(me, 0.32);
+  }
+  if (!wasGround && me.ground && fall < -5) { sfx('land', 0.7); me.shake = 0.03; }
   if (me.y < -10) { me.y = 0; me.vy = 0; }
-  me.camY += (me.y - me.camY) * Math.min(1, dt * 18); if (Math.abs(me.y - me.camY) > 0.7) me.camY = me.y;   // a lépcsőn nincs rángatás
+  // a szem magassága a lépcsőfokon simán követ (~0,1 s), levegőben szorosan; nagy ugrásnál (újraéledés) azonnal
+  me.camY += (me.y - me.camY) * (1 - Math.exp(-dt * (me.ground ? 22 : 45))); if (Math.abs(me.y - me.camY) > 1.2) me.camY = me.y;
   me.eyeH += ((me.crouch ? EYE_C : EYE) - me.eyeH) * Math.min(1, dt * 14);
   const sp = Math.hypot(me.vx, me.vz);
   me.bob += sp * dt * (me.ground ? 1.4 : 0.2);
@@ -483,7 +490,7 @@ fetch('/api/arena').then((r) => r.json()).then((j) => { $('onl').textContent = `
 
 (async () => {
   const tick = setInterval(() => { $('syncPct').textContent = Math.min(97, Math.floor(loaded / Math.max(1, want) * 100)) + '%'; }, 100);
-  try { await loadAll(); } catch (e) { console.warn('arena betöltés', e); $('sync').querySelector('b').textContent = 'HIBA A BETÖLTÉSNÉL'; clearInterval(tick); return; }
+  try { await loadAll(); } catch (e) { console.warn('arena betöltés', String(e && e.stack || e)); $('sync').querySelector('b').textContent = 'HIBA A BETÖLTÉSNÉL'; clearInterval(tick); return; }
   clearInterval(tick); $('syncPct').textContent = '100%'; frame();
   setTimeout(() => { $('sync').hidden = true; $('pick').hidden = false; if (Q.get('bots') === '1' && !Q.get('menu')) $('goBot').click(); }, 700);
 })();
@@ -495,5 +502,6 @@ window.A = {
   look(yaw, pitch) { me.yaw = yaw; me.pitch = pitch; },
   aimAt(id) { const p = pawns.get(id); if (!p) return false; const e = eyePos(), tx = p.x - e.x, tz = p.z - e.z, ty = p.y + 1.0 - e.y; me.yaw = Math.atan2(-tx, -tz); me.pitch = Math.atan2(ty, Math.hypot(tx, tz)); return true; },
   tp(x, z, y = 0) { me.x = x; me.z = z; me.y = y; me.camY = y; me.vx = me.vz = me.vy = 0; },
+  mapg: () => MAPG, blocked, keys, step: stepMe, camPos: () => [camera.position.x, camera.position.y, camera.position.z],
   ads(v) { mouse.r = !!v; }, pickCls, begin, bots: () => [...pawns.values()].filter((p) => p.bot),
 };

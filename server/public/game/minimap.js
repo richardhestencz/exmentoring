@@ -27,6 +27,8 @@ export function init() {
     g.fillStyle = '#c98a2c'; g.beginPath(); g.arc(0, 0, 15, 0, 7); g.fill();          // a tisztás
     // autók, gyalogosok, rendőrök
     for (const v of G.vehicles || []) { if (v.dead) continue; g.fillStyle = v.police ? (t % 0.5 < 0.25 ? '#ff3b3b' : '#3b7bff') : '#f2f2f2'; g.save(); g.translate(v.x, v.z); g.rotate(-(v.ry || 0)); g.fillRect(-1.1, -2.2, 2.2, 4.4); g.restore(); }
+    // a többi játékos: nagyobb sárga pötty
+    if (G.others) for (const o of G.others.values()) { g.fillStyle = '#ffd23e'; g.strokeStyle = '#000'; g.lineWidth = 0.8; g.beginPath(); g.arc(o.x, o.z, 3.2, 0, 7); g.fill(); g.stroke(); }
     for (const n of G.npcs || []) { if (n.dead) continue; g.fillStyle = n.cop ? '#3b7bff' : 'rgba(255,230,150,.9)'; g.beginPath(); g.arc(n.x, n.z, n.cop ? 2.2 : 1.4, 0, 7); g.fill(); }
     // ikonok: a fontos helyek mindig látszanak (a radar szélére húzva)
     g.setTransform(1, 0, 0, 1, 0, 0);

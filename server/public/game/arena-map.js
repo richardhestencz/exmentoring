@@ -7,28 +7,46 @@ export const HW = 0.35, STAND = 1.7, CROUCH = 1.0, STEP = 0.56;   // a játékos
 const EPS = 1e-4;
 
 // 8 kezdőpont a falak mentén; a tekintet a pálya közepe felé
-export const SPAWNS = [[-26, -15], [-12, -26], [12, -26], [26, -15], [26, 15], [12, 26], [-12, 26], [-26, 15]].map(([x, z]) => ({ x, y: 0, z, yaw: Math.atan2(x, z) }));
+export const SPAWNS = [];   // a pálya tölti ki
+export const setSpawns = (pts) => { SPAWNS.length = 0; for (const [x, z, y = 0] of pts) SPAWNS.push({ x, y, z, yaw: Math.atan2(x, z) }); };   // a tekintet a pálya közepe felé
+setSpawns([[-26, -15], [-12, -26], [12, -26], [26, -15], [26, 15], [12, 26], [-12, 26], [-26, 15]]);
 
-function gridTex() {
+function gridTex(alpha = 0.22) {
   const c = document.createElement('canvas'); c.width = c.height = 64;
   const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, 64, 64);
-  g.strokeStyle = 'rgba(0,0,40,.22)'; g.lineWidth = 3; g.strokeRect(1.5, 1.5, 61, 61);
+  g.strokeStyle = `rgba(0,0,40,${alpha})`; g.lineWidth = 3; g.strokeRect(1.5, 1.5, 61, 61);
   const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.anisotropy = 4; t.colorSpace = THREE.SRGBColorSpace; return t;
 }
-
-export function buildMap(scene) {
-  BOXES.length = 0;
-  const tex = gridTex(), mats = {};
+// doboz-gyártó: ugyanaz a doboz rajzolódik és ütközik (color = null: csak ütközés, pl. láthatatlan fal)
+export function makeBuilder(scene, lineAlpha = 0.22) {
+  const tex = gridTex(lineAlpha), mats = {};
   const mat = (c) => (mats[c] ||= new THREE.MeshStandardMaterial({ color: c, map: tex, roughness: 0.85, metalness: 0 }));
-  // doboz két sarokponttal; a rács-textúra méretarányos (1 csempe = 2 m)
   const box = (x0, y0, z0, x1, y1, z1, color, shadow = true) => {
+    const b = { x0, y0, z0, x1, y1, z1 }; BOXES.push(b); if (!color) return b;
     const w = x1 - x0, h = y1 - y0, d = z1 - z0, geo = new THREE.BoxGeometry(w, h, d), uv = geo.attributes.uv;
     const dims = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]];
     for (let f = 0; f < 6; f++) for (let i = 0; i < 4; i++) { const k = f * 4 + i; uv.setXY(k, uv.getX(k) * dims[f][0] / 2, uv.getY(k) * dims[f][1] / 2); }
     const m = new THREE.Mesh(geo, mat(color)); m.position.set(x0 + w / 2, y0 + h / 2, z0 + d / 2); m.castShadow = shadow; m.receiveShadow = true; scene.add(m);
-    const b = { x0, y0, z0, x1, y1, z1 }; BOXES.push(b); return b;
+    return b;
   };
-  const C = (cx, cz, w, d, y0, y1, color) => box(cx - w / 2, y0, cz - d / 2, cx + w / 2, y1, cz + d / 2, color);
+  return { box, C: (cx, cz, w, d, y0, y1, color) => box(cx - w / 2, y0, cz - d / 2, cx + w / 2, y1, cz + d / 2, color) };
+}
+// útpontok összekötése: azonos magasságú, szabad rálátású párok (két magasságban sugarazva) + a megadott (lépcső) élek
+export function linkNodes(nodes, explicit = [], maxLen = 26) {
+  const edges = nodes.map(() => []);
+  const link = (a, b) => { if (!edges[a].includes(b)) edges[a].push(b); if (!edges[b].includes(a)) edges[b].push(a); };
+  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
+    const a = nodes[i], b = nodes[j]; if (Math.abs(a.y - b.y) > 0.01) continue;
+    const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); if (L > maxLen || L < 0.01) continue;
+    if (rayBoxes(a.x, a.y + 0.5, a.z, dx / L, 0, dz / L, L) >= L && rayBoxes(a.x, a.y + 1.3, a.z, dx / L, 0, dz / L, L) >= L) link(i, j);
+  }
+  for (const [a, b] of explicit) link(a, b);
+  return edges;
+}
+
+export function buildMap(scene) {
+  BOXES.length = 0;
+  const { box, C } = makeBuilder(scene);
 
   // padló és a pálya körüli fal (a padló a falon túl is folytatódik, hogy ne lógjon a semmibe)
   box(-34, -1, -34, 34, 0, 34, '#8fc9e8', false);
@@ -70,15 +88,8 @@ export function buildMap(scene) {
   const ground = [[-20, -20], [-6, -20], [6, -20], [20, -20], [-22, -10], [22, 10], [-14, -8], [14, 8], [-20, 20], [-6, 20], [6, 20], [20, 20], [22, -10], [-22, 10], [0, -14], [0, 14], [-14, 8], [14, -8], [-25, 13], [25, -13]];
   const upper = [[0, 0], [0, 5.5], [0, -5.5], [-5, 0], [5, 0], [-13, 0], [13, 0], [-24, 0], [24, 0]];
   const nodes = [...ground.map(([x, z]) => ({ x, y: 0, z })), ...upper.map(([x, z]) => ({ x, y: 3, z }))];
-  const edges = nodes.map(() => []);
-  const link = (a, b) => { if (!edges[a].includes(b)) edges[a].push(b); if (!edges[b].includes(a)) edges[b].push(a); };
-  for (let i = 0; i < nodes.length; i++) for (let j = i + 1; j < nodes.length; j++) {
-    const a = nodes[i], b = nodes[j]; if (a.y !== b.y) continue;
-    const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz); if (L > 26) continue;
-    if (rayBoxes(a.x, a.y + 0.5, a.z, dx / L, 0, dz / L, L) >= L && rayBoxes(a.x, a.y + 1.3, a.z, dx / L, 0, dz / L, L) >= L) link(i, j);
-  }
   const at = (x, z, y) => nodes.findIndex((n) => n.x === x && n.z === z && n.y === y);
-  link(at(0, 14, 0), at(0, 5.5, 3)); link(at(0, -14, 0), at(0, -5.5, 3)); link(at(-25, 13, 0), at(-24, 0, 3)); link(at(25, -13, 0), at(24, 0, 3));
+  const edges = linkNodes(nodes, [[at(0, 14, 0), at(0, 5.5, 3)], [at(0, -14, 0), at(0, -5.5, 3)], [at(-25, 13, 0), at(-24, 0, 3)], [at(25, -13, 0), at(24, 0, 3)]]);
   return { nodes, edges };
 }
 
@@ -99,15 +110,18 @@ export function moveBody(b, dx, dy, dz) {
     b[ax] += ax === 'x' ? dx : dz;
     for (let i = 0, s; i < 4 && (s = hit(b.x, b.y, b.z, b.h)); i++) {
       if (s.y1 - b.y <= STEP && b.vy <= 0.5 && !hit(b.x, s.y1, b.z, b.h)) { b.y = s.y1; b.ground = true; if (b.vy < 0) b.vy = 0; continue; }
-      const d = ax === 'x' ? dx : dz;
+      const d = (ax === 'x' ? dx : dz) || (ax === 'x' ? b.x - (s.x0 + s.x1) / 2 : b.z - (s.z0 + s.z1) / 2);   // álló helyzetben a doboz közepétől tolunk el
       if (ax === 'x') { b.x = d > 0 ? s.x0 - HW : s.x1 + HW; b.vx = 0; } else { b.z = d > 0 ? s.z0 - HW : s.z1 + HW; b.vz = 0; }
     }
   }
+  // nyugvó helyzetben (vy = 0) nincs lefelé mozgás, mégis a talajon állunk: a pár milliméteres rés alatti doboz tartja
+  if (!b.ground && b.vy <= 0 && hit(b.x, b.y - 0.02, b.z, b.h)) b.ground = true;
 }
 // lefelé lépcsőn nem „repülünk”: ha az előbb a talajon álltunk, a közeli (≤ r) talajra tapadunk
 export function snapDown(b, r = 0.45) {
-  const s = hit(b.x, b.y - r, b.z, b.h);
-  if (s && s.y1 <= b.y + EPS && s.y1 >= b.y - r) { b.y = s.y1; b.vy = 0; b.ground = true; }
+  let top = -1e9;
+  for (const s of BOXES) if (b.x + HW > s.x0 + EPS && b.x - HW < s.x1 - EPS && b.z + HW > s.z0 + EPS && b.z - HW < s.z1 - EPS && s.y1 <= b.y + EPS && s.y1 >= b.y - r && s.y1 > top) top = s.y1;
+  if (top > -1e9) { b.y = top; b.vy = 0; b.ground = true; }
 }
 
 // ---------- sugarak ----------

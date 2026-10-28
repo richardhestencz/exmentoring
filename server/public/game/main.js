@@ -9,7 +9,7 @@ G.nick = nick;
 $('syncNick').textContent = nick;
 
 // a modulok (autók, gyalogosok, fegyverek, bolt, lőtér) egymástól függetlenül töltődnek: ha egy hibás, a többi megy
-const MODS = ['./vehicles.js', './npcs.js', './weapons.js', './shop.js', './range.js', './minimap.js'];
+const MODS = ['./vehicles.js', './npcs.js', './weapons.js', './shop.js', './range.js', './minimap.js', './mp.js'];
 
 // ---------- az Animus-tér: szürke végtelen, forgó szilánkok, a kamera előre száguld ----------
 const animus = new THREE.Scene(); animus.background = new THREE.Color(0xf3f3f3); animus.fog = new THREE.Fog(0xf3f3f3, 10, 80);
