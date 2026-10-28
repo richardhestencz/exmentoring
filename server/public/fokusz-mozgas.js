@@ -10,6 +10,11 @@
   const cv = document.createElement('canvas'), pc = document.createElement('canvas');
   cv.className = pc.className = 'fmo'; cv.setAttribute('aria-hidden', 'true'); pc.setAttribute('aria-hidden', 'true');
   bg.after(cv, pc);
+  // ki is kapcsolható (gombbal, a választás a böngészőben marad); alapból ki, ha a rendszer kevesebb mozgást kér
+  const abtn = document.getElementById('fanim');
+  let off = false;
+  try { const v = localStorage.getItem('fokuszAnim'); off = v ? v === 'ki' : matchMedia('(prefers-reduced-motion: reduce)').matches; } catch {}
+  const showBtn = () => { if (!abtn) return; abtn.hidden = false; abtn.textContent = off ? 'Animáció be' : 'Animáció ki'; abtn.setAttribute('aria-pressed', String(!off)); };
   // ha nincs WebGL2 (vagy a shader nem fordul), a kép áll, de a levelek, hangjegyek és fénypöttyök akkor is mozognak
   let gl = null, glErr = '', lastErr = '', frames = 0;
   try { gl = cv.getContext('webgl2', { alpha: false, antialias: false, premultipliedAlpha: false, powerPreference: 'low-power' }); } catch (e) { glErr = String(e); }
@@ -239,11 +244,11 @@ void main(){
     }
     frames++;
     spawn(t); particles(t, dt);
-    view.classList.add('fmoon');
+    if (!off && root.classList.contains('focus')) view.classList.add('fmoon');   // leállás közben ne jöjjön vissza
   }
   let stopTimer = 0;
   async function sync() {
-    const zen = root.classList.contains('focus');   // a „Csak zene” nézetben mindig fut
+    const zen = root.classList.contains('focus') && !off;   // a „Csak zene” nézetben fut, ha nincs kikapcsolva
     if (zen) {
       clearTimeout(stopTimer);
       if (!(await scene())) return;
@@ -252,7 +257,10 @@ void main(){
     } else if (running) {
       view.classList.remove('fmoon');
       clearTimeout(stopTimer);
-      stopTimer = setTimeout(() => { cancelAnimationFrame(raf); running = false; leaves = []; notes = []; }, 2200);   // a halványulás után áll le
+      stopTimer = setTimeout(() => {   // a halványulás után áll le; kikapcsolva a vásznak memóriáját is elengedi
+        cancelAnimationFrame(raf); running = false; leaves = []; notes = [];
+        if (off) { cv.width = cv.height = pc.width = pc.height = 1; L = null; }
+      }, 2200);
     }
   }
   new MutationObserver(() => { if (running || root.classList.contains('focus')) { const c = current(); if (c && c.url !== S.key) { S.ready = false; view.classList.remove('fmoon'); motes = []; } sync(); } })
@@ -260,7 +268,9 @@ void main(){
   addEventListener('resize', () => { if (!running) return; const c = current(); if (c && c.url !== S.key) { S.ready = false; motes = []; } sync(); });
   cv.addEventListener('webglcontextlost', (e) => { e.preventDefault(); glErr = 'context lost'; gl = null; cv.remove(); });
   // visszajelzés a szervernek (a szerver naplójába), hogy egy-egy gépen miért nem mozog: böngésző, WebGL, hiba, lefutott képkockák
-  const diag = (when) => { try { if (typeof send === 'function') send({ t: 'fmodiag', d: JSON.stringify({ v: 5, when, ua: navigator.userAgent, gl: !!gl, glErr, lastErr, focus: root.classList.contains('focus'), running, frames, live: view.classList.contains('fmoon'), dpr: devicePixelRatio, vw: view.clientWidth, vh: view.clientHeight, img: S.key.split('/').pop(), hidden: document.hidden }) }); } catch {} };
+  const diag = (when) => { try { if (typeof send === 'function') send({ t: 'fmodiag', d: JSON.stringify({ v: 6, when, ua: navigator.userAgent, gl: !!gl, glErr, lastErr, focus: root.classList.contains('focus'), running, frames, live: view.classList.contains('fmoon'), off, dpr: devicePixelRatio, vw: view.clientWidth, vh: view.clientHeight, img: S.key.split('/').pop(), hidden: document.hidden }) }); } catch {} };
+  if (abtn) abtn.addEventListener('click', () => { off = !off; try { localStorage.setItem('fokuszAnim', off ? 'ki' : 'be'); } catch {} showBtn(); sync(); });
+  showBtn();
   setTimeout(() => diag('8s'), 8000); setTimeout(() => diag('30s'), 30000);
   sync();
 })();

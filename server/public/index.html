@@ -484,7 +484,7 @@ html.focus .focusview.fmoon .fmo{opacity:1}
 .fc:hover:not(:disabled){background:rgba(255,255,255,.24)}.fc:disabled{opacity:.4;cursor:default}
 .fc.fjoin{flex:1 1 100%;background:linear-gradient(105deg,#eb772e 25%,#df312d 68%,#b83553)}.fc.fjoin.on{background:rgba(255,255,255,.14)}
 #fvol{flex:1;min-width:60px;accent-color:#eb772e}
-.frow{display:flex;justify-content:space-between;gap:10px;margin-top:12px}
+.frow{display:flex;flex-wrap:wrap;justify-content:space-between;gap:6px 10px;margin-top:12px}
 .flink{border:0;background:none;color:#ffd2a1;font:inherit;font-size:.82rem;text-decoration:underline;cursor:pointer;padding:0}
 .flunch{position:absolute;left:16px;top:16px;width:min(300px,calc(100% - 32px))}
 .fc:focus-visible,.flink:focus-visible{outline:3px solid #fff;outline-offset:2px}
@@ -786,7 +786,7 @@ footer strong{color:#fff}
     <div class="fctl"><button type="button" class="fc fjoin" id="fjoin">▶ Zene bekapcsolása</button>
       <button type="button" class="fc" id="fprev" title="Előző (mindenkinek)">⏮</button><button type="button" class="fc" id="fpause" title="Szünet (mindenkinek)">⏸</button><button type="button" class="fc" id="fnext" title="Következő (mindenkinek)">⏭</button>
       <input type="range" id="fvol" min="0" max="100" aria-label="Hangerő (csak nálad)" title="Hangerő (csak nálad)"></div>
-    <div class="frow"><button type="button" class="flink" id="fopen">Lista, szám betétele</button><button type="button" class="flink" id="fexit">← Vissza a tisztásra</button></div>
+    <div class="frow"><button type="button" class="flink" id="fopen">Lista, szám betétele</button><button type="button" class="flink" id="fanim" aria-pressed="true" hidden title="A háttér mozgása (kikapcsolva kíméli a gépet és az akkut)">Animáció ki</button><button type="button" class="flink" id="fexit">← Vissza a tisztásra</button></div>
   </div>
 </section>
 
@@ -1609,7 +1609,7 @@ if(BETA&&location.hash==='#blackjack')setTimeout(()=>setView(true),400);
     <div class="lfoot"><button type="button" class="llater" id="lunchlater">Most nem</button><button type="button" class="go ldone" id="lunchdone" disabled>Kész</button></div>
   </div>
 </div>
-<script src="/zene.js"></script><script src="/ebed.js"></script><script src="/fokusz.js"></script><script src="/fokusz-mozgas.js?v=5"></script>
+<script src="/zene.js"></script><script src="/ebed.js"></script><script src="/fokusz.js"></script><script src="/fokusz-mozgas.js?v=6"></script>
 <script src="/fx.js"></script>
 <div class="tobeta" id="tobeta" aria-hidden="true">BÉTA · 3D TISZTÁS</div>
 <script>
