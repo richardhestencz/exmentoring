@@ -8,7 +8,8 @@
   const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const C = { msgs: [], seen: new Set(), ready: false, unread: 0, popT: 0 };
 
-  const myNick = () => { try { return (window.nick || localStorage.getItem('nick') || ''); } catch { return ''; } };
+  // window.nick a belépés előtt az <input id="nick"> elem (névvel elért DOM-elem), nem szöveg
+  const myNick = () => { try { return (typeof window.nick === 'string' && window.nick) || localStorage.getItem('nick') || ''; } catch { return ''; } };
   const timeStr = (ts) => { try { return new Date(ts).toLocaleTimeString('hu-HU', { hour: '2-digit', minute: '2-digit' }); } catch { return ''; } };
 
   /* ---- a panel ---- */
