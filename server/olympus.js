@@ -13,14 +13,14 @@ const PAYS = {
 const SCATTER_PAYS = { 4: 3, 5: 5, 6: 100 };   // 6+ is 100x
 const BETS = [20, 50, 100, 200, 500];
 const BUY_MULT = 100, MAX_WIN = 5000, COOLDOWN_MS = 1000;
-const COLS = 6, ROWS = 5, FREE_AWARD = 15, RETRIGGER = 5;
+const COLS = 6, ROWS = 5, FREE_AWARD = 25, RETRIGGER = 5;
 const ORB_VALUES = [2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25, 50, 100, 250, 500];
 
 // hangolt súlyok (a Monte Carlo szkript állítja be, lásd a jelentést)
 const CFG = {
   w: [1, 1.4, 1.8, 2.2, 2.6, 3, 3.4, 3.8, 4.2],            // jelsúlyok a SYMBOLS sorrendjében
   scBase: 0.0185, scFree: 0.02,                // scatter esély cellánként (alap / ingyenes)
-  orbBase: 0.0064, orbFree: 0.03,               // gömb esély cellánként
+  orbBase: 0.0064, orbFree: 0.037,              // gömb esély cellánként
   orbW: [30, 22, 16, 12, 9, 7, 5, 4, 3, 2, 1.5, 1, 0.3, 0.1, 0.03],   // gömbértékek súlya
   buy5: 0.15,                                  // vételnél 5 scatter esélye (különben 4)
 };

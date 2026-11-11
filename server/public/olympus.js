@@ -131,7 +131,7 @@ function renderPanel() {
   if (st && !q('.olpt').dataset.ok) {
     q('.olpt').dataset.ok = 1;
     const ic = (s) => `<i class="olic" style="background-position:${ORDER.indexOf(s) * 100 / (ORDER.length - 1)}% 0"></i>`;
-    q('.olpt').innerHTML = `<p>Bárhol a rácson legalább 8 egyforma jel nyer (8–9 / 10–11 / 12+). A nyerő jelek eltűnnek, a helyükre újak hullanak, amíg van nyerés. A szorzógömbök (×2–×500) a lavina végén összeadódnak és megszorozzák a nyereményt. 4+ ${ic('zeus')} = 15 ingyenes pörgetés, ott a szorzók gyűlnek; 3+ ${ic('zeus')} újabb 5 pörgetés. Legfeljebb a tét ${st.max}-szorosa.</p>` +
+    q('.olpt').innerHTML = `<p>Bárhol a rácson legalább 8 egyforma jel nyer (8–9 / 10–11 / 12+). A nyerő jelek eltűnnek, a helyükre újak hullanak, amíg van nyerés. A szorzógömbök (×2–×500) a lavina végén összeadódnak és megszorozzák a nyereményt. 4+ ${ic('zeus')} = 25 ingyenes pörgetés, ott a szorzók gyűlnek; 3+ ${ic('zeus')} újabb 5 pörgetés. Legfeljebb a tét ${st.max}-szorosa.</p>` +
       `<table>${Object.entries(st.pays).map(([s, p]) => `<tr><td>${ic(s)}</td><td>${p.join(' / ')}×</td></tr>`).join('')}<tr><td>${ic('zeus')}</td><td>4: ${st.scatter[4]}× · 5: ${st.scatter[5]}× · 6: ${st.scatter[6]}×</td></tr></table>`;
   }
 }

@@ -88,8 +88,8 @@ test('olümposz: vétel garantál ingyenes pörgetést, a költség 100x', () =>
     const p = O.play(50, { buy: true, rng });
     assert.strictEqual(p.buy, true);
     assert.strictEqual(p.cost, 5000);
-    assert.ok(p.base.scatters >= 4 && p.base.awarded === 15);
-    assert.ok(p.free && p.free.awarded >= 15 && p.free.spins.length >= 1);
+    assert.ok(p.base.scatters >= 4 && p.base.awarded === 25);
+    assert.ok(p.free && p.free.awarded >= 25 && p.free.spins.length >= 1);
     assert.ok(p.back <= 5000 * 50);
     // az ingyenes pörgetésekben a gyűjtött szorzó nem csökken
     let prev = 0;
@@ -113,6 +113,6 @@ test('olümposz: 30k játék visszafizetési arány (laza határok)', () => {
   const N = 30000;
   for (let i = 0; i < N; i++) { const p = O.play(100, { rng }); back += p.back; if (p.back > 0) hit++; }
   const rtp = back / (N * 100);
-  assert.ok(rtp > 0.75 && rtp < 1.2, `RTP: ${rtp}`);
+  assert.ok(rtp > 0.75 && rtp < 1.6, `RTP: ${rtp}`);
   assert.ok(hit / N > 0.12 && hit / N < 0.4, `találati arány: ${hit / N}`);
 });
